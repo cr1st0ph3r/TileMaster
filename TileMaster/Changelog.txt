@@ -1,0 +1,41 @@
+03-08-2017 Idea first conceived
+
+11-08-2017 first prototypes
+
+13-08-2017 addeded base blocks, Air, dirt and Stone
+
+15-08-2017 created the concept of map, camera and player
+
+20-08-2017 player interacts with the map
+
+20-08-2017 created the map serialization logic, so the map can be saved/loaded from a binary file
+
+04-04-2018 created the chunk concept
+
+23-04-2022 Started playing with map generation logic
+		   The base map is generated from a set of rules and parameters, and from there
+		   some algorithms are applied to form the final tilemap
+23-04-2022 borrowed the class Mathf from Unity. Its not currently being used and can later be removed
+23-04-2022 took some ideas from this blog post on how to generate maps (https://blog.unity.com/technology/procedural-patterns-you-can-use-with-tilemaps-part-i)
+
+24-04-2022 Took the chunk concept and materialized it, now the render only renders the chunks near the player.
+		   ideally (TODO) the chunk loading should follow the camera, but for now follow the player is good enough
+
+25-04-2022 moved the tile definitions to a json file (tiles.json) so its easier to define the tiles
+	       still, the tile type ids should follow the enum so the code can mantain integrity
+25-04-2022 created the grass spread logic. It checks neighbouring blocks around grass tiles and 'tries' to spread around a 1 block radius
+		   its not spreading to other chunks due to a newly discovered chunk load bug that (TODO) needs urgent correction
+25-04-2022 the game now has a scrolling background. The code is taken from another project, aswell with the textures, it need to be improved to better suit my game
+25-04-2022 the tiles look too homogenous, added a randomization factor to make them look more natural and less artificial
+25-04-2022 created a very primitive message system to display various messages to the user. It needs some serious improvements
+
+26-04-2022 created a side project to create the ramdom tiles so the generated tiles has statisticallt the same amount of colors as the retail tiles
+
+27-04-2022 An idea occurred: create a randomness factor index and generate the ramdon tiles at runtime. Needs to check 
+		   wether the texture loader support loading images from memory bitmaps or not
+
+28-04-2022 fixed tile loading logic when setting the global tiles to have loca tile properties
+
+30-04-2022 Added a random factor to generate new textures using the colors of the base texture, this gives a grain appearange to the tiles making them look less artificial
+30-04-2022 Fixed grass not jumping to neighbouring tiles
+30-04-2022 Applied the use of threads to build the initial map dictionary faster
