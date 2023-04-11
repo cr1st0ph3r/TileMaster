@@ -102,7 +102,7 @@ namespace TileMaster
             // Create a new SpriteBatch, which can be used to draw textures.
             spriteBatch = new SpriteBatch(GraphicsDevice);
             camera = new Camera(GraphicsDevice.Viewport);
-            _debugFont = Content.Load<SpriteFont>("Font");
+            _debugFont = Content.Load<SpriteFont>("Fonts/Font");
             Messages = new List<Misc.Message>();
             Tile.Content = Content;
             ChunksToUpdate = new List<int>();
@@ -141,7 +141,7 @@ namespace TileMaster
         {
 
             //drawstring cannot be called at will, it must be called withing the draw event
-            //in thi case a list of messages mujst be defined and then when the game is drawinf, 
+            //in this case a list of messages mujst be defined and then when the game is drawing, 
             //this list must be called and then the messages will be shown
             //also a timeout must be defined to define for how long the messages will be displayed
             //DrawWithShadow(message, new Vector2(camera.Center.X + ((Global.WindowWidth/2)-20), camera.Center.Y + ((Global.WindowHeight / 2) - 20)),color);
