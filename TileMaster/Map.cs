@@ -22,7 +22,7 @@ namespace TileMaster
         public List<CollisionTiles> Tiletypes { get; set; }
         //Tile colors (used for texture generation on the go)
         public List<TileColor> TileColors { get; set; }
-        TileManager tileMgr { get; set; }
+        TileManager TileMgr { get; set; }
 
         private int width, height;
         public int Width
@@ -37,7 +37,7 @@ namespace TileMaster
         public Map()
         {
             ChunkDictionary = new Dictionary<int, Chunk>();
-            tileMgr = new TileManager();
+            TileMgr = new TileManager();
         }
 
         /// <summary>
@@ -48,11 +48,11 @@ namespace TileMaster
         /// <param name="direction"></param>
         /// <param name="retrial"></param>
         /// <returns></returns>
-        public CollisionTiles getTileAt(int blockId, int chunkId, string direction, bool retrial = false)
+        public CollisionTiles GetTileAt(int blockId, int chunkId, string direction, bool retrial = false)
         {
 
 
-            if (IsBlockonChunk(chunkId, blockId))
+            if (IsBlockOnChunk(chunkId, blockId))
             {
                 return ChunkDictionary[chunkId].Tiles[blockId];
             }
@@ -60,15 +60,15 @@ namespace TileMaster
             {
                 if (direction == "right")
                 {
-                    return getTileAt(blockId, chunkId + 1, "right", true);
+                    return GetTileAt(blockId, chunkId + 1, "right", true);
                 }
                 if (direction == "left")
                 {
-                    return getTileAt(blockId, chunkId - 1, "left", true);
+                    return GetTileAt(blockId, chunkId - 1, "left", true);
                 }
                 if (direction == "up")
                 {
-                    return getTileAt(blockId, chunkId - (Global.MapWidth / Global.ChunkSize), "up", true);
+                    return GetTileAt(blockId, chunkId - (Global.MapWidth / Global.ChunkSize), "up", true);
                 }
             }
 
@@ -127,7 +127,7 @@ namespace TileMaster
             {
                 var t = new Task(() =>
                 {
-                    var rowDict = genRow(map, x, multiplier * x);
+                    var rowDict = GenRow(map, x, multiplier * x);
                     if (rowDict != null)
                     {
                         dictList.Add(rowDict);
@@ -151,13 +151,13 @@ namespace TileMaster
 
         }
         /// <summary>
-        /// gnerate a row of blocks
+        /// generates a row of blocks
         /// </summary>
         /// <param name="map"></param>
         /// <param name="startingX"></param>
         /// <param name="globalCounter"></param>
         /// <returns></returns>
-        public Dictionary<int, CollisionTiles> genRow(int[,] map, int startingX, int globalCounter)
+        public Dictionary<int, CollisionTiles> GenRow(int[,] map, int startingX, int globalCounter)
         {
             Dictionary<int, CollisionTiles> dictMap = new Dictionary<int, CollisionTiles>();
             for (int y = 0; y < map.GetLength(0); y++)
@@ -173,7 +173,7 @@ namespace TileMaster
             return dictMap;
         }
         /// <summary>
-        /// Saves the map data into their respectives files
+        /// Saves the map data into their respective files
         /// </summary>
         public void SaveMap()
         {
@@ -182,7 +182,7 @@ namespace TileMaster
                 File.Delete(sFile);
             }
             DictionaryHelper.Serialize(MapDictionary, File.Open(@"Chunks\data.bin", FileMode.Create));
-            Chunksizer();
+            ChunkSizer();
         }
         /// <summary>
         /// Loads a map from a binary source
@@ -195,10 +195,10 @@ namespace TileMaster
             //load tile data (namely colors) so we can build tiles at runtime
             Tiletypes = CollisionTiles.LoadTilesTypes();
             TileColors = TileHelper.GetTileColors();
-            tileMgr.Load(TileColors);
+            TileMgr.Load(TileColors);
             if (Global.UseTileTextureRandomization)
             {
-                Tiletypes = tileMgr.LoadTileTextures(Tiletypes);
+                Tiletypes = TileMgr.LoadTileTextures(Tiletypes);
             }
 
             //sw.Stop();
@@ -207,7 +207,7 @@ namespace TileMaster
 
             //uplon load, tiles has no information about texture or other complex properties
             //because these can't be serialized
-            this.MapDictionary = DictionaryHelper.Deserialize<Dictionary<int, CollisionTiles>>(File.Open(@"Chunks\data.bin", FileMode.Open));
+            this.MapDictionary = DictionaryHelper.DeSerialize<Dictionary<int, CollisionTiles>>(File.Open(@"Chunks\data.bin", FileMode.Open));
 
             List<Tuple<int, string>> chunks = new List<Tuple<int, string>>();
             foreach (string file in Directory.GetFiles("Chunks/").Where(x => x.Contains("chunk") && x.Contains(".bin")))
@@ -217,7 +217,7 @@ namespace TileMaster
             if (chunks.Count == 0)
             {
                 //chunks are empty, needs regen
-                Chunksizer();
+                ChunkSizer();
             }
             chunks.Sort((y, x) => y.Item1.CompareTo(x.Item1));
 
@@ -228,15 +228,17 @@ namespace TileMaster
             foreach (var file in chunks)
             {
                 Chunk chunk = new Chunk();
-                Dictionary<int, CollisionTiles> dict = DictionaryHelper.Deserialize<Dictionary<int, CollisionTiles>>(File.Open(file.Item2, FileMode.Open));
+                Dictionary<int, CollisionTiles> dict = DictionaryHelper.DeSerialize<Dictionary<int, CollisionTiles>>(File.Open(file.Item2, FileMode.Open));
 
                 //set the blocks ids, positions and textures
                 for (int i = 0; i < dict.Count; i++)
                 {
                     var chunkTile = dict.ElementAt(i).Value;
                     var globalId = dict[dict.ElementAt(i).Key].GlobalId;
-                    dict[dict.ElementAt(i).Key] = new CollisionTiles(Tiletypes.FirstOrDefault(x => x.TileId == dict.ElementAt(i).Value.TileId), dict[dict.ElementAt(i).Key]);
-                    dict[dict.ElementAt(i).Key].ChunkId = chunkId;
+                    dict[dict.ElementAt(i).Key] = new CollisionTiles(Tiletypes.FirstOrDefault(x => x.TileId == dict.ElementAt(i).Value.TileId), dict[dict.ElementAt(i).Key])
+                    {
+                        ChunkId = chunkId
+                    };
 
                     //edge tile detection
                     //TODO rework this logic maybe move it to map save so its done once per save instad of one per load
@@ -281,7 +283,7 @@ namespace TileMaster
         /// <summary>
         /// Turn a map dictionary into smaller dictionaries for better management
         /// </summary>
-        public void Chunksizer()
+        public void ChunkSizer()
         {
             //divides the map into chunks of x size
             Dictionary<int, Chunk> Chunks = new Dictionary<int, Chunk>();
@@ -292,9 +294,9 @@ namespace TileMaster
 
             int tempX = 0;
             int tempY = 0;
-            int contadorgrid = 1;
-            int contadorDict = 1;
-            int contadorPointOnscreen = 0;
+            int gridCounter = 1;
+            int dictionaryCounter = 1;
+            int pointOnscreenCounter = 0;
             int rowMultiplier = 0;
 
             for (int gridX = 0; gridX < SectorsInX; gridX++)
@@ -303,34 +305,36 @@ namespace TileMaster
                 {
                     Chunk chunk = new Chunk();
                     int contadorLocalChunk = 0;
-                    chunk.PositionOnscreen = contadorPointOnscreen;
-                    contadorPointOnscreen++;
+                    chunk.PositionOnscreen = pointOnscreenCounter;
+                    pointOnscreenCounter++;
                     tempX += rowMultiplier;
                     for (int x = 0; x < Global.ChunkSize; x++)
                     {
                         for (int y = 0; y < Global.ChunkSize; y++)
                         {
                             chunk.Tiles[tempX] = MapDictionary[tempX];
-                            chunk.Tiles[tempX].ChunkId = contadorDict;
+                            chunk.Tiles[tempX].ChunkId = dictionaryCounter;
                             chunk.Tiles[tempX].LocalId = contadorLocalChunk;
                             chunk.Tiles[tempX].GlobalId = MapDictionary[tempX].GlobalId;
 
                             blockCount++;
                             contadorLocalChunk++;
-                            contadorgrid++;
+                            gridCounter++;
                             tempX++;
                         }
-                        tempX = ((Global.MapWidth) * (x + 1) + (Global.ChunkSize * gridY) + rowMultiplier); //<--manda o x para proxima linha ignorando os outros blocos dos outros chunks
+                         
+                        //sends the x to the next line, ignoring the other blocks on other chunks
+                        tempX = ((Global.MapWidth) * (x + 1) + (Global.ChunkSize * gridY) + rowMultiplier); 
                     }
 
                     tempX = (Global.ChunkSize * (gridY + 1));
 
                     tempY += Global.MapHeight;
-                    Chunks.Add(contadorDict, chunk);
-                    contadorDict++;
+                    Chunks.Add(dictionaryCounter, chunk);
+                    dictionaryCounter++;
                 }
                 tempX = 0;
-                rowMultiplier = contadorgrid - 1;
+                rowMultiplier = gridCounter - 1;
             }
 
 
@@ -363,8 +367,8 @@ namespace TileMaster
         {
             var game = Game.GetInstance();
 
-            //this verification isnt needed
-            if (IsBlockonChunk(chunkId, blockId))
+            //TODO: check this as this verification is not needed
+            if (IsBlockOnChunk(chunkId, blockId))
             {
                 //var tile = ChunkDictionary[chunkId].Tiles[blockId];
                 ChunkDictionary[chunkId].Tiles[blockId].texture = texture;
@@ -374,7 +378,7 @@ namespace TileMaster
             }
             else
             {
-                game.LogMessage("Block " + blockId + " wasnt present on chunk  " + chunkId, Color.Green);
+                game.LogMessage("Block " + blockId + " was not present on chunk  " + chunkId, Color.Green);
             }
         }
         public void SetTileAsGrass(int blockId, int tileId, int chunkId, Texture2D texture)
@@ -386,8 +390,8 @@ namespace TileMaster
         public void SetTile(int blockId, int tileId, int chunkId)
         {
             var game = Game.GetInstance();
-            //this verification isnt needed
-            if (IsBlockonChunk(chunkId, blockId))
+            //this verification isn't needed
+            if (IsBlockOnChunk(chunkId, blockId))
             {
 
                 var refTile = Tiletypes.FirstOrDefault(x => x.TileId == tileId);
@@ -416,7 +420,7 @@ namespace TileMaster
             }
             else
             {
-                game.LogMessage("Block " + blockId + " wasnt present on chunk  " + chunkId, Color.Green);
+                game.LogMessage("Block " + blockId + " was not present on chunk  " + chunkId, Color.Green);
             }
         }
 
@@ -434,12 +438,12 @@ namespace TileMaster
             return false;
         }
         /// <summary>
-        /// Checks wether a block is at the specified chunk
+        /// Checks whether a block is at the specified chunk
         /// </summary>
         /// <param name="chunkId"></param>
         /// <param name="blockId"></param>
         /// <returns></returns>
-        public bool IsBlockonChunk(int chunkId, int blockId)
+        public bool IsBlockOnChunk(int chunkId, int blockId)
         {
             if (ChunkDictionary.ContainsKey(chunkId))
             {
@@ -457,11 +461,11 @@ namespace TileMaster
         /// </summary>
         /// <param name="referenceChunk"></param>
         /// <returns></returns>
-        private List<Tile> getTilesToDraw(int referenceChunk)
+        private List<Tile> GetTilesToDraw(int referenceChunk)
         {
             //how many chunks fit on the screen?
-            int chunksOntheScreenHorizontally = ((Global.WindowWidth / (Global.ChunkSize * Global.Tilesize))) - 1;
-            int chunksOntheScreenVertically = ((Global.WindowHeight / (Global.ChunkSize * Global.Tilesize)));
+            int chunksOnTheScreenHorizontally = ((Global.WindowWidth / (Global.ChunkSize * Global.Tilesize))) - 1;
+            int chunksOnTheScreenVertically = ((Global.WindowHeight / (Global.ChunkSize * Global.Tilesize)));
 
             //used to access upper and lower row chunks
             int rowMultiplier = Global.MapWidth / Global.ChunkSize;
@@ -469,13 +473,13 @@ namespace TileMaster
             List<Tile> tiles = new List<Tile>();
             List<int> CTD = new List<int>();
             //horizontal
-            foreach (var i in Enumerable.Range(1, chunksOntheScreenHorizontally))
+            foreach (var i in Enumerable.Range(1, chunksOnTheScreenHorizontally))
             {
                 CTD.Add(referenceChunk - i);
                 CTD.Add(referenceChunk + i);
             }
             //vertical
-            foreach (var i in Enumerable.Range(1, chunksOntheScreenVertically))
+            foreach (var i in Enumerable.Range(1, chunksOnTheScreenVertically))
             {
                 CTD.Add(referenceChunk + rowMultiplier + i);
                 CTD.Add(referenceChunk - rowMultiplier + i);
@@ -541,7 +545,7 @@ namespace TileMaster
           
         #region Grass Logic
         /// <summary>
-        /// Gets all surrounding tiles and check wether they can have grass grown onto them
+        /// Gets all surrounding tiles and check whether they can have grass grown onto them
         /// </summary>
         /// <param name="chunkId"></param>
         public void GrowGrass(int chunkId)
@@ -549,8 +553,8 @@ namespace TileMaster
             bool hasChanged = false;
             foreach (var tile in ChunkDictionary[chunkId].Tiles.Where(x => x.Value.TileId == (int)TileType.DirtWithGrass).ToList())
             {
-                //cheks if the neightbouring block is dirt and if it has air above it so it can grow grass
-                var neighbors = GetNeighbouringTiles(tile.Value);
+                //checks if the neighboring block is dirt and if it has air above it so it can grow grass
+                var neighbors = GetNeighboringTiles(tile.Value);
 
                 //[x]<-[]
                 hasChanged = CheckTileEligibilityForGrass(neighbors[3]);
@@ -581,7 +585,7 @@ namespace TileMaster
                 //[ ][ ][ ]
                 hasChanged = CheckTileEligibilityForGrass(neighbors[0]);
             }
-            //need to check wether the chunk has changed or not
+            //need to check whether the chunk has changed or not
             if (hasChanged)
             {
                 ChunkDictionary[chunkId].NeedGrassUpdate = hasChanged;
@@ -626,7 +630,7 @@ namespace TileMaster
         }
      
         /// <summary>
-        /// Checks wether a tile can have grass
+        /// Checks whether a tile can have grass
         /// </summary>
         /// <param name="destTile"></param>
         /// <returns></returns>
@@ -641,21 +645,21 @@ namespace TileMaster
         /// <summary>
         /// Set a dirt block into dirt with grass
         /// </summary>
-        /// <param name="destTile"></param>
+        /// <param name="destinationTile"></param>
         /// <returns></returns>
-        private bool SetGrassTile(Tile destTile)
+        private bool SetGrassTile(Tile destinationTile)
         {
             bool top = false;
             bool bottom = false;
             bool left = false;
             bool right = false;
 
-            var neighbors = GetNeighbouringTiles(destTile);
+            var neighbors = GetNeighboringTiles(destinationTile);
 
             bool hasChanged = true;
 
             //grass can be planted
-            //check neigboring tiles to define where on the tile grass will grow
+            //check neighboring tiles to define where on the tile grass will grow
             if (neighbors[1].TileId == (int)TileType.Air)
             {
                 top = true;
@@ -678,128 +682,128 @@ namespace TileMaster
             {
                 //0000
                 //no dice
-                if (destTile.TileId != (int)TileType.Dirt)
+                if (destinationTile.TileId != (int)TileType.Dirt)
                 {
-                    SetTile(destTile.GlobalId, (int)TileType.Dirt, destTile.ChunkId);
+                    SetTile(destinationTile.GlobalId, (int)TileType.Dirt, destinationTile.ChunkId);
                 }
                 hasChanged = false;
             }
             else if (top == false && bottom == false && left == false && right)
             {
                 //0001
-                SetTileAsGrass(destTile.GlobalId,
+                SetTileAsGrass(destinationTile.GlobalId,
                 (int)TileType.DirtWithGrass,
-                destTile.ChunkId,
+                destinationTile.ChunkId,
                 Tiletypes.FirstOrDefault(x => x.TileId == (int)TileType.Dirt).Textures.FirstOrDefault(x => x.Name == "Tile9"));
             }
             else if (top == false && bottom == false && left && right == false)
             {
                 //0010
-                SetTileAsGrass(destTile.GlobalId,
+                SetTileAsGrass(destinationTile.GlobalId,
                 (int)TileType.DirtWithGrass,
-                destTile.ChunkId,
+                destinationTile.ChunkId,
                 Tiletypes.FirstOrDefault(x => x.TileId == (int)TileType.Dirt).Textures.FirstOrDefault(x => x.Name == "Tile10"));
             }
             else if (top == false && bottom == false && left && right)
             {
                 //0011
-                SetTileAsGrass(destTile.GlobalId,
+                SetTileAsGrass(destinationTile.GlobalId,
                 (int)TileType.DirtWithGrass,
-                destTile.ChunkId,
+                destinationTile.ChunkId,
                 Tiletypes.FirstOrDefault(x => x.TileId == (int)TileType.Dirt).Textures.FirstOrDefault(x => x.Name == "Tile11"));
             }
             else if (top == false && bottom && left == false && right == false)
             {
                 //0100
-                SetTileAsGrass(destTile.GlobalId,
+                SetTileAsGrass(destinationTile.GlobalId,
                 (int)TileType.DirtWithGrass,
-                destTile.ChunkId,
+                destinationTile.ChunkId,
                 Tiletypes.FirstOrDefault(x => x.TileId == (int)TileType.Dirt).Textures.FirstOrDefault(x => x.Name == "Tile8"));
             }
             else if (top == false && bottom && left == false && right)
             {
                 //0101
-                SetTileAsGrass(destTile.GlobalId,
+                SetTileAsGrass(destinationTile.GlobalId,
                 (int)TileType.DirtWithGrass,
-                destTile.ChunkId,
+                destinationTile.ChunkId,
                 Tiletypes.FirstOrDefault(x => x.TileId == (int)TileType.Dirt).Textures.FirstOrDefault(x => x.Name == "Tile12"));
             }
             else if (top == false && bottom && left && right == false)
             {
                 //0110
-                SetTileAsGrass(destTile.GlobalId,
+                SetTileAsGrass(destinationTile.GlobalId,
                 (int)TileType.DirtWithGrass,
-                destTile.ChunkId,
+                destinationTile.ChunkId,
                 Tiletypes.FirstOrDefault(x => x.TileId == (int)TileType.Dirt).Textures.FirstOrDefault(x => x.Name == "Tile13"));
             }
             else if (top == false && bottom && left && right)
             {
                 //0111
-                SetTileAsGrass(destTile.GlobalId,
+                SetTileAsGrass(destinationTile.GlobalId,
                 (int)TileType.DirtWithGrass,
-                destTile.ChunkId,
+                destinationTile.ChunkId,
                 Tiletypes.FirstOrDefault(x => x.TileId == (int)TileType.Dirt).Textures.FirstOrDefault(x => x.Name == "Tile14"));
             }
             else if (top && bottom == false && left == false && right == false)
             {
                 //1000
-                SetTile(destTile.GlobalId, (int)TileType.DirtWithGrass, destTile.ChunkId);
-                ChunkDictionary[destTile.ChunkId].HasGrass = true;
+                SetTile(destinationTile.GlobalId, (int)TileType.DirtWithGrass, destinationTile.ChunkId);
+                ChunkDictionary[destinationTile.ChunkId].HasGrass = true;
             }
             else if (top && bottom == false && left == false && right)
             {
                 //1001
-                SetTileAsGrass(destTile.GlobalId,
+                SetTileAsGrass(destinationTile.GlobalId,
                 (int)TileType.DirtWithGrass,
-                destTile.ChunkId,
+                destinationTile.ChunkId,
                 Tiletypes.FirstOrDefault(x => x.TileId == (int)TileType.Dirt).Textures.FirstOrDefault(x => x.Name == "Tile4"));
             }
             else if (top && bottom == false && left && right == false)
             {
                 //1010
-                SetTileAsGrass(destTile.GlobalId,
+                SetTileAsGrass(destinationTile.GlobalId,
                 (int)TileType.DirtWithGrass,
-                destTile.ChunkId,
+                destinationTile.ChunkId,
                 Tiletypes.FirstOrDefault(x => x.TileId == (int)TileType.Dirt).Textures.FirstOrDefault(x => x.Name == "Tile5"));
             }
             else if (top && bottom == false && left && right)
             {
                 //1011
-                SetTileAsGrass(destTile.GlobalId,
+                SetTileAsGrass(destinationTile.GlobalId,
                 (int)TileType.DirtWithGrass,
-                destTile.ChunkId,
+                destinationTile.ChunkId,
                 Tiletypes.FirstOrDefault(x => x.TileId == (int)TileType.Dirt).Textures.FirstOrDefault(x => x.Name == "Tile6"));
             }
             else if (top && bottom && left == false && right == false)
             {
                 //1100
-                SetTileAsGrass(destTile.GlobalId,
+                SetTileAsGrass(destinationTile.GlobalId,
                 (int)TileType.DirtWithGrass,
-                destTile.ChunkId,
+                destinationTile.ChunkId,
                 Tiletypes.FirstOrDefault(x => x.TileId == (int)TileType.Dirt).Textures.FirstOrDefault(x => x.Name == "Tile15"));
             }
             else if (top && bottom && left == false && right)
             {
                 //1101
-                SetTileAsGrass(destTile.GlobalId,
+                SetTileAsGrass(destinationTile.GlobalId,
                 (int)TileType.DirtWithGrass,
-                destTile.ChunkId,
+                destinationTile.ChunkId,
                 Tiletypes.FirstOrDefault(x => x.TileId == (int)TileType.Dirt).Textures.FirstOrDefault(x => x.Name == "Tile16"));
             }
             else if (top && bottom && left && right == false)
             {
                 //1110
-                SetTileAsGrass(destTile.GlobalId,
+                SetTileAsGrass(destinationTile.GlobalId,
                 (int)TileType.DirtWithGrass,
-                destTile.ChunkId,
+                destinationTile.ChunkId,
                 Tiletypes.FirstOrDefault(x => x.TileId == (int)TileType.Dirt).Textures.FirstOrDefault(x => x.Name == "Tile17"));
             }
             else
             {
                 //1111
-                SetTileAsGrass(destTile.GlobalId,
+                SetTileAsGrass(destinationTile.GlobalId,
                 (int)TileType.DirtWithGrass,
-                destTile.ChunkId,
+                destinationTile.ChunkId,
                 Tiletypes.FirstOrDefault(x => x.TileId == (int)TileType.Dirt).Textures.FirstOrDefault(x => x.Name == "Tile7"));
             }
             return hasChanged;
@@ -813,22 +817,22 @@ namespace TileMaster
         {
             //verifies if neighboring grass blocks needs to have its texture updated
 
-            var neihbours = GetNeighbouringTiles(ChunkDictionary[chunkId].Tiles[blockId]);
-            if (neihbours[7].Name == TileType.DirtWithGrass.ToString())
+            var neighbors = GetNeighboringTiles(ChunkDictionary[chunkId].Tiles[blockId]);
+            if (neighbors[7].Name == TileType.DirtWithGrass.ToString())
             {
-                SetGrassTile(neihbours[7]);
+                SetGrassTile(neighbors[7]);
             }
-            if (neihbours[5].Name == TileType.DirtWithGrass.ToString())
+            if (neighbors[5].Name == TileType.DirtWithGrass.ToString())
             {
-                SetGrassTile(neihbours[5]);
+                SetGrassTile(neighbors[5]);
             }
-            if (neihbours[3].Name == TileType.DirtWithGrass.ToString())
+            if (neighbors[3].Name == TileType.DirtWithGrass.ToString())
             {
-                SetGrassTile(neihbours[3]);
+                SetGrassTile(neighbors[3]);
             }
-            if (neihbours[1].Name == TileType.DirtWithGrass.ToString())
+            if (neighbors[1].Name == TileType.DirtWithGrass.ToString())
             {
-                SetGrassTile(neihbours[1]);
+                SetGrassTile(neighbors[1]);
             }
 
         }
@@ -838,101 +842,104 @@ namespace TileMaster
         /// </summary>
         /// <param name="refTile"></param>
         /// <returns></returns>
-        private List<Tile> GetNeighbouringTiles(Tile refTile)
+        private List<Tile> GetNeighboringTiles(Tile refTile)
         {
             if (refTile.isEdgeTile)
             {
-                return GetNeighbouringTilesCrossChunk(refTile);
+                return GetNeighboringTilesCrossChunk(refTile);
             }
             else
             {
-                return GetNeighbouringTilesFromSameChunk(refTile);
+                return GetNeighboringTilesFromSameChunk(refTile);
             }
         }
-        private List<Tile> GetNeighbouringTilesFromSameChunk(Tile refTile)
+        private List<Tile> GetNeighboringTilesFromSameChunk(Tile refTile)
         {
-            List<Tile> neighbours = new List<Tile>();
-            //[x][ ][ ]
-            //[ ][x][ ]
-            //[ ][ ][ ]
-            neighbours.Add(ChunkDictionary[refTile.ChunkId].Tiles.ElementAt(refTile.LocalId - Global.ChunkSize - 1).Value);
-            //[ ][x][ ]
-            //[ ][x][ ]
-            //[ ][ ][ ]
-            neighbours.Add(ChunkDictionary[refTile.ChunkId].Tiles.ElementAt(refTile.LocalId - Global.ChunkSize).Value);
-            //[ ][ ][x]
-            //[ ][x][ ]
-            //[ ][ ][ ]
-            neighbours.Add(ChunkDictionary[refTile.ChunkId].Tiles.ElementAt(refTile.LocalId - Global.ChunkSize + 1).Value);
-            //[ ][ ][ ]
-            //[x][x][ ]
-            //[ ][ ][ ]
-            neighbours.Add(ChunkDictionary[refTile.ChunkId].Tiles.ElementAt(refTile.LocalId - 1).Value);
-            //[ ][ ][ ]
-            //[ ][x][ ]
-            //[ ][ ][ ]
-            neighbours.Add(refTile);
-            //[ ][ ][ ]
-            //[ ][x][x]
-            //[ ][ ][ ]
-            neighbours.Add(ChunkDictionary[refTile.ChunkId].Tiles.ElementAt(refTile.LocalId + 1).Value);
-            //[ ][ ][ ]
-            //[ ][x][ ]
-            //[x][ ][ ]
-            neighbours.Add(ChunkDictionary[refTile.ChunkId].Tiles.ElementAt(refTile.LocalId + Global.ChunkSize - 1).Value);
-            //[ ][ ][ ]
-            //[ ][x][ ]
-            //[ ][x][ ]
-            neighbours.Add(ChunkDictionary[refTile.ChunkId].Tiles.ElementAt(refTile.LocalId + Global.ChunkSize).Value);
-            //[ ][ ][ ]
-            //[ ][x][ ]
-            //[ ][ ][x]
-            neighbours.Add(ChunkDictionary[refTile.ChunkId].Tiles.ElementAt(refTile.LocalId + Global.ChunkSize + 1).Value);
+            List<Tile> neighbors = new List<Tile>
+            {
+                //[x][ ][ ]
+                //[ ][x][ ]
+                //[ ][ ][ ]
+                ChunkDictionary[refTile.ChunkId].Tiles.ElementAt(refTile.LocalId - Global.ChunkSize - 1).Value,
+                //[ ][x][ ]
+                //[ ][x][ ]
+                //[ ][ ][ ]
+                ChunkDictionary[refTile.ChunkId].Tiles.ElementAt(refTile.LocalId - Global.ChunkSize).Value,
+                //[ ][ ][x]
+                //[ ][x][ ]
+                //[ ][ ][ ]
+                ChunkDictionary[refTile.ChunkId].Tiles.ElementAt(refTile.LocalId - Global.ChunkSize + 1).Value,
+                //[ ][ ][ ]
+                //[x][x][ ]
+                //[ ][ ][ ]
+                ChunkDictionary[refTile.ChunkId].Tiles.ElementAt(refTile.LocalId - 1).Value,
+                //[ ][ ][ ]
+                //[ ][x][ ]
+                //[ ][ ][ ]
+                refTile,
+                //[ ][ ][ ]
+                //[ ][x][x]
+                //[ ][ ][ ]
+                ChunkDictionary[refTile.ChunkId].Tiles.ElementAt(refTile.LocalId + 1).Value,
+                //[ ][ ][ ]
+                //[ ][x][ ]
+                //[x][ ][ ]
+                ChunkDictionary[refTile.ChunkId].Tiles.ElementAt(refTile.LocalId + Global.ChunkSize - 1).Value,
+                //[ ][ ][ ]
+                //[ ][x][ ]
+                //[ ][x][ ]
+                ChunkDictionary[refTile.ChunkId].Tiles.ElementAt(refTile.LocalId + Global.ChunkSize).Value,
+                //[ ][ ][ ]
+                //[ ][x][ ]
+                //[ ][ ][x]
+                ChunkDictionary[refTile.ChunkId].Tiles.ElementAt(refTile.LocalId + Global.ChunkSize + 1).Value
+            };
 
-            return neighbours;
+            return neighbors;
         }
-        private List<Tile> GetNeighbouringTilesCrossChunk(Tile refTile)
+        private List<Tile> GetNeighboringTilesCrossChunk(Tile refTile)
         {
-            List<Tile> neighbours = new List<Tile>();
+            List<Tile> neighbors = new List<Tile>
+            {
+                //[x][ ][ ]
+                //[ ][x][ ]
+                //[ ][ ][ ]
+                MapDictionary.ElementAt(refTile.GlobalId - Global.MapWidth - 1).Value,
+                //[ ][x][ ]
+                //[ ][x][ ]
+                //[ ][ ][ ]
+                MapDictionary.ElementAt(refTile.GlobalId - Global.MapWidth).Value,
+                //[ ][ ][x]
+                //[ ][x][ ]
+                //[ ][ ][ ]
+                MapDictionary.ElementAt(refTile.GlobalId - Global.MapWidth + 1).Value,
+                //[ ][ ][ ]
+                //[x][x][ ]
+                //[ ][ ][ ]
+                MapDictionary.ElementAt(refTile.GlobalId - 1).Value,
+                //[ ][ ][ ]
+                //[ ][x][ ]
+                //[ ][ ][ ]
+                refTile,
+                //[ ][ ][ ]
+                //[ ][x][x]
+                //[ ][ ][ ]
+                MapDictionary.ElementAt(refTile.GlobalId + 1).Value,
+                //[ ][ ][ ]
+                //[ ][x][ ]
+                //[x][ ][ ]
+                MapDictionary.ElementAt(refTile.GlobalId + Global.MapWidth - 1).Value,
+                //[ ][ ][ ]
+                //[ ][x][ ]
+                //[ ][x][ ]
+                MapDictionary.ElementAt(refTile.GlobalId + Global.MapWidth).Value,
+                //[ ][ ][ ]
+                //[ ][x][ ]
+                //[ ][ ][x]
+                MapDictionary.ElementAt(refTile.GlobalId + Global.MapWidth + 1).Value
+            };
 
-            //[x][ ][ ]
-            //[ ][x][ ]
-            //[ ][ ][ ]
-            neighbours.Add(MapDictionary.ElementAt(refTile.GlobalId - Global.MapWidth - 1).Value);
-            //[ ][x][ ]
-            //[ ][x][ ]
-            //[ ][ ][ ]
-            neighbours.Add(MapDictionary.ElementAt(refTile.GlobalId - Global.MapWidth).Value);
-            //[ ][ ][x]
-            //[ ][x][ ]
-            //[ ][ ][ ]
-            neighbours.Add(MapDictionary.ElementAt(refTile.GlobalId - Global.MapWidth + 1).Value);
-            //[ ][ ][ ]
-            //[x][x][ ]
-            //[ ][ ][ ]
-            neighbours.Add(MapDictionary.ElementAt(refTile.GlobalId - 1).Value);
-            //[ ][ ][ ]
-            //[ ][x][ ]
-            //[ ][ ][ ]
-            neighbours.Add(refTile);
-            //[ ][ ][ ]
-            //[ ][x][x]
-            //[ ][ ][ ]
-            neighbours.Add(MapDictionary.ElementAt(refTile.GlobalId + 1).Value);
-            //[ ][ ][ ]
-            //[ ][x][ ]
-            //[x][ ][ ]
-            neighbours.Add(MapDictionary.ElementAt(refTile.GlobalId + Global.MapWidth - 1).Value);
-            //[ ][ ][ ]
-            //[ ][x][ ]
-            //[ ][x][ ]
-            neighbours.Add(MapDictionary.ElementAt(refTile.GlobalId + Global.MapWidth).Value);
-            //[ ][ ][ ]
-            //[ ][x][ ]
-            //[ ][ ][x]
-            neighbours.Add(MapDictionary.ElementAt(refTile.GlobalId + Global.MapWidth + 1).Value);
-
-            return neighbours;
+            return neighbors;
         }
         #endregion
 
@@ -948,7 +955,7 @@ namespace TileMaster
             //}
 
             //draw relevant chunks
-            var tiles = getTilesToDraw(chunkId);
+            var tiles = GetTilesToDraw(chunkId);
             foreach (var tile in tiles)
             {
                 if (tile.isEdgeTile)

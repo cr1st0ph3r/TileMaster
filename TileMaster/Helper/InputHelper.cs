@@ -12,7 +12,7 @@ namespace TileMaster.Helper
             //var s = map.getTileAt(player.onBlock + 1, player.onChunk);
             if (Keyboard.GetState().IsKeyDown(Keys.D))
             {
-                var tileAt = map.getTileAt(player.onBlock+1, player.onChunk, "right");
+                var tileAt = map.GetTileAt(player.onBlock+1, player.onChunk, "right");
                 if (tileAt != null && tileAt.IsOccupied == false)
                 {
                     return true;//proceed with the moving
@@ -28,7 +28,7 @@ namespace TileMaster.Helper
 
             if (Keyboard.GetState().IsKeyDown(Keys.A))
             {
-                var tileAt = map.getTileAt(player.onBlock-1, player.onChunk, "left");
+                var tileAt = map.GetTileAt(player.onBlock-1, player.onChunk, "left");
                 if (tileAt != null && tileAt.IsOccupied == false)
                     return true;//proceed with the moving
             } 
@@ -40,7 +40,7 @@ namespace TileMaster.Helper
         public static bool HandleMovingDown(Player player, Map map)
         {
             UpdateChunk(player, map);
-            if (map.IsBlockonChunk(player.onChunk, player.SteppingOn) == true)
+            if (map.IsBlockOnChunk(player.onChunk, player.SteppingOn) == true)
             {
                 if (map.ChunkDictionary[player.onChunk].Tiles[player.SteppingOn].IsOccupied == false)
                 {
@@ -60,7 +60,7 @@ namespace TileMaster.Helper
         {
             //var s = map.getTileAt(player.onBlock + 1, player.onChunk);
            
-                var tileAt = map.getTileAt(player.onBlock -Global.MapWidth, player.onChunk, "up");
+                var tileAt = map.GetTileAt(player.onBlock -Global.MapWidth, player.onChunk, "up");
                 if (tileAt != null && tileAt.IsOccupied == false)
                 {
                     return true;//proceed with the moving

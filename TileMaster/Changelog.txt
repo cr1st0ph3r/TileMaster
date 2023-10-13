@@ -32,7 +32,7 @@
 26-04-2022 created a side project to create the ramdom tiles so the generated tiles has statisticallt the same amount of colors as the retail tiles
 
 27-04-2022 An idea occurred: create a randomness factor index and generate the ramdon tiles at runtime. Needs to check 
-		   wether the texture loader support loading images from memory bitmaps or not
+		   whether the texture loader support loading images from memory bitmaps or not
 
 28-04-2022 fixed tile loading logic when setting the global tiles to have loca tile properties
 

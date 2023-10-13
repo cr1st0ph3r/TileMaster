@@ -25,7 +25,7 @@ namespace TileMaster.Util
 
 
 
-        public static Object Deserialize<Object>(Stream stream) where Object : new()
+        public static Object DeSerialize<Object>(Stream stream) where Object : new()
         {
             Object ret = CreateInstance<Object>();
             try
