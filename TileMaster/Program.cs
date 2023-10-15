@@ -1,7 +1,8 @@
-﻿using System;
+﻿using System; 
 
 namespace TileMaster
 {
+
 #if WINDOWS || LINUX
     public static class Program
     {     
@@ -10,7 +11,7 @@ namespace TileMaster
         {
             using (var game = new Game())
                 game.Run();
-        }
+        } 
     }
 #endif
 }

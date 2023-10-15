@@ -1,5 +1,4 @@
-﻿
-using Microsoft.Xna.Framework.Graphics;
+﻿using Microsoft.Xna.Framework.Graphics;
 
 namespace TileMaster
 {
@@ -22,15 +21,19 @@ namespace TileMaster
         /// </summary>
         public static bool GenerateMapOnStartup = true;
         /// <summary>
-        /// Defines if the game will run in fullscreen mode
+        /// Defines if the game will run in full screen mode
         /// </summary>
-        public static bool FullScreen = false;
+        public static bool FullScreen = true;
         /// <summary>
-        /// X - needs to be a multiple of chunksize
+        /// defines if the map is loaded or not
+        /// </summary>
+        public static bool isMapLoaded = false;
+        /// <summary>
+        /// X - needs to be a multiple of chunkSize
         /// </summary>
         public static int MapWidth = ChunkSize* MapWidthMultiplier;
         /// <summary>
-        /// Y - needs to be a multiple of chunksize
+        /// Y - needs to be a multiple of chunkSize
         /// </summary>
         public static int MapHeight = ChunkSize * MapWidthMultiplier;
         /// <summary>
@@ -50,6 +53,8 @@ namespace TileMaster
         /// </summary>
         public static bool isDebugging = true;
 
+        public static string FrameRate;
+
         /// <summary>
         /// Current window width
         /// </summary>
@@ -61,12 +66,15 @@ namespace TileMaster
         public static int WindowHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
 
         //debug variables
-        public static bool isCursorOveraButton = false;
+        public static bool isCursorOverAButton = false;
         public static bool RenderOnlyPlayerAtChunk = true;
 
         //this is an experimental feature that have no practical usage
-        public static bool UseTileTextureRandomization = true;
-        public static bool UseAlternateTiles = true;
+        public static bool UseTileTextureRandomization = false;
+        public static bool UseAlternateTiles = false;
         public static int RandomizationFactorAmount = 20;
+
+        public static readonly string PanelColor = "#545454";
+        public static readonly string ActionBarButtonColor = "#808080";
     }
 }

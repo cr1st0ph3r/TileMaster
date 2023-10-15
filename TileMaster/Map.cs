@@ -24,6 +24,8 @@ namespace TileMaster
         public List<TileColor> TileColors { get; set; }
         TileManager TileMgr { get; set; }
 
+        public static int Progress;
+
         private int width, height;
         public int Width
         {
@@ -205,7 +207,7 @@ namespace TileMaster
             //var time = sw.Elapsed.TotalSeconds;
 
 
-            //uplon load, tiles has no information about texture or other complex properties
+            //upon load, tiles has no information about texture or other complex properties
             //because these can't be serialized
             this.MapDictionary = DictionaryHelper.DeSerialize<Dictionary<int, CollisionTiles>>(File.Open(@"Chunks\data.bin", FileMode.Open));
 
@@ -223,13 +225,13 @@ namespace TileMaster
 
             //chunk never stat at zero
             int chunkId = 1;
-            int globalCounter = 0;
+            int globalCounter = 0; 
             //loads chunks files into dictionaries
             foreach (var file in chunks)
             {
                 Chunk chunk = new Chunk();
                 Dictionary<int, CollisionTiles> dict = DictionaryHelper.DeSerialize<Dictionary<int, CollisionTiles>>(File.Open(file.Item2, FileMode.Open));
-
+                Progress = chunkId * 100 / (chunks.Count);
                 //set the blocks ids, positions and textures
                 for (int i = 0; i < dict.Count; i++)
                 {
@@ -241,7 +243,7 @@ namespace TileMaster
                     };
 
                     //edge tile detection
-                    //TODO rework this logic maybe move it to map save so its done once per save instad of one per load
+                    //TODO rework this logic maybe move it to map save so its done once per save instead of one per load
                     if (i % Global.ChunkSize == 0
                        || i < Global.ChunkSize
                        || i > (dict.Count - Global.ChunkSize))
@@ -279,6 +281,8 @@ namespace TileMaster
 
             width = Global.MapWidth * Global.Tilesize;
             height = Global.MapHeight * Global.Tilesize;
+
+            Global.isMapLoaded = true;
         }
         /// <summary>
         /// Turn a map dictionary into smaller dictionaries for better management
@@ -322,9 +326,9 @@ namespace TileMaster
                             gridCounter++;
                             tempX++;
                         }
-                         
+
                         //sends the x to the next line, ignoring the other blocks on other chunks
-                        tempX = ((Global.MapWidth) * (x + 1) + (Global.ChunkSize * gridY) + rowMultiplier); 
+                        tempX = ((Global.MapWidth) * (x + 1) + (Global.ChunkSize * gridY) + rowMultiplier);
                     }
 
                     tempX = (Global.ChunkSize * (gridY + 1));
@@ -542,7 +546,7 @@ namespace TileMaster
             //}
 
         }
-          
+
         #region Grass Logic
         /// <summary>
         /// Gets all surrounding tiles and check whether they can have grass grown onto them
@@ -597,38 +601,48 @@ namespace TileMaster
         /// </summary>
         /// <param name="chunkId"></param>
         /// <param name="blockId"></param>
-        public void GrowTree(int chunkId,int blockId) {
-
-            int treeBase = ChunkDictionary[chunkId].Tiles[blockId+3].GlobalId;
-            int trunkHeight = Game.rnd.Next(5, 10);
-            int accumulator = 0;
-            
-            //tree shaft
-            for (int i = 0; i < trunkHeight; i++)
+        public void GrowTree(int chunkId, int blockId)
+        {
+            try
             {
-                SetTile(treeBase - accumulator, (int)TileType.TreeTrunk, chunkId);
-                accumulator+=Global.MapWidth;
-            }
-            int leaveSpread = Game.rnd.Next(5, 10);
+                int treeBase = ChunkDictionary[chunkId].Tiles[blockId + 3].GlobalId;
+                int trunkHeight = Game.rnd.Next(5, 10);
+                int accumulator = 0;
 
-            //the uppermost point of the tree
-            int reference = (((treeBase - accumulator) - (leaveSpread * Global.MapWidth)-leaveSpread/2));
-
-
-            //tree leaves
-
-            //length
-            for (int i = 0; i < leaveSpread; i++)
-            {
-                //width
-                for (int j  = 0; j < leaveSpread+(leaveSpread/2); j++)
+                //tree shaft
+                for (int i = 0; i < trunkHeight; i++)
                 {
-                    SetTile(reference+(j* Global.MapWidth) + (i), (int)TileType.TreeLeaf, chunkId);
-                }                
+                    SetTile(treeBase - accumulator, (int)TileType.TreeTrunk, chunkId);
+                    accumulator += Global.MapWidth;
+                }
+                int leaveSpread = Game.rnd.Next(5, 10);
+
+                //the uppermost point of the tree
+                int reference = (((treeBase - accumulator) - (leaveSpread * Global.MapWidth) - leaveSpread / 2));
+
+
+                //tree leaves
+
+                //length
+                for (int i = 0; i < leaveSpread; i++)
+                {
+                    //width
+                    for (int j = 0; j < leaveSpread + (leaveSpread / 2); j++)
+                    {
+                        SetTile(reference + (j * Global.MapWidth) + (i), (int)TileType.TreeLeaf, chunkId);
+                    }
+                }
             }
+            catch
+            {
+                //the game may fail at finding the spot to generate a tree 
+                //because of chunk boundaries
+                //not grow a tre :'(
+            }
+
 
         }
-     
+
         /// <summary>
         /// Checks whether a tile can have grass
         /// </summary>

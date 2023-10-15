@@ -10,8 +10,8 @@ namespace TileMaster.Entity
     {
         //for the all that is holy encapsulate this later
         private Texture2D texture;
-        private Vector2 position = new Vector2(Global.MapWidth*Global.Tilesize / 2, (Global.GroundLevel - 20)*Global.Tilesize);
- 
+        private Vector2 position = new Vector2(Global.MapWidth * Global.Tilesize / 2, (Global.GroundLevel - 20) * Global.Tilesize);
+
 
         public Vector2 velocity;
         private Rectangle rectangle;
@@ -21,7 +21,7 @@ namespace TileMaster.Entity
         public int GridX;
         public int GridY;
         private bool hasJumped = false;
-        public bool isMoving = false; 
+        public bool isMoving = false;
         public bool isOnSolidBlock = false;
 
         public Vector2 Position
@@ -45,24 +45,28 @@ namespace TileMaster.Entity
 
         public void Update(GameTime gameTime, Player player, Map map)
         {
+            if (Game._state == GameState.Running&&Global.isMapLoaded){
 
-            position += velocity;
-            rectangle = new Rectangle((int)position.X, (int)position.Y, texture.Width, texture.Height);
-            Input(gameTime, player, map);
 
-            //constantly pulls the player down
-            if (velocity.Y < 10 && !isOnSolidBlock)
-            {
-                velocity.Y +=(float)(0.4F * 60 * gameTime.ElapsedGameTime.TotalSeconds);
+                position += velocity;
+                rectangle = new Rectangle((int)position.X, (int)position.Y, texture.Width, texture.Height);
+                Input(gameTime, player, map);
+
+                //constantly pulls the player down
+                if (velocity.Y < 10 && !isOnSolidBlock)
+                {
+                    velocity.Y += (float)(0.4F * 60 * gameTime.ElapsedGameTime.TotalSeconds);
+                }
+
+                //set is the player is in motion or not
+                if (velocity.X > 0 || velocity.Y > 0.4f || velocity.X < 0 || velocity.Y < -0.4f)
+                {
+                    isMoving = true;
+                }
+                else isMoving = false;
+
+
             }
-
-            //set is the player is in motion or not
-            if (velocity.X > 0 || velocity.Y > 0.4f || velocity.X < 0 || velocity.Y < -0.4f)
-            {
-                isMoving = true;
-            }
-            else isMoving = false;
-
         }
 
         public void Input(GameTime gameTime, Player player, Map map)
@@ -79,7 +83,7 @@ namespace TileMaster.Entity
             {
                 velocity.X = -(float)gameTime.ElapsedGameTime.TotalMilliseconds / 3;
             }
-           
+
 
 
             //momento linear esquerda direita
@@ -96,10 +100,10 @@ namespace TileMaster.Entity
             //queda do player
             if (!InputHelper.HandleMovingDown(player, map))
             {
-                velocity.Y = 0;              
+                velocity.Y = 0;
                 isOnSolidBlock = true;
                 hasJumped = false;
-               
+
             }
             else
             {
@@ -114,7 +118,7 @@ namespace TileMaster.Entity
                 hasJumped = true;
                 isOnSolidBlock = false;
             }
-          
+
 
             if (isOnSolidBlock)
             {
@@ -131,25 +135,25 @@ namespace TileMaster.Entity
                     position.Y += 5F;
                 }
             }
-          
+
 
         }
         public void CheckBoundaries()
         {
-            
+
             //keep player inside boundaries
             if (position.X < 0)
             {
-                position.X = 0; 
+                position.X = 0;
             }
             if (position.Y < 0)
             {
                 position.Y = 0;
             }
-            if (position.Y > ((Global.MapHeight-2/*why 2? beats me*/)*Global.Tilesize))
+            if (position.Y > ((Global.MapHeight - 2/*why 2? beats me*/) * Global.Tilesize))
             {
-                position.Y = (((Global.MapHeight - 2) * Global.Tilesize)-10);
-               
+                position.Y = (((Global.MapHeight - 2) * Global.Tilesize) - 10);
+
             }
         }
         public void Collision(Rectangle newRectangle, int xOffset, int yOffset)

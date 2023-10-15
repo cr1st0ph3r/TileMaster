@@ -39,3 +39,9 @@
 30-04-2022 Added a random factor to generate new textures using the colors of the base texture, this gives a grain appearange to the tiles making them look less artificial
 30-04-2022 Fixed grass not jumping to neighbouring tiles
 30-04-2022 Applied the use of threads to build the initial map dictionary faster
+
+07-04-2023 Uploaded game code to GitHub
+
+13-10-2023 Integrated Myra UI elements into the game
+14-10-2023 Added a very rudimentar game state management system
+		   The map now is loaded after starting the game, a progress bar was added to help visualize the time it takes to load the map

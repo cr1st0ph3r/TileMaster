@@ -78,14 +78,14 @@ namespace TileMaster.Controls
             _currentMouse = Mouse.GetState();
 
             //var mouseRectangle = new Rectangle(_currentMouse.X, _currentMouse.Y, 1, 1);
-            var mouseMap = Vector2.Transform(new Vector2(_currentMouse.Position.X, _currentMouse.Position.Y), Matrix.Invert(Game.camera.Tramsform));
+            var mouseMap = Vector2.Transform(new Vector2(_currentMouse.Position.X, _currentMouse.Position.Y), Matrix.Invert(Game.camera.Transform));
             var newmouseRect = new Rectangle((int)mouseMap.X,(int)mouseMap.Y,1,1);
             _isHovering = false;
 
             if (newmouseRect.Intersects(Rectangle))
             {
                 _isHovering = true;
-                Global.isCursorOveraButton = true;
+                Global.isCursorOverAButton = true;
                 if (_currentMouse.LeftButton == ButtonState.Released && _previousMouse.LeftButton == ButtonState.Pressed)
                 {
                     Click?.Invoke(this, new EventArgs());
@@ -93,7 +93,7 @@ namespace TileMaster.Controls
             }
             else
             {
-                Global.isCursorOveraButton = false;
+                Global.isCursorOverAButton = false;
             }
         }
 

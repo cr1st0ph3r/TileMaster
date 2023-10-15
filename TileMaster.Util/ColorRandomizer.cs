@@ -8,7 +8,7 @@ namespace TileMaster.Util
         public static readonly Random rnd = new(DateTime.Now.GetHashCode());
         public static Bitmap RandomTile(List<Color> colors, int width, int height)
         {
-            using var bmp = new Bitmap(width, height);
+            var bmp = new Bitmap(width, height);
             // using (var bmp = new Bitmap(16, 16))
             {
                 for (int i = 0; i < width; i++)

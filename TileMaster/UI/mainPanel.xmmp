@@ -1,0 +1,11 @@
+<Project>
+  <Project.ExportOptions Namespace="TileMaster.UI" Class="MainPanel" OutputPath="D:\Projects\Myra\samples\Myra.Samples.NonModalWindows\UI" />
+  <Panel>
+    <HorizontalStackPanel Spacing="8">
+      <TextButton Text="Window 1" Toggleable="True" Id="_button1" />
+      <TextButton Text="Window 2" Toggleable="True" Id="_button2" />
+      <TextButton Text="Window 3" Toggleable="True" Id="_button3" />
+    </HorizontalStackPanel>
+    <Label Text="Is mouse over GUI: true" VerticalAlignment="Bottom" Id="_labelOverGui" />
+  </Panel>
+</Project>

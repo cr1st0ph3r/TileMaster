@@ -1,6 +1,5 @@
 ﻿ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System.Diagnostics;
 
 namespace TileMaster
 {
@@ -17,7 +16,7 @@ namespace TileMaster
             this.viewPort = view;
         }
 
-        public Matrix Tramsform
+        public Matrix Transform
         {
             get { return transform; }
         }
@@ -47,7 +46,7 @@ namespace TileMaster
 
             //=========== Y axis camera ============//
              
-            //prevents the camer from moving beyond the upper bounds of the map
+            //prevents the camera from moving beyond the upper bounds of the map
             if (playerPosition.Y < (viewPort.Height / 2))
             {
                 center.Y = (viewPort.Height/2);

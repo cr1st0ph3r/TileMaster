@@ -1,6 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Myra;
+using Myra.Graphics2D.UI;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,12 +10,16 @@ using System.Linq;
 using System.Threading;
 using TileMaster.Entity;
 using TileMaster.Manager;
+using TileMaster.UI;
 
 namespace TileMaster
 {
     public class Game : Microsoft.Xna.Framework.Game
     {
-
+        public MainPanel _mainPanel;
+        public static GameState _state;
+        private Desktop _desktop;
+        #region Variables
         private static Game _game;
         readonly GraphicsDeviceManager graphics;
         SpriteBatch spriteBatch;
@@ -38,10 +44,13 @@ namespace TileMaster
         float timer2s = 2500;
         const float TIMER2S = 2500;
 
+
         /// <summary>
         /// messages
         /// </summary>
         private List<Misc.Message> Messages;
+
+        #region Managers
         /// <summary>
         /// Background manager
         /// </summary>
@@ -53,19 +62,11 @@ namespace TileMaster
         /// <summary>
         /// TileManager
         /// </summary>
+        /// 
+        #endregion
 
-        /// <summary>
-        /// Defines if a new map should be created on startup
-        /// </summary>
+        #endregion
 
-
-
-        string framerate = "";
-
-
-        //paint test
-        public int previousMousePaintedTile = 0;
-        public int previousPlayerPaintedTile = 0;
         public Game()
         {
             graphics = new GraphicsDeviceManager(this);
@@ -75,6 +76,7 @@ namespace TileMaster
             graphics.PreferredBackBufferHeight = Global.WindowHeight;
             _game = this;
             IsFixedTimeStep = false;
+            
         }
 
         public static Game GetInstance()
@@ -83,7 +85,10 @@ namespace TileMaster
                 throw new Exception("Call SetInstance() with a valid object");
             return _game;
         }
-
+        public void LoadMap()
+        {
+            map.LoadMap();
+        }
         protected override void Initialize()
         {
             map = new Map();
@@ -94,6 +99,7 @@ namespace TileMaster
 
         protected override void LoadContent()
         {
+            MyraEnvironment.Game = this;
             // Create a new SpriteBatch, which can be used to draw textures.
             spriteBatch = new SpriteBatch(GraphicsDevice);
             camera = new Camera(GraphicsDevice.Viewport);
@@ -108,25 +114,171 @@ namespace TileMaster
             buttonMgr.CreateButton(Content, "Generic Button", GenericAction, new Vector2(1500, 1000), 1);
             bgMgr.Load(Content, player);
 
-            var sw = new Stopwatch();
-            sw.Start();
-            if (Global.GenerateMapOnStartup)
+
+            //if (Global.GenerateMapOnStartup)
+            //{
+            //    var sw = new Stopwatch();
+            //    sw.Start();
+
+            //    initialArrayMap = Util.MapGenerator.GenerateRandomMap();
+            //    map.GenerateMapDictionary(initialArrayMap);
+            //    map.SaveMap();
+
+            //    sw.Stop();
+            //    var time = sw.Elapsed.TotalSeconds;
+            //}
+
+
+            _desktop = new Desktop
             {
-                initialArrayMap = Util.MapGenerator.GenerateRandomMap();
-                map.GenerateMapDictionary(initialArrayMap);
-                map.SaveMap();
-            }
-            sw.Stop();
-            var time = sw.Elapsed.TotalSeconds;
+                HasExternalTextInput = true
+            };
+            _mainPanel = new MainPanel();
 
+            _desktop.Root = _mainPanel;
 
-            //loads the map from a binary source
-            map.LoadMap();
-
+            _mainPanel.ShowWindows();
+             
             player.Load(Content);
 
         }
 
+        protected override void UnloadContent()
+        {
+            // TODO: Unload any non ContentManager content here
+        }
+
+        /// <summary>
+        /// Allows the game to run logic such as updating the world,
+        /// checking for collisions, gathering input, and playing audio.
+        /// </summary>
+        /// <param name="gameTime">Provides a snapshot of timing values.</param>
+        protected override void Update(GameTime gameTime)
+        {
+            if (Game._state == GameState.Running&&Global.isMapLoaded)
+            {
+
+                //updates the player info about block positioning
+                int playerOnGridX = (int)((player.Position.X + (player.Rectangle.Width / 2)) / Global.Tilesize);
+                int playerOnGridY = (int)((player.Position.Y + (player.Rectangle.Height)) / Global.Tilesize);
+                player.onBlock = (playerOnGridY * Global.MapWidth) + (playerOnGridX);
+                player.SteppingOn = (int)(player.onBlock + Global.MapWidth);
+                player.GridX = (int)((player.Position.X + (player.Rectangle.Width / 2)) / Global.Tilesize);
+                player.GridY = (int)((player.Position.Y + (player.Rectangle.Height)) / Global.Tilesize);
+                int playerChunkX = (int)(player.GridX / Global.ChunkSize);
+                int playerChunkY = (int)(player.GridY / Global.ChunkSize);
+                player.onChunk = (1/*chunks are 1 based*/+ ((playerChunkY * (Global.MapWidth / Global.ChunkSize)) + playerChunkX));
+                Vector2 cursorPosition = Vector2.Transform(new Vector2(current_mouse.Position.X, current_mouse.Position.Y), Matrix.Invert(camera.Transform));
+                mouseIsOverBlock = ((int)((cursorPosition.Y) / Global.Tilesize) * Global.MapWidth + (int)((cursorPosition.X) / Global.Tilesize) + Global.MapWidth);
+                cursorGridX = (int)((cursorPosition.X) / Global.Tilesize);
+                cursorGridY = (int)((cursorPosition.Y) / Global.Tilesize) + 1;
+                int cursorChunkX = (int)(cursorGridX / Global.ChunkSize);
+                int cursorChunkY = (int)(cursorGridY / Global.ChunkSize);
+                cursorOnChunk = (1/*chunks are 1 based*/+ ((cursorChunkY * (Global.MapWidth / Global.ChunkSize)) + cursorChunkX));
+
+                //these actions should only be checked if the game windows is active
+                HandleMouseEvents();
+                //updates player
+                player.Update(gameTime, player, map);
+
+                if (mouseIsOverBlock > 0 && mouseIsOverBlock < map.MapDictionary.Last().Key)
+                {
+                    map.MapDictionary[mouseIsOverBlock].Color = "Gold";
+                }
+                map.MapDictionary[player.SteppingOn].Color = "Red";
+
+                camera.Update(player.Position, map.Width, map.Height);
+
+                bgMgr.Update(gameTime);
+
+                buttonMgr.Update(gameTime);
+
+                //timer
+                float elapsed = (float)gameTime.ElapsedGameTime.TotalMilliseconds;
+                timer5s -= elapsed;
+                timer2s -= elapsed;
+                if (timer5s < 0)
+                {
+                    timer5s = TIMER5S;
+
+                    if (ChunksToUpdate.Any() == false)
+                    {
+                        foreach (var chunk in map.ChunkDictionary.Where(x => x.Value.HasGrass && x.Value.NeedGrassUpdate))
+                        {
+                            ChunksToUpdate.Add(chunk.Key);
+                        }
+                        LogMessage("checking tiles for grass grow", Color.Red);
+                    }
+
+
+
+                }
+                if (timer2s < 0)
+                {
+                    timer2s = TIMER2S;
+                    CheckChunkForGrass();
+                }
+                _mainPanel._horizontalProgressBar.Visible = false;  
+            }
+            //handle the progress of loading the map 
+            _mainPanel._horizontalProgressBar.Value = Map.Progress;
+
+
+            base.Update(gameTime);
+        }
+
+        protected override void Draw(GameTime gameTime)
+        {
+            GraphicsDevice.Clear(Color.Black);
+
+            spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, null, null, null, null, camera.Transform);
+
+
+
+            bgMgr.Draw(gameTime, spriteBatch);
+
+            if (_state == GameState.Running)
+            {
+                map.Draw(spriteBatch, player.onChunk);
+
+                player.Draw(spriteBatch);
+            }
+
+
+            if (Global.isDebugging)
+            {
+                WriteDebugInformation();
+            }
+
+            //messages
+            foreach (var mess in Messages.ToList())
+            {
+                if (mess.Timeout > 0)
+                {
+                    DrawWithShadow(mess.Text, new Vector2(camera.Center.X - (((Global.WindowWidth / 2) - 20)), camera.Center.Y + ((Global.WindowHeight / 2) - 40) - (mess.Id * 20)), mess.Color);
+                    mess.Timeout--;
+                }
+                else
+                {
+                    Messages.Remove(mess);
+                }
+
+            }
+
+            Global.FrameRate = (Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)).ToString();
+            _mainPanel.UpdateFPS((int)(Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)));
+
+
+            buttonMgr.Draw(gameTime, spriteBatch);
+
+            spriteBatch.End();
+
+            base.Draw(gameTime);
+            _desktop.Render();
+
+        }
+
+        #region Misc
         public void LogMessage(string message, Color color, int timeout = 300)
         {
 
@@ -156,124 +308,7 @@ namespace TileMaster
             }
 
         }
-
-
-        protected override void UnloadContent()
-        {
-            // TODO: Unload any non ContentManager content here
-        }
-
-        /// <summary>
-        /// Allows the game to run logic such as updating the world,
-        /// checking for collisions, gathering input, and playing audio.
-        /// </summary>
-        /// <param name="gameTime">Provides a snapshot of timing values.</param>
-        protected override void Update(GameTime gameTime)
-        {
-            //updates the player info about block positioning
-            int playerOnGridX = (int)((player.Position.X + (player.Rectangle.Width / 2)) / Global.Tilesize);
-            int playerOnGridY = (int)((player.Position.Y + (player.Rectangle.Height)) / Global.Tilesize);
-            player.onBlock = (playerOnGridY * Global.MapWidth) + (playerOnGridX);
-            player.SteppingOn = (int)(player.onBlock + Global.MapWidth);
-            player.GridX = (int)((player.Position.X + (player.Rectangle.Width / 2)) / Global.Tilesize);
-            player.GridY = (int)((player.Position.Y + (player.Rectangle.Height)) / Global.Tilesize);
-            int playerChunkX = (int)(player.GridX / Global.ChunkSize);
-            int playerChunkY = (int)(player.GridY / Global.ChunkSize);
-            player.onChunk = (1/*chunks are 1 based*/+ ((playerChunkY * (Global.MapWidth / Global.ChunkSize)) + playerChunkX));
-            Vector2 cursorPosition = Vector2.Transform(new Vector2(current_mouse.Position.X, current_mouse.Position.Y), Matrix.Invert(camera.Tramsform));
-            mouseIsOverBlock = ((int)((cursorPosition.Y) / Global.Tilesize) * Global.MapWidth + (int)((cursorPosition.X) / Global.Tilesize) + Global.MapWidth);
-            cursorGridX = (int)((cursorPosition.X) / Global.Tilesize);
-            cursorGridY = (int)((cursorPosition.Y) / Global.Tilesize) + 1;
-            int cursorChunkX = (int)(cursorGridX / Global.ChunkSize);
-            int cursorChunkY = (int)(cursorGridY / Global.ChunkSize);
-            cursorOnChunk = (1/*chunks are 1 based*/+ ((cursorChunkY * (Global.MapWidth / Global.ChunkSize)) + cursorChunkX));
-
-            //these actions should only be checked if the game windows is active
-            HandleMouseEvents();
-            //updates player
-            player.Update(gameTime, player, map);
-
-            if (mouseIsOverBlock > 0 && mouseIsOverBlock < map.MapDictionary.Last().Key)
-            {
-                map.MapDictionary[mouseIsOverBlock].Color = "Gold";
-            }
-            map.MapDictionary[player.SteppingOn].Color = "Red";
-
-            camera.Update(player.Position, map.Width, map.Height);
-
-            bgMgr.Update(gameTime);
-
-            buttonMgr.Update(gameTime);
-
-            //timer
-            float elapsed = (float)gameTime.ElapsedGameTime.TotalMilliseconds;
-            timer5s -= elapsed;
-            timer2s -= elapsed;
-            if (timer5s < 0)
-            {
-                timer5s = TIMER5S;
-
-                if (ChunksToUpdate.Any() == false)
-                {
-                    foreach (var chunk in map.ChunkDictionary.Where(x => x.Value.HasGrass && x.Value.NeedGrassUpdate))
-                    {
-                        ChunksToUpdate.Add(chunk.Key);
-                    }
-                    LogMessage("checking tiles for grass grow", Color.Red);
-                }
-
-
-
-            }
-            if (timer2s < 0)
-            {
-                timer2s = TIMER2S;
-                CheckChunkForGrass();
-            }
-
-            base.Update(gameTime);
-        }
-
-        protected override void Draw(GameTime gameTime)
-        {
-            GraphicsDevice.Clear(Color.Black);
-
-            spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, null, null, null, null, camera.Tramsform);
-
-            bgMgr.Draw(gameTime, spriteBatch);
-
-
-            map.Draw(spriteBatch, player.onChunk);
-            player.Draw(spriteBatch);
-
-            if (Global.isDebugging)
-            {
-                WriteDebugInformation();
-            }
-
-            //messages
-            foreach (var mess in Messages.ToList())
-            {
-                if (mess.Timeout > 0)
-                {
-                    DrawWithShadow(mess.Text, new Vector2(camera.Center.X - (((Global.WindowWidth / 2) - 20)), camera.Center.Y + ((Global.WindowHeight / 2) - 40) - (mess.Id * 20)), mess.Color);
-                    mess.Timeout--;
-                }
-                else
-                {
-                    Messages.Remove(mess);
-                }
-
-            }
-
-            framerate = (Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)).ToString();
-
-            buttonMgr.Draw(gameTime, spriteBatch);
-
-            spriteBatch.End();
-
-            base.Draw(gameTime);
-        }
+        #endregion
 
         #region Debug
         private void WriteDebugInformation()
@@ -282,13 +317,14 @@ namespace TileMaster
             current_mouse = Mouse.GetState();
             float debugXCoordinate = camera.Center.X - 800;
             float debugYCoordinate = camera.Center.Y - 500;
-            Vector2 worldPosition = Vector2.Transform(new Vector2(current_mouse.Position.X, current_mouse.Position.Y), Matrix.Invert(camera.Tramsform));
+            Vector2 worldPosition = Vector2.Transform(new Vector2(current_mouse.Position.X, current_mouse.Position.Y), Matrix.Invert(camera.Transform));
 
             mouseIsOverBlock = (((int)((worldPosition.Y) / 16)) * Global.MapWidth + (int)((worldPosition.X) / 16) + Global.MapWidth);
 
 
 
-            string positionInText = string.Format("Player Position: ({0:0.0}, {1:0.0})", player.Position.X, player.Position.Y);
+            _mainPanel.UpdatePlayerPos((int)player.Position.X, (int)player.Position.Y);
+
             string cameraPosition = string.Format("Camera Position: ({0:0.0}, {1:0.0})", GraphicsDevice.Viewport.X, GraphicsDevice.Viewport.Y);
 
             string Map = "Map:" + map.Width + " x " + map.Height;
@@ -342,7 +378,7 @@ namespace TileMaster
 
             buttonMgr.UpdateButton(1, new Vector2(debugXCoordinate, debugYCoordinate + 500));
 
-            DrawWithShadow(positionInText, new Vector2(debugXCoordinate, debugYCoordinate));
+            //DrawWithShadow(positionInText, new Vector2(debugXCoordinate, debugYCoordinate));
             DrawWithShadow(cameraPosition, new Vector2(debugXCoordinate, debugYCoordinate + 20));
             DrawWithShadow(playerOnChunk, new Vector2(debugXCoordinate, debugYCoordinate + 40));
             DrawWithShadow(playerOnSolidGround, new Vector2(debugXCoordinate, debugYCoordinate + 60));
@@ -363,7 +399,7 @@ namespace TileMaster
             //DrawWithShadow("Tile type: "+map.ChunkDictionary[cursorOnChunk].Tiles[mouseIsOverBlock].texture.Name, new Vector2(debugXcoordinate, debugYcoordinate + 240));
 
 
-            DrawWithShadow("FPS: " + framerate, new Vector2(debugXCoordinate, debugYCoordinate + 350));
+            //DrawWithShadow("FPS: " + Global.FrameRate, new Vector2(debugXCoordinate, debugYCoordinate + 350));
 
         }
         private void DrawWithShadow(string text, Vector2 position)
@@ -397,10 +433,10 @@ namespace TileMaster
         #region Event Handlers
         private void HandleMouseEvents()
         {
-            if (this.IsActive && Global.isCursorOveraButton == false)
+            if (this.IsActive && Global.isCursorOverAButton == false)
             {
                 //temporary handlers for the buttons
-                if (current_mouse.LeftButton == ButtonState.Pressed)
+                if (current_mouse.LeftButton == ButtonState.Pressed && _desktop.IsMouseOverGUI == false)
                 {
                     try
                     {
