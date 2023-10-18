@@ -35,6 +35,12 @@
     <ProjectReference Include="..\TileMaster.Util\TileMaster.Util.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Update="Content\dirt.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\UIDirt.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Tiles.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

@@ -11,11 +11,12 @@ namespace TileMaster.UI
     public partial class MainPanel
     {
         private readonly DebugWindow _debugWindow = new DebugWindow();
-        InventoryWindow inventoryWindow = new InventoryWindow();
+        InventoryWindow inventoryWindow;
         private readonly Window2 _window2 = new Window2();
         private readonly Window3 _window3 = new Window3();
         public Panel ActionBarPanel;
-
+        public Panel ItemInfoPanel;
+ 
         public MainPanel()
         {
             BuildUI();
@@ -43,7 +44,7 @@ namespace TileMaster.UI
                 _button3.IsPressed = false;
             };
 
-
+            inventoryWindow = new InventoryWindow(ItemInfoPanel);
         }
         public void ShowWindows()
         {
@@ -70,6 +71,18 @@ namespace TileMaster.UI
             {
                 butt.Background = new SolidBrush(Global.ActionBarButtonColor);
             }
+        }
+
+        public void UpdateItemInfoPanelLocation()
+        {
+            ItemInfoPanel.Top = Global.CursorY;
+            ItemInfoPanel.Left = Global.CursorX;
+            ItemInfoPanel.Visible = true;
+           
+        }   
+        public void HideItemInfoPanelLocation()
+        {          
+            ItemInfoPanel.Visible = false;           
         }
 
         #region Debug

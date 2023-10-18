@@ -11,5 +11,7 @@ namespace TileMaster
         //replace the player sprite (which is a ball) with a proper two tile tall animated character
         //implement a inventory manager
         //compress game save file and assets
+        //everything is lit, the caves must be dark, and the blocks that are not within reach if a light source should not be lit, they should be dark
+        //proper backgrounds, the current backgrounds are a generic asset from the internet
     }
 }

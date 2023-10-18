@@ -139,10 +139,10 @@ namespace TileMaster.Entity
             this.TextureName = refTile.TextureName;
             this.LocalId = positionOnchunk;
             this.Color = refTile.Color;
-            this.Rectangle = new Rectangle(y * Global.Tilesize, x * Global.Tilesize, Global.Tilesize, Global.Tilesize);
+            this.Rectangle = new Rectangle(y * Global.TileSize, x * Global.TileSize, Global.TileSize, Global.TileSize);
             this.X = x;
-            this.Height = Global.Tilesize;
-            this.Width = Global.Tilesize;
+            this.Height = Global.TileSize;
+            this.Width = Global.TileSize;
             this.Y = y;
             
         }
@@ -168,10 +168,10 @@ namespace TileMaster.Entity
             this.LocalId = tileRef.LocalId;
             this.ChunkId = tileRef.ChunkId;
             this.Color = tileType.Color;
-            this.Rectangle = new Rectangle(tileRef.Y * Global.Tilesize, tileRef.X * Global.Tilesize, Global.Tilesize, Global.Tilesize);           
+            this.Rectangle = new Rectangle(tileRef.Y * Global.TileSize, tileRef.X * Global.TileSize, Global.TileSize, Global.TileSize);           
             this.X = tileRef.X;
-            this.Height = Global.Tilesize;
-            this.Width = Global.Tilesize;
+            this.Height = Global.TileSize;
+            this.Width = Global.TileSize;
             this.Y = tileRef.Y;
         }
 

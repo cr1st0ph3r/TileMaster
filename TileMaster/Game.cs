@@ -39,9 +39,9 @@ namespace TileMaster
         private int cursorGridY = 0;
 
         //timers
-        float timer5s = 5000;
+        float timer5s = 1000;
         const float TIMER5S = 5000;
-        float timer2s = 2500;
+        float timer2s = 1500;
         const float TIMER2S = 2500;
 
 
@@ -76,7 +76,7 @@ namespace TileMaster
             graphics.PreferredBackBufferHeight = Global.WindowHeight;
             _game = this;
             IsFixedTimeStep = false;
-            
+
         }
 
         public static Game GetInstance()
@@ -87,6 +87,26 @@ namespace TileMaster
         }
         public void LoadMap()
         {
+            //if (Global.GenerateMapOnStartup)
+            //{
+            //    var sw = new Stopwatch();
+            //    sw.Start();
+
+            //    initialArrayMap = Util.MapGenerator.GenerateRandomMap();
+            //    map.GenerateMapDictionary(initialArrayMap);
+            //    map.SaveMap();
+
+            //    sw.Stop();
+            //    var time = sw.Elapsed.TotalSeconds;
+            //}
+
+            //do I have a map to load?
+            if (map.CheckIfMapDataExists() == false)
+            {
+                initialArrayMap = Util.MapGenerator.GenerateRandomMap();
+                map.GenerateMapDictionary(initialArrayMap);
+                map.SaveMap();
+            }
             map.LoadMap();
         }
         protected override void Initialize()
@@ -115,18 +135,7 @@ namespace TileMaster
             bgMgr.Load(Content, player);
 
 
-            //if (Global.GenerateMapOnStartup)
-            //{
-            //    var sw = new Stopwatch();
-            //    sw.Start();
 
-            //    initialArrayMap = Util.MapGenerator.GenerateRandomMap();
-            //    map.GenerateMapDictionary(initialArrayMap);
-            //    map.SaveMap();
-
-            //    sw.Stop();
-            //    var time = sw.Elapsed.TotalSeconds;
-            //}
 
 
             _desktop = new Desktop
@@ -138,7 +147,7 @@ namespace TileMaster
             _desktop.Root = _mainPanel;
 
             _mainPanel.ShowWindows();
-             
+
             player.Load(Content);
 
         }
@@ -155,23 +164,23 @@ namespace TileMaster
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
-            if (Game._state == GameState.Running&&Global.isMapLoaded)
+            if (Game._state == GameState.Running && Global.isMapLoaded)
             {
 
                 //updates the player info about block positioning
-                int playerOnGridX = (int)((player.Position.X + (player.Rectangle.Width / 2)) / Global.Tilesize);
-                int playerOnGridY = (int)((player.Position.Y + (player.Rectangle.Height)) / Global.Tilesize);
+                int playerOnGridX = (int)((player.Position.X + (player.Rectangle.Width / 2)) / Global.TileSize);
+                int playerOnGridY = (int)((player.Position.Y + (player.Rectangle.Height)) / Global.TileSize);
                 player.onBlock = (playerOnGridY * Global.MapWidth) + (playerOnGridX);
                 player.SteppingOn = (int)(player.onBlock + Global.MapWidth);
-                player.GridX = (int)((player.Position.X + (player.Rectangle.Width / 2)) / Global.Tilesize);
-                player.GridY = (int)((player.Position.Y + (player.Rectangle.Height)) / Global.Tilesize);
+                player.GridX = (int)((player.Position.X + (player.Rectangle.Width / 2)) / Global.TileSize);
+                player.GridY = (int)((player.Position.Y + (player.Rectangle.Height)) / Global.TileSize);
                 int playerChunkX = (int)(player.GridX / Global.ChunkSize);
                 int playerChunkY = (int)(player.GridY / Global.ChunkSize);
                 player.onChunk = (1/*chunks are 1 based*/+ ((playerChunkY * (Global.MapWidth / Global.ChunkSize)) + playerChunkX));
                 Vector2 cursorPosition = Vector2.Transform(new Vector2(current_mouse.Position.X, current_mouse.Position.Y), Matrix.Invert(camera.Transform));
-                mouseIsOverBlock = ((int)((cursorPosition.Y) / Global.Tilesize) * Global.MapWidth + (int)((cursorPosition.X) / Global.Tilesize) + Global.MapWidth);
-                cursorGridX = (int)((cursorPosition.X) / Global.Tilesize);
-                cursorGridY = (int)((cursorPosition.Y) / Global.Tilesize) + 1;
+                mouseIsOverBlock = ((int)((cursorPosition.Y) / Global.TileSize) * Global.MapWidth + (int)((cursorPosition.X) / Global.TileSize) + Global.MapWidth);
+                cursorGridX = (int)((cursorPosition.X) / Global.TileSize);
+                cursorGridY = (int)((cursorPosition.Y) / Global.TileSize) + 1;
                 int cursorChunkX = (int)(cursorGridX / Global.ChunkSize);
                 int cursorChunkY = (int)(cursorGridY / Global.ChunkSize);
                 cursorOnChunk = (1/*chunks are 1 based*/+ ((cursorChunkY * (Global.MapWidth / Global.ChunkSize)) + cursorChunkX));
@@ -218,7 +227,7 @@ namespace TileMaster
                     timer2s = TIMER2S;
                     CheckChunkForGrass();
                 }
-                _mainPanel._horizontalProgressBar.Visible = false;  
+                _mainPanel._horizontalProgressBar.Visible = false;
             }
             //handle the progress of loading the map 
             _mainPanel._horizontalProgressBar.Value = Map.Progress;
@@ -244,6 +253,10 @@ namespace TileMaster
                 player.Draw(spriteBatch);
             }
 
+            //Cursor info
+            current_mouse = Mouse.GetState();
+            Global.CursorX = (int)current_mouse.Position.X;
+            Global.CursorY = (int)current_mouse.Position.Y;
 
             if (Global.isDebugging)
             {
@@ -314,7 +327,7 @@ namespace TileMaster
         private void WriteDebugInformation()
         {
 
-            current_mouse = Mouse.GetState();
+
             float debugXCoordinate = camera.Center.X - 800;
             float debugYCoordinate = camera.Center.Y - 500;
             Vector2 worldPosition = Vector2.Transform(new Vector2(current_mouse.Position.X, current_mouse.Position.Y), Matrix.Invert(camera.Transform));

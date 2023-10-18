@@ -41,8 +41,9 @@ namespace TileMaster.UI
                     butt.Padding = new Thickness(5, 5);
                     //butt.Image = DefaultAssets.UITextureRegionAtlas["icon-star-outline"];
                     butt.Background = new SolidBrush(Global.ActionBarButtonColor);
-                    butt.Image = MyraEnvironment.DefaultAssetManager.Load<TextureRegion>("content/dirt.png");
-
+                    butt.Image = MyraEnvironment.DefaultAssetManager.Load<TextureRegion>("content/UIDirt.png");
+                    butt.MouseEntered += inventoryItem_HoverIn;
+                    butt.MouseLeft += inventoryItem_HoverOut;
 
                     butt.Height = buttonWidthHeight;
                     butt.Top = 10 + (j* buttonWidthHeight) + ((j * buttonWidthHeight) / 4);

@@ -10,7 +10,7 @@ namespace TileMaster.Entity
     {
         //for the all that is holy encapsulate this later
         private Texture2D texture;
-        private Vector2 position = new Vector2(Global.MapWidth * Global.Tilesize / 2, (Global.GroundLevel - 20) * Global.Tilesize);
+        private Vector2 position = new Vector2(Global.MapWidth * Global.TileSize / 2, (Global.GroundLevel - 20) * Global.TileSize);
 
 
         public Vector2 velocity;
@@ -150,9 +150,9 @@ namespace TileMaster.Entity
             {
                 position.Y = 0;
             }
-            if (position.Y > ((Global.MapHeight - 2/*why 2? beats me*/) * Global.Tilesize))
+            if (position.Y > ((Global.MapHeight - 2/*why 2? beats me*/) * Global.TileSize))
             {
-                position.Y = (((Global.MapHeight - 2) * Global.Tilesize) - 10);
+                position.Y = (((Global.MapHeight - 2) * Global.TileSize) - 10);
 
             }
         }

@@ -80,6 +80,10 @@ namespace TileMaster
 
         }
 
+        public bool CheckIfMapDataExists()
+        {
+            return File.Exists(Global.MapDataLocation);
+        }
 
         /// <summary>
         /// Generate a dictionary map from a 2d integer array
@@ -179,11 +183,15 @@ namespace TileMaster
         /// </summary>
         public void SaveMap()
         {
+            if (Directory.Exists(Global.ChunkFolderLocation) == false)
+            {
+                Directory.CreateDirectory(Global.ChunkFolderLocation);
+            }
             foreach (string sFile in Directory.GetFiles(@"Chunks\", "*.bin"))
             {
                 File.Delete(sFile);
             }
-            DictionaryHelper.Serialize(MapDictionary, File.Open(@"Chunks\data.bin", FileMode.Create));
+            DictionaryHelper.Serialize(MapDictionary, File.Open(Global.MapDataLocation, FileMode.Create));
             ChunkSizer();
         }
         /// <summary>
@@ -209,7 +217,7 @@ namespace TileMaster
 
             //upon load, tiles has no information about texture or other complex properties
             //because these can't be serialized
-            this.MapDictionary = DictionaryHelper.DeSerialize<Dictionary<int, CollisionTiles>>(File.Open(@"Chunks\data.bin", FileMode.Open));
+            this.MapDictionary = DictionaryHelper.DeSerialize<Dictionary<int, CollisionTiles>>(File.Open(Global.MapDataLocation, FileMode.Open));
 
             List<Tuple<int, string>> chunks = new List<Tuple<int, string>>();
             foreach (string file in Directory.GetFiles("Chunks/").Where(x => x.Contains("chunk") && x.Contains(".bin")))
@@ -225,7 +233,7 @@ namespace TileMaster
 
             //chunk never stat at zero
             int chunkId = 1;
-            int globalCounter = 0; 
+            int globalCounter = 0;
             //loads chunks files into dictionaries
             foreach (var file in chunks)
             {
@@ -279,8 +287,8 @@ namespace TileMaster
                 chunkId++;
             }
 
-            width = Global.MapWidth * Global.Tilesize;
-            height = Global.MapHeight * Global.Tilesize;
+            width = Global.MapWidth * Global.TileSize;
+            height = Global.MapHeight * Global.TileSize;
 
             Global.isMapLoaded = true;
         }
@@ -308,7 +316,7 @@ namespace TileMaster
                 for (int gridY = 0; gridY < SectorsInY; gridY++)
                 {
                     Chunk chunk = new Chunk();
-                    int contadorLocalChunk = 0;
+                    int localChunkCounter = 0;
                     chunk.PositionOnscreen = pointOnscreenCounter;
                     pointOnscreenCounter++;
                     tempX += rowMultiplier;
@@ -318,11 +326,11 @@ namespace TileMaster
                         {
                             chunk.Tiles[tempX] = MapDictionary[tempX];
                             chunk.Tiles[tempX].ChunkId = dictionaryCounter;
-                            chunk.Tiles[tempX].LocalId = contadorLocalChunk;
+                            chunk.Tiles[tempX].LocalId = localChunkCounter;
                             chunk.Tiles[tempX].GlobalId = MapDictionary[tempX].GlobalId;
 
                             blockCount++;
-                            contadorLocalChunk++;
+                            localChunkCounter++;
                             gridCounter++;
                             tempX++;
                         }
@@ -467,9 +475,12 @@ namespace TileMaster
         /// <returns></returns>
         private List<Tile> GetTilesToDraw(int referenceChunk)
         {
+            //this calculation can take into consideration the current window size, although if zoom is implemented,
+            //it will also have to be taken into account as well.
+            //Currently, for the standard 1920x1080 resolution the approximate value for chunks to be rendered is 2
             //how many chunks fit on the screen?
-            int chunksOnTheScreenHorizontally = ((Global.WindowWidth / (Global.ChunkSize * Global.Tilesize))) - 1;
-            int chunksOnTheScreenVertically = ((Global.WindowHeight / (Global.ChunkSize * Global.Tilesize)));
+            int chunksOnTheScreenHorizontally = 2;//((((Global.WindowWidth) / (Global.ChunkSize * Global.TileSize))) - 1);
+            int chunksOnTheScreenVertically = 2;// (((Global.WindowHeight) / (Global.ChunkSize * Global.TileSize)));
 
             //used to access upper and lower row chunks
             int rowMultiplier = Global.MapWidth / Global.ChunkSize;
@@ -972,10 +983,14 @@ namespace TileMaster
             var tiles = GetTilesToDraw(chunkId);
             foreach (var tile in tiles)
             {
-                if (tile.isEdgeTile)
+                if (Global.MarkTilesOnTheEdge)
                 {
-                    tile.Color = "Gold";
+                    if (tile.isEdgeTile)
+                    {
+                        tile.Color = "Gold";
+                    }
                 }
+
                 tile.Draw(spriteBatch);
             }
 
