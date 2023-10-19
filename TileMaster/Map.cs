@@ -204,7 +204,7 @@ namespace TileMaster
             //sw.Start(); 
             //load tile data (namely colors) so we can build tiles at runtime
             Tiletypes = CollisionTiles.LoadTilesTypes();
-            TileColors = TileHelper.GetTileColors();
+            TileColors = TileHelper.GetTileColors(Global.TileColorDataLocation);
             TileMgr.Load(TileColors);
             if (Global.UseTileTextureRandomization)
             {
@@ -250,23 +250,6 @@ namespace TileMaster
                         ChunkId = chunkId
                     };
 
-                    //edge tile detection
-                    //TODO rework this logic maybe move it to map save so its done once per save instead of one per load
-                    if (i % Global.ChunkSize == 0
-                       || i < Global.ChunkSize
-                       || i > (dict.Count - Global.ChunkSize))
-                    {
-                        dict[dict.ElementAt(i).Key].isEdgeTile = true;
-                        MapDictionary[globalId].isEdgeTile = dict[dict.ElementAt(i).Key].isEdgeTile;
-                        //its dumb to check twice
-                        if (i % Global.ChunkSize == 0 && i > 0)
-                        {
-                            dict[dict.ElementAt(i - 1).Key].isEdgeTile = true;
-                            MapDictionary[globalId - 1].isEdgeTile = true;
-                        }
-                    }
-
-
                     //make global map aware of this information
                     MapDictionary[globalId].ChunkId = dict[dict.ElementAt(i).Key].ChunkId;
                     MapDictionary[globalId].LocalId = dict[dict.ElementAt(i).Key].LocalId;
@@ -303,14 +286,24 @@ namespace TileMaster
 
             int SectorsInX = Global.MapWidth / Global.ChunkSize;
             int SectorsInY = Global.MapHeight / Global.ChunkSize;
-
+            //[x][x][x][x][x][x][x][x][x][x]
+            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
+            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
+            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
+            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
+            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
+            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
+            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
+            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
+            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
+            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
+            //[x][x][x][x][x][x][x][x][x][x]
             int tempX = 0;
             int tempY = 0;
             int gridCounter = 1;
             int dictionaryCounter = 1;
             int pointOnscreenCounter = 0;
             int rowMultiplier = 0;
-
             for (int gridX = 0; gridX < SectorsInX; gridX++)
             {
                 for (int gridY = 0; gridY < SectorsInY; gridY++)
@@ -324,8 +317,20 @@ namespace TileMaster
                     {
                         for (int y = 0; y < Global.ChunkSize; y++)
                         {
+                            bool isEdgeTile;
+                            if ((x == 0 || x == Global.ChunkSize - 1) || (y == 0 || y == Global.ChunkSize - 1))
+                            {
+                                isEdgeTile = true;
+                            }
+                            else
+                            {
+                                isEdgeTile = false;
+                            }
+
                             chunk.Tiles[tempX] = MapDictionary[tempX];
                             chunk.Tiles[tempX].ChunkId = dictionaryCounter;
+                            chunk.Tiles[tempX].isEdgeTile = isEdgeTile;
+                            MapDictionary[tempX].isEdgeTile = isEdgeTile;
                             chunk.Tiles[tempX].LocalId = localChunkCounter;
                             chunk.Tiles[tempX].GlobalId = MapDictionary[tempX].GlobalId;
 
@@ -351,8 +356,41 @@ namespace TileMaster
 
 
 
-            int iii = 0;
+            //var taskList = new List<Task>();
 
+            //for (int i = 0; i < Chunks.Values.Count; i++)
+            //{
+            //    var t = new Task(() =>
+            //    {
+            //        foreach (var tile in Chunks[i].Tiles.Where(x => x.Value.isEdgeTile))
+            //        {
+            //            var neibs = GetNeighboringTiles(tile.Value);
+            //            tile.Value.neighboringTiles = neibs.Select(x => new KeyValuePair<int, int>(x.ChunkId, x.LocalId)).ToList();
+            //        }
+
+            //    });
+            //    taskList.Add(t);
+            //    t.Start();
+
+            //}
+
+
+            //Task.WaitAll(taskList.ToArray());
+
+
+
+            foreach (var chunk in Chunks.Values)
+            {
+                foreach (var tile in chunk.Tiles.Where(x => x.Value.isEdgeTile))
+                {
+                    var neibs = GetNeighboringTiles(tile.Value);
+                    tile.Value.neighboringTiles = neibs.Select(x => new KeyValuePair<int, int>(x.ChunkId, x.LocalId)).ToList();
+                }
+            }
+
+
+
+            int iii = 0;
             foreach (var item in Chunks.Values)
             {
                 DictionaryHelper.Serialize(item.Tiles, File.Open(@"Chunks\chunk" + iii + ".bin", FileMode.Create));

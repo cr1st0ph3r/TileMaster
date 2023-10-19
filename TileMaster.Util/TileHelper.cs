@@ -5,15 +5,14 @@ namespace TileMaster.Util
 {
     public static class TileHelper
     {
-        //change this
-        public static string BasePath = @"F:\Workspace\Tile Game\Tiles\TileMaster 2\TileMaster\TileColor";
-        public static List<TileColor> GetTileColors()
+ 
+        public static List<TileColor> GetTileColors(string path)
         {
             var tileColors = new List<TileColor>();
 
-            foreach (string file in Directory.GetFiles(BasePath, "*.json"))
+            foreach (string file in Directory.GetFiles(path, "*.json"))
             {
-                var json = System.IO.File.ReadAllText(file);
+                var json = File.ReadAllText(file);
                 var tc = JsonConvert.DeserializeObject<TileColor>(json);
               tileColors.Add(tc);  
             }
@@ -22,10 +21,10 @@ namespace TileMaster.Util
         }
 
 
-        public static void SaveTileColors(TileColor tc) 
+        public static void SaveTileColors(TileColor tc,string path) 
         {         
             var json = JsonConvert.SerializeObject(tc);             
-            File.WriteAllText(BasePath+@"\Tile" + tc.Id+".json", json);
+            File.WriteAllText(path+@"\Tile" + tc.Id+".json", json);
         }
     }
 }

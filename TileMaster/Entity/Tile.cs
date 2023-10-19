@@ -83,11 +83,13 @@ namespace TileMaster.Entity
         /// </summary>
         public string TextureName;
         /// <summary>
-        /// The color filter which monogame uses to paint the tile upon drawing. White for no filter.
+        /// The color filter which MonoGame uses to paint the tile upon drawing. White for no filter.
         /// </summary>
         public string Color = "White";
 
-
+        public List<KeyValuePair<int, int>> neighboringTiles;
+         
+        public bool isOpenToAir;
 
         public Rectangle Rectangle
         {
@@ -152,6 +154,8 @@ namespace TileMaster.Entity
             this.IsOccupied = tileType.IsOccupied;
             this.IsSolid = tileType.IsSolid;
             this.GlobalId = tileRef.GlobalId;
+            this.isEdgeTile = tileRef.isEdgeTile;
+            this.neighboringTiles = tileRef.neighboringTiles;
             this.Name = tileType.Name;
             this.TileId = tileType.TileId;
             if (tileType.AlternateTextures.Any()&&Global.UseAlternateTiles)
@@ -177,7 +181,7 @@ namespace TileMaster.Entity
 
         public static List<CollisionTiles> LoadTilesTypes()
         {
-            var json = System.IO.File.ReadAllText(@"Tiles.json");
+            var json = System.IO.File.ReadAllText(Global.TileDataLocation);
             var Tiles = JsonConvert.DeserializeObject<List<CollisionTiles>>(json);
 
             //load the texture

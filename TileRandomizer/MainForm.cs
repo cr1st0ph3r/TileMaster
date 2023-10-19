@@ -74,8 +74,8 @@ namespace TileRandomizer
         private void btnSaveTileColorData_Click(object sender, EventArgs e)
         {
             TileColor tc = new TileColor(Convert.ToInt32(txtTileId.Text), colors);
-
-            TileHelper.SaveTileColors(tc);
+            //TODO add the path to Data/TileColor
+            TileHelper.SaveTileColors(tc,"");
         }
     }
 }

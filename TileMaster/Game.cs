@@ -107,7 +107,7 @@ namespace TileMaster
                 map.GenerateMapDictionary(initialArrayMap);
                 map.SaveMap();
             }
-            map.LoadMap();
+            map.LoadMap(); 
         }
         protected override void Initialize()
         {
@@ -190,11 +190,11 @@ namespace TileMaster
                 //updates player
                 player.Update(gameTime, player, map);
 
-                if (mouseIsOverBlock > 0 && mouseIsOverBlock < map.MapDictionary.Last().Key)
-                {
-                    map.MapDictionary[mouseIsOverBlock].Color = "Gold";
-                }
-                map.MapDictionary[player.SteppingOn].Color = "Red";
+                //if (mouseIsOverBlock > 0 && mouseIsOverBlock < map.MapDictionary.Last().Key)
+                //{
+                //    map.MapDictionary[mouseIsOverBlock].Color = "Gold";
+                //}
+                //map.MapDictionary[player.SteppingOn].Color = "Red";
 
                 camera.Update(player.Position, map.Width, map.Height);
 
@@ -246,7 +246,7 @@ namespace TileMaster
 
             bgMgr.Draw(gameTime, spriteBatch);
 
-            if (_state == GameState.Running)
+            if (_state == GameState.Running&&Global.isMapLoaded)
             {
                 map.Draw(spriteBatch, player.onChunk);
 

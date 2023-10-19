@@ -81,11 +81,11 @@ namespace TileMaster
         /// <summary>
         /// Defines is the game is in debug mode
         /// </summary>
-        public static bool isDebugging = false;
+        public static bool isDebugging = true;
         /// <summary>
         /// Paints the tiles at the edge of a chunk of a different color
         /// </summary>
-        public static bool MarkTilesOnTheEdge = false;
+        public static bool MarkTilesOnTheEdge = true;
 
 
         //this is an experimental feature that have no practical usage
@@ -100,5 +100,7 @@ namespace TileMaster
         //Files and folders locations
         public static readonly string ChunkFolderLocation = "Chunks";
         public static readonly string MapDataLocation = @"Chunks\data.bin";
+        public static readonly string TileDataLocation = @"Data\Tiles.json";
+        public static readonly string TileColorDataLocation = @"Data\TileColor";
     }
 }
