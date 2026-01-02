@@ -1,7 +1,4 @@
-﻿using System; 
-using System.Linq; 
-
-namespace TileMaster.Util
+﻿namespace TileMaster.Util
 {
     public static class StringHelper
     {

@@ -1,11 +1,9 @@
-using Myra.Graphics2D.TextureAtlases;
 using Myra.Graphics2D;
 using Myra;
 using Myra.Graphics2D.UI;
 using TileMaster.Entity;
 using Myra.Graphics2D.Brushes;
-using SharpDX.Direct3D9;
-using System.Security;
+using AssetManagementBase;
 
 namespace TileMaster.UI
 {
@@ -14,7 +12,6 @@ namespace TileMaster.UI
         private void BuildUI()
         {
             BuildActionBar();
-            BuildItemInfo();
 
             _debugButton = new TextButton();
             _debugButton.Text = "Debug";
@@ -34,23 +31,29 @@ namespace TileMaster.UI
             _loadMapButton = new TextButton();
             _loadMapButton.Text = "Load Map";
             _loadMapButton.Toggleable = true;
-            _loadMapButton.Id = "_button1";
+            _loadMapButton.Id = "_button4";
 
-            _openInventoryButton = new TextButton();
-            _openInventoryButton.Text = "Open Inventory";
-            _openInventoryButton.Toggleable = true;
-            _openInventoryButton.Id = "_button1";
+            _saveMapButton = new TextButton();
+            _saveMapButton.Text = "Save Map";
+            _saveMapButton.Toggleable = true;
+            _saveMapButton.Id = "_button5";
+
+            _openInventoryButton = new ToggleButton();
+            var _openInventoryButtonLabel = new Label();
+            _openInventoryButtonLabel.Text = "Open Inventory";
+            _openInventoryButton.Content = _openInventoryButtonLabel;
+            _openInventoryButton.Id = "_openInventoryButton";
 
             _quitButton = new TextButton();
             _quitButton.Text = "Quit";
             _quitButton.Toggleable = true;
             _quitButton.Id = "_button1";
 
-            _horizontalProgressBar = new HorizontalProgressBar();
-            _horizontalProgressBar.GridRow = 2;
-            _horizontalProgressBar.Visible = false;
-            _horizontalProgressBar.Id = "_horizontalProgressBar";
-            _horizontalProgressBar.VerticalAlignment = Myra.Graphics2D.UI.VerticalAlignment.Center;
+            _loadMapProgressBar = new HorizontalProgressBar();   
+            Grid.SetColumn(_loadMapProgressBar, 2);
+            _loadMapProgressBar.Visible = false;
+            _loadMapProgressBar.Id = "_horizontalProgressBar";
+            _loadMapProgressBar.VerticalAlignment = Myra.Graphics2D.UI.VerticalAlignment.Center;
 
             var horizontalStackPanel1 = new HorizontalStackPanel();
             horizontalStackPanel1.Spacing = 8;
@@ -58,6 +61,7 @@ namespace TileMaster.UI
             horizontalStackPanel1.Widgets.Add(_button2);
             horizontalStackPanel1.Widgets.Add(_button3);
             horizontalStackPanel1.Widgets.Add(_loadMapButton);
+            horizontalStackPanel1.Widgets.Add(_saveMapButton);
             horizontalStackPanel1.Widgets.Add(_openInventoryButton);
             horizontalStackPanel1.Widgets.Add(_quitButton);
 
@@ -67,21 +71,8 @@ namespace TileMaster.UI
             _labelOverGui.Id = "_labelOverGui";
 
             Widgets.Add(horizontalStackPanel1);
-            Widgets.Add(_horizontalProgressBar);
+            Widgets.Add(_loadMapProgressBar);
             Widgets.Add(_labelOverGui);
-        }
-
-        void BuildItemInfo()
-        {
-            ItemInfoPanel = new Panel();
-            ItemInfoPanel.Height = 200;
-            ItemInfoPanel.Width = 150;
-            ItemInfoPanel.Visible = false;        
-
-            ItemInfoPanel.Left = (Global.WindowWidth / 2);
-            ItemInfoPanel.Top = (Global.WindowHeight / 2);
-            ItemInfoPanel.Background = new SolidBrush(Global.PanelColor);
-            Widgets.Add(ItemInfoPanel);
         }
 
         void BuildActionBar()
@@ -91,7 +82,7 @@ namespace TileMaster.UI
             ActionBarPanel.Width = 510;
             ActionBarPanel.Left = (Global.WindowWidth / 2 - (ActionBarPanel.Width.Value / 2));
             ActionBarPanel.Top = (Global.WindowHeight - ActionBarPanel.Height.Value);
-            ActionBarPanel.Background = new SolidBrush(Global.PanelColor);
+            ActionBarPanel.Background = new SolidBrush(CommonComponents.PanelColor);
 
 
             var tileTypes = CollisionTiles.LoadTilesTypes();
@@ -106,10 +97,8 @@ namespace TileMaster.UI
                 butt.Width = buttonWidth;
                 butt.Padding = new Thickness(5, 5);
                 butt.PressedChanged += _actionBarButtonPress;
-                //butt.Image = DefaultAssets.UITextureRegionAtlas["icon-star-outline"];
-                butt.Background = new SolidBrush(Global.ActionBarButtonColor);
-                butt.Image = MyraEnvironment.DefaultAssetManager.Load<TextureRegion>("content/UIDirt.png");
-
+                butt.Background = new SolidBrush(CommonComponents.ActionBarButtonColor);
+                butt.Image = MyraEnvironment.DefaultAssetManager.LoadTextureRegion("content/UIDirt.png");
 
                 butt.Height = 40;
                 butt.Top = 10;
@@ -124,10 +113,11 @@ namespace TileMaster.UI
         public TextButton _button2;
         public TextButton _button3;
         public TextButton _loadMapButton;
-        public TextButton _openInventoryButton;
+        public TextButton _saveMapButton;
+        public static ToggleButton _openInventoryButton;
         public TextButton _quitButton;
         public Label _labelOverGui;
-        public HorizontalProgressBar _horizontalProgressBar;
+        public HorizontalProgressBar _loadMapProgressBar;
 
     }
 }

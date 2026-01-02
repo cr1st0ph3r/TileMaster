@@ -17,7 +17,7 @@
         "Id": 1,
         "Name": "Dirt",
         "TextureName": "Tile1",
-        "TileSet": [ "Tile3", "Tile4", "Tile5", "Tile6", "Tile7", "Tile8", "Tile9", "Tile10", "Tile11", "Tile12", "Tile13", "Tile14", "Tile15", "Tile16", "Tile17" ],
+        "TileSet": [],
         "AlternateTextures": [ "Tile1", "Tile1B", "Tile1C" ],
         "TextureId": 1,
         "TileId": 1,
@@ -40,8 +40,8 @@
       {
         "Id": 3,
         "Name": "DirtWithGrass",
-        "TextureName": "Tile3A",
-        "TileSet": [],
+        "TextureName": "Tile3",
+        "TileSet": ["Tile3", "Tile4", "Tile5", "Tile6", "Tile7", "Tile8", "Tile9", "Tile10", "Tile11", "Tile12", "Tile13", "Tile14", "Tile15", "Tile16", "Tile17"],
         "AlternateTextures": [ "Tile3A", "Tile3B", "Tile3C", "Tile3D", "Tile3E" ],
         "TextureId": 3,
         "ParentTileId": 0,
@@ -53,7 +53,7 @@
       {
         "Id": 4,
         "Name": "Granite",
-        "TextureName": "Tile20",
+        "TextureName": "Tile30",
         "TileSet": [],
         "AlternateTextures": [],
         "TextureId": 4,
@@ -66,7 +66,7 @@
       {
         "Id": 5,
         "Name": "TreeTrunk",
-        "TextureName": "Tile22",
+        "TextureName": "Tile32",
         "TileSet": [],
         "AlternateTextures": [],
         "TextureId": 5,
@@ -79,7 +79,7 @@
       {
         "Id": 6,
         "Name": "TreeLeaf",
-        "TextureName": "Tile21",
+        "TextureName": "Tile31",
         "TileSet": [],
         "AlternateTextures": [],
         "TextureId": 6,

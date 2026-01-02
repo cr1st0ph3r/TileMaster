@@ -6,36 +6,19 @@ using TileMaster.Helper;
 
 namespace TileMaster.Entity
 {
-    public class Player
-    {
-        //for the all that is holy encapsulate this later
-        private Texture2D texture;
-        private Vector2 position = new Vector2(Global.MapWidth * Global.TileSize / 2, (Global.GroundLevel - 20) * Global.TileSize);
-
-
-        public Vector2 velocity;
-        private Rectangle rectangle;
-        public int SteppingOn;
-        public int onBlock;
-        public int onChunk;
-        public int GridX;
-        public int GridY;
-        private bool hasJumped = false;
-        public bool isMoving = false;
-        public bool isOnSolidBlock = false;
-
-        public Vector2 Position
-        {
-            get { return position; }
-
+    public class Player:Entity
+    {    
+        public Player(){
+            this.Height = 3;//the height of the player in blocks
         }
-        public Rectangle Rectangle
-        {
-            get { return rectangle; }
 
-        }
-        public Player()
+        public Vector2 GetPosition()
         {
+            return position;
+        }
+        public Rectangle GetRectangle()
+        {
+            return rectangle;
         }
 
         public void Load(ContentManager content)
@@ -43,66 +26,98 @@ namespace TileMaster.Entity
             texture = content.Load<Texture2D>("Player");
         }
 
-        public void Update(GameTime gameTime, Player player, Map map)
+        public override void Update(GameTime gameTime, Player player, Map.Map map)
         {
-            if (Game._state == GameState.Running&&Global.isMapLoaded){
+            if (Game._state == GameState.Running && Global.IsMapLoaded)
+            {
 
+                //updates the player info about block positioning
+                int playerOnGridX = (int)((player.GetPosition().X + (player.GetRectangle().Width / 2)) / Global.TileSize);
+                int playerOnGridY = (int)((player.GetPosition().Y + (player.GetRectangle().Height)) / Global.TileSize);
+                player.onBlock = (playerOnGridY * Global.MapWidth) + (playerOnGridX);
+                player.SteppingOn = (int)(player.onBlock + Global.MapWidth);
+                player.GridX = (int)((player.GetPosition().X + (player.GetRectangle().Width / 2)) / Global.TileSize);
+                player.GridY = (int)((player.GetPosition().Y + (player.GetRectangle().Height / player.Height)) / Global.TileSize);
+                int playerChunkX = (int)(player.GridX / Global.ChunkSize);
+                int playerChunkY = (int)(player.GridY / Global.ChunkSize);
+                player.onChunk = (1/*chunks are 1 based*/+ ((playerChunkY * (Global.MapWidth / Global.ChunkSize)) + playerChunkX));
 
-                position += velocity;
+                float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+                // integrate position using velocity in px/s
+                position += velocity * dt;
+
                 rectangle = new Rectangle((int)position.X, (int)position.Y, texture.Width, texture.Height);
                 Input(gameTime, player, map);
 
-                //constantly pulls the player down
-                if (velocity.Y < 10 && !isOnSolidBlock)
+                // gravity (time-based)
+                if (velocity.Y < MaxFallSpeed && !isOnSolidBlock)
                 {
-                    velocity.Y += (float)(0.4F * 60 * gameTime.ElapsedGameTime.TotalSeconds);
+                    velocity.Y += Gravity * dt;
                 }
 
-                //set is the player is in motion or not
-                if (velocity.X > 0 || velocity.Y > 0.4f || velocity.X < 0 || velocity.Y < -0.4f)
+                // small conditional snap to ground to avoid tiny floating above tiles
+                // only snap if player is marked on ground and within a small pixel threshold
+                if (isOnSolidBlock)
+                {
+                    // compute the expected Y for the player's top so player's bottom sits on tile top
+                    float targetY = (player.GridY) * Global.TileSize -0.1f;
+                    position.Y = (int)targetY;
+                    velocity.Y = 0f;
+                    hasJumped = false;
+                    // update rectangle after changing position
+                    rectangle = new Rectangle((int)position.X, (int)position.Y, texture.Width, texture.Height);
+                }
+
+                // set is the player is in motion or not
+                if (velocity.X > 0.01f || velocity.Y > 0.4f || velocity.X < -0.01f || velocity.Y < -0.4f)
                 {
                     isMoving = true;
                 }
                 else isMoving = false;
-
-
             }
-        }
-
-        public void Input(GameTime gameTime, Player player, Map map)
+        }  
+        
+        public void Input(GameTime gameTime, Player player, Map.Map map)
         {
+            float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-            //mover para direita
+            // move right
             if (InputHelper.HandleMovingRight(player, map))
             {
-                velocity.X = (float)(gameTime.ElapsedGameTime.TotalMilliseconds / 3);
+                velocity.X = MoveSpeed;
             }
 
-            //mover para esquerda
+            // move left
             else if (InputHelper.HandleMovingLeft(player, map))
             {
-                velocity.X = -(float)gameTime.ElapsedGameTime.TotalMilliseconds / 3;
+                velocity.X = -MoveSpeed;
             }
 
-
-
-            //momento linear esquerda direita
+            // linear momentum left/right (friction)
             if (velocity.X > 0.4F)
             {
-                velocity.X -= (float)(0.4F * 60 * gameTime.ElapsedGameTime.TotalSeconds);
+                velocity.X -= Friction * dt;
+                if (velocity.X < 0f) velocity.X = 0f;
             }
             else if (velocity.X < -0.4F)
             {
-                velocity.X += (float)(0.4F * 60 * gameTime.ElapsedGameTime.TotalSeconds);
+                velocity.X += Friction * dt;
+                if (velocity.X > 0f) velocity.X = 0f;
             }
             else { velocity.X = 0; }
 
-            //queda do player
+            // ground detection
             if (!InputHelper.HandleMovingDown(player, map))
             {
-                velocity.Y = 0;
-                isOnSolidBlock = true;
-                hasJumped = false;
+                float targetY = (player.GridY) * Global.TileSize - 1; // matches previous layout
+                float delta = targetY - position.Y;
+                if (delta < 1)
+                {
+                    velocity.Y = 0;
+                    isOnSolidBlock = true;
+                    hasJumped = false;
+                }
 
             }
             else
@@ -110,80 +125,32 @@ namespace TileMaster.Entity
                 isOnSolidBlock = false;
             }
 
-
+            // handle player jump (jump impulse is in px/s)
             if (Keyboard.GetState().IsKeyDown(Keys.Space) && hasJumped == false)
             {
+                // small positional tweak to avoid immediate collision
                 position.Y -= 5F;
-                velocity.Y = -9f;
+                velocity.Y = -JumpVelocity;
                 hasJumped = true;
                 isOnSolidBlock = false;
             }
 
-
             if (isOnSolidBlock)
             {
-                //TODO criar transicao para definir a posicao de y gradativamente
-                //pois atualment está fazendo de forma muito agressiva
-                player.position.Y = ((player.GridY) * 16) - 1;
+                // removed abrupt snap to grid; handled with small conditional snap in Update
             }
 
             if (hasJumped)
             {
                 if (!InputHelper.HandleJump(player, map))
                 {
-                    velocity.Y = 0.4F;
+                    // collision while jumping: cancel upward motion and nudge down
+                    velocity.Y = 0f;
                     position.Y += 5F;
                 }
             }
 
 
-        }
-        public void CheckBoundaries()
-        {
-
-            //keep player inside boundaries
-            if (position.X < 0)
-            {
-                position.X = 0;
-            }
-            if (position.Y < 0)
-            {
-                position.Y = 0;
-            }
-            if (position.Y > ((Global.MapHeight - 2/*why 2? beats me*/) * Global.TileSize))
-            {
-                position.Y = (((Global.MapHeight - 2) * Global.TileSize) - 10);
-
-            }
-        }
-        public void Collision(Rectangle newRectangle, int xOffset, int yOffset)
-        {
-            if (rectangle.TouchTopOf(newRectangle))
-            {
-                rectangle.Y = newRectangle.Y - rectangle.Height;
-                velocity.Y = 0f;
-                hasJumped = false;
-            }
-            if (rectangle.TouchLeftOf(newRectangle))
-            {
-                position.X = newRectangle.X - rectangle.Width - 2;/*change this value for scalling the tiles*/
-            }
-            if (rectangle.TouchRightOf(newRectangle))
-            {
-                position.X = newRectangle.X + rectangle.Width + 2;/*change this value for scalling the tiles*/
-            }
-            if (rectangle.TouchBottomOf(newRectangle))
-            {
-                velocity.Y = 1f;
-            }
-
-            CheckBoundaries();
-
-        }
-
-        public void Draw(SpriteBatch spriteBatch)
-        {
-            spriteBatch.Draw(texture, rectangle, Color.White);
-        }
+        }       
     }
 }

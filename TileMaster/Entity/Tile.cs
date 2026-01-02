@@ -85,10 +85,10 @@ namespace TileMaster.Entity
         /// <summary>
         /// The color filter which MonoGame uses to paint the tile upon drawing. White for no filter.
         /// </summary>
-        public string Color = "White";
+        public string Color = "Gray";
 
         public List<KeyValuePair<int, int>> neighboringTiles;
-         
+
         public bool isOpenToAir;
 
         public Rectangle Rectangle
@@ -114,7 +114,7 @@ namespace TileMaster.Entity
 
         private Color getColor()
         {
-            var prop = typeof(Color).GetProperty(this.Color);
+            var prop = typeof(Color).GetProperty(Color);
             if (prop != null)
                 return (Color)prop.GetValue(null, null);
             return default(Color);
@@ -128,55 +128,63 @@ namespace TileMaster.Entity
 
         }
 
-       
-        public CollisionTiles(CollisionTiles refTile, int x, int y, int positionOnchunk, int blockId)
+
+        //TODO whys is this needed?
+        public CollisionTiles(CollisionTiles refTile, int x, int y, int positionOnChunk, int blockId)
         {
-            this.IsOccupied = refTile.IsOccupied;
-            this.IsSolid = refTile.IsSolid;
-            this.GlobalId = blockId;
-            this.Name = refTile.Name;
-            this.TileId = refTile.TileId;
+            IsOccupied = refTile.IsOccupied;
+            IsSolid = refTile.IsSolid;
+            GlobalId = blockId;
+            Name = refTile.Name;
+            TileId = refTile.TileId;
             //this.texture = refTile.texture;
-            this.textureId = refTile.textureId;
-            this.TextureName = refTile.TextureName;
-            this.LocalId = positionOnchunk;
-            this.Color = refTile.Color;
-            this.Rectangle = new Rectangle(y * Global.TileSize, x * Global.TileSize, Global.TileSize, Global.TileSize);
-            this.X = x;
-            this.Height = Global.TileSize;
-            this.Width = Global.TileSize;
-            this.Y = y;
-            
+            textureId = refTile.textureId;
+            TextureName = refTile.TextureName;
+            LocalId = positionOnChunk;
+            Color = refTile.Color;
+            Rectangle = new Rectangle(y * Global.TileSize, x * Global.TileSize, Global.TileSize, Global.TileSize);
+            X = x;
+            Height = Global.TileSize;
+            Width = Global.TileSize;
+            Y = y;
+
         }
-     
+
         public CollisionTiles(CollisionTiles tileType, CollisionTiles tileRef)
         {
-            this.IsOccupied = tileType.IsOccupied;
-            this.IsSolid = tileType.IsSolid;
-            this.GlobalId = tileRef.GlobalId;
-            this.isEdgeTile = tileRef.isEdgeTile;
-            this.neighboringTiles = tileRef.neighboringTiles;
-            this.Name = tileType.Name;
-            this.TileId = tileType.TileId;
-            if (tileType.AlternateTextures.Any()&&Global.UseAlternateTiles)
+            IsOccupied = tileType.IsOccupied;
+            IsSolid = tileType.IsSolid;
+            GlobalId = tileRef.GlobalId;
+            isEdgeTile = tileRef.isEdgeTile;
+            neighboringTiles = tileRef.neighboringTiles;
+            Name = tileType.Name;
+            TileId = tileType.TileId;
+            if (tileType.AlternateTextures.Any() && Global.UseAlternateTiles)
             {
                 //give random texture                
-                this.texture = tileType.AltTextures[Game.rnd.Next(tileType.AltTextures.Count)];
+                texture = tileType.AltTextures[Game.rnd.Next(tileType.AltTextures.Count)];
             }
             else
             {
-                this.texture = tileType.texture;
+                if (tileType.TextureName != tileRef.TextureName)
+                {
+                    texture = tileType.Textures.FirstOrDefault(x => x.Name == tileRef.TextureName);
+                }
+                else
+                {
+                    texture = tileType.texture;
+                }
             }
-            this.textureId = tileType.textureId;
-            this.TextureName = tileType.TextureName;
-            this.LocalId = tileRef.LocalId;
-            this.ChunkId = tileRef.ChunkId;
-            this.Color = tileType.Color;
-            this.Rectangle = new Rectangle(tileRef.Y * Global.TileSize, tileRef.X * Global.TileSize, Global.TileSize, Global.TileSize);           
-            this.X = tileRef.X;
-            this.Height = Global.TileSize;
-            this.Width = Global.TileSize;
-            this.Y = tileRef.Y;
+            textureId = tileType.textureId;
+            TextureName = tileRef.TextureName;
+            LocalId = tileRef.LocalId;
+            ChunkId = tileRef.ChunkId;
+            Color = tileType.Color;
+            Rectangle = new Rectangle(tileRef.Y * Global.TileSize, tileRef.X * Global.TileSize, Global.TileSize, Global.TileSize);
+            X = tileRef.X;
+            Height = Global.TileSize;
+            Width = Global.TileSize;
+            Y = tileRef.Y;
         }
 
         public static List<CollisionTiles> LoadTilesTypes()
@@ -187,7 +195,7 @@ namespace TileMaster.Entity
             //load the texture
             foreach (var tile in Tiles.ToList())
             {
-                tile.texture = Content.Load<Texture2D>(tile.TextureName);              
+                tile.texture = Content.Load<Texture2D>(tile.TextureName);
                 tile.Textures = new List<Texture2D>();
                 tile.AltTextures = new List<Texture2D>();
                 foreach (var subTiles in tile.TileSet)
@@ -206,14 +214,14 @@ namespace TileMaster.Entity
         {
             return new Rectangle(X, Y, Width, Height);
         }
-        public static Texture2D rectangVectorBuilder(int textureId)
+        public static Texture2D rectangleVectorBuilder(int textureId)
         {
             return Content.Load<Texture2D>("Tile" + textureId);
         }
 
 
     }
-     
+
 }
 
 

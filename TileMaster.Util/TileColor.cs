@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic; 
-
-namespace TileMaster.Util
+﻿namespace TileMaster.Util
 {
     [Serializable]
     public class TileColor

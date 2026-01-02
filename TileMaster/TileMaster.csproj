@@ -1,10 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+<Target Name="RestoreDotnetTools" BeforeTargets="Restore">
+    <Message Text="Restoring dotnet tools" Importance="High" />
+    <Exec Command="dotnet tool restore" />
+</Target>
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows7.0</TargetFramework>
     <PublishReadyToRun>false</PublishReadyToRun>
     <TieredCompilation>false</TieredCompilation>
     <UseWindowsForms>true</UseWindowsForms>
+    <!-- Disable "BinaryFormatter is obsolete" warnings for entire project -->
+    <NoWarn>$(NoWarn);SYSLIB0011</NoWarn>
   </PropertyGroup>
   <PropertyGroup>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -26,9 +32,9 @@
     <MonoGameContentReference Include="Content\Content.mgcb" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.1.303" />
-    <PackageReference Include="MonoGame.Framework.WindowsDX" Version="3.8.1.303" />
-    <PackageReference Include="Myra" Version="1.4.5" />
+    <PackageReference Include="MonoGame.Content.Builder.Task" Version="3.8.4.1" />
+    <PackageReference Include="MonoGame.Framework.WindowsDX" Version="3.8.4.1" />
+    <PackageReference Include="Myra" Version="1.5.10" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
   <ItemGroup>
@@ -51,4 +57,5 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+  
 </Project>

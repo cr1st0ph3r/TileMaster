@@ -69,7 +69,7 @@ namespace TileMaster.Misc
             _speed = (float)(_scrollingSpeed * gameTime.ElapsedGameTime.TotalSeconds);
 
             if (!_constantSpeed || _player.velocity.X > 0)
-                _speed *= _player.velocity.X;
+                _speed *= (_player.velocity.X/20);
 
             foreach (var sprite in _sprites)
             {

@@ -27,7 +27,7 @@ namespace TileMaster
         /// <summary>
         /// defines if the map is loaded or not
         /// </summary>
-        public static bool isMapLoaded = false;
+        public static bool IsMapLoaded = false;
 
         /// <summary>
         /// X - needs to be a multiple of chunkSize
@@ -79,9 +79,13 @@ namespace TileMaster
         public static bool isCursorOverAButton = false;
         public static bool RenderOnlyPlayerAtChunk = true;
         /// <summary>
-        /// Defines is the game is in debug mode
+        /// Defines if the game is in debug mode
         /// </summary>
         public static bool isDebugging = true;
+        /// <summary>
+        /// Defines if the game should update the player chunk only
+        /// </summary>
+        public static bool updatePlayerChunkOnly = false;
         /// <summary>
         /// Paints the tiles at the edge of a chunk of a different color
         /// </summary>
@@ -89,13 +93,9 @@ namespace TileMaster
 
 
         //this is an experimental feature that have no practical usage
-        public static bool UseTileTextureRandomization = true;
+        public static bool UseTileTextureRandomization = false;
         public static bool UseAlternateTiles = true;
         public static int RandomizationFactorAmount = 20;
-
-        //UI color elements
-        public static readonly string PanelColor = "#545454";
-        public static readonly string ActionBarButtonColor = "#808080";
 
         //Files and folders locations
         public static readonly string ChunkFolderLocation = "Chunks";
