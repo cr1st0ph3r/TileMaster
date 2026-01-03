@@ -85,7 +85,7 @@ namespace TileMaster
         /// <summary>
         /// Defines if the game should update the player chunk only
         /// </summary>
-        public static bool updatePlayerChunkOnly = false;
+        public static bool updatePlayerChunkOnly = true;
         /// <summary>
         /// Paints the tiles at the edge of a chunk of a different color
         /// </summary>

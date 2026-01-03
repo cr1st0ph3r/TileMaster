@@ -353,6 +353,8 @@ namespace TileMaster
                     DrawWithShadow("globalId: " + map.MapDictionary[block.GlobalId].GlobalId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 220));
                     DrawWithShadow("TileId: " + map.MapDictionary[block.GlobalId].TileId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 240));
                     DrawWithShadow("Name: " + map.MapDictionary[block.GlobalId].Name, new Vector2(debugXCoordinate + 350, debugYCoordinate + 260));
+                    DrawWithShadow("Texture name: " + map.MapDictionary[block.GlobalId].TextureName, new Vector2(debugXCoordinate + 350, debugYCoordinate + 280));
+                    DrawWithShadow("Texture.name: " + map.MapDictionary[block.GlobalId].texture?.Name, new Vector2(debugXCoordinate + 350, debugYCoordinate + 300));
 
                 }
                 //else

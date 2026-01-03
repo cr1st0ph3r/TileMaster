@@ -3,7 +3,7 @@
       {
         "Id": 0,
         "Name": "Air",
-        "TextureName": "Tile0",
+        "TextureName": "Air",
         "TileSet": [],
         "AlternateTextures": [],      
         "TextureId": 0,
@@ -16,9 +16,9 @@
       {
         "Id": 1,
         "Name": "Dirt",
-        "TextureName": "Tile1",
+        "TextureName": "Dirt",
         "TileSet": [],
-        "AlternateTextures": [ "Tile1", "Tile1B", "Tile1C" ],
+        "AlternateTextures": [ "Dirt1", "Dirt2", "Dirt3" ],
         "TextureId": 1,
         "TileId": 1,
         "IsOccupied": true,
@@ -28,9 +28,9 @@
       {
         "Id": 2,
         "Name": "Stone",
-        "TextureName": "Tile2",
+        "TextureName": "Stone",
         "TileSet": [],
-        "AlternateTextures": [ "Tile2", "Tile2B", "Tile2C" ],
+        "AlternateTextures": [ "Stone1", "Stone2", "Stone3" ],
         "TextureId": 2,
         "TileId": 2,
         "IsOccupied": true,
@@ -40,9 +40,9 @@
       {
         "Id": 3,
         "Name": "DirtWithGrass",
-        "TextureName": "Tile3",
-        "TileSet": ["Tile3", "Tile4", "Tile5", "Tile6", "Tile7", "Tile8", "Tile9", "Tile10", "Tile11", "Tile12", "Tile13", "Tile14", "Tile15", "Tile16", "Tile17"],
-        "AlternateTextures": [ "Tile3A", "Tile3B", "Tile3C", "Tile3D", "Tile3E" ],
+        "TextureName": "DirtWithGrass",
+        "TileSet": [ "DirtWithGrass1", "DirtWithGrass2", "DirtWithGrass3", "DirtWithGrass4", "DirtWithGrass5", "DirtWithGrass6", "DirtWithGrass7", "DirtWithGrass8", "DirtWithGrass9", "DirtWithGrass10", "DirtWithGrass11", "DirtWithGrass12", "DirtWithGrass13", "DirtWithGrass14", "DirtWithGrass15" ],
+        "AlternateTextures": [],
         "TextureId": 3,
         "ParentTileId": 0,
         "TileId": 3,
@@ -53,7 +53,7 @@
       {
         "Id": 4,
         "Name": "Granite",
-        "TextureName": "Tile30",
+        "TextureName": "Granite",
         "TileSet": [],
         "AlternateTextures": [],
         "TextureId": 4,
@@ -66,7 +66,7 @@
       {
         "Id": 5,
         "Name": "TreeTrunk",
-        "TextureName": "Tile32",
+        "TextureName": "TreeTrunk",
         "TileSet": [],
         "AlternateTextures": [],
         "TextureId": 5,
@@ -79,7 +79,7 @@
       {
         "Id": 6,
         "Name": "TreeLeaf",
-        "TextureName": "Tile31",
+        "TextureName": "TreeLeaf",
         "TileSet": [],
         "AlternateTextures": [],
         "TextureId": 6,

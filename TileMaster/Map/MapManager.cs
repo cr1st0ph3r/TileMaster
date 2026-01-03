@@ -1,5 +1,4 @@
-﻿using SharpDX.Direct2D1.Effects;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -30,18 +29,20 @@ namespace TileMaster.Map
             map.MapDictionary = new Dictionary<int, CollisionTiles>();
             //the global counter should always start at zero for proper tile calculation
             var globalCounter = 0;
-            for (var x = 0; x < mapMatrice.GetLength(1); x++)
+
+            // Fix: iterate first dimension as X (width) and second as Y (height).
+            for (var x = 0; x < mapMatrice.GetLength(0); x++)
             {
-                for (var y = 0; y < mapMatrice.GetLength(0); y++)
+                for (var y = 0; y < mapMatrice.GetLength(1); y++)
                 {
                     var number = mapMatrice[x, y];
 
                     createText += number + ",";
-                    //X e Y are inverted
-                    var tType = map.TileTypes.FirstOrDefault(x => x.TileId == number);
+                    var tType = map.TileTypes.FirstOrDefault(tt => tt.TileId == number);
+
+                    // CollisionTiles expects (x, y) in grid coordinates where x is column and y is row.
                     map.MapDictionary.Add(globalCounter, new CollisionTiles(tType, x, y, 0, globalCounter));
                     globalCounter++;
-
                 }
                 createText += Environment.NewLine;
             }
@@ -56,16 +57,18 @@ namespace TileMaster.Map
         {
             map.MapDictionary = new Dictionary<int, CollisionTiles>();
             map.TileTypes = CollisionTiles.LoadTilesTypes();
-            //List< Dictionary<int, CollisionTiles> > dictList = new List<Dictionary<int, CollisionTiles>>();
             var dictList = new ConcurrentBag<Dictionary<int, CollisionTiles>>();
-            var multiplier = mapMatrice.GetLength(1);
+
+            // Fix: multiplier should be the width (first dimension) so we generate one "column" (x) per task.
+            var multiplier = mapMatrice.GetLength(0);
             var taskList = new List<Task>();
 
-            foreach (var x in Enumerable.Range(0, multiplier))
+            foreach (var col in Enumerable.Range(0, multiplier))
             {
+                var capturedCol = col;
                 var t = new Task(() =>
                 {
-                    var rowDict = GenRow(mapMatrice, x, multiplier * x);
+                    var rowDict = GenRow(mapMatrice, capturedCol, multiplier * capturedCol);
                     if (rowDict != null)
                     {
                         dictList.Add(rowDict);
@@ -78,10 +81,8 @@ namespace TileMaster.Map
 
             Task.WaitAll(taskList.ToArray());
 
-            var dl = new List<Dictionary<int, CollisionTiles>>();
             foreach (var dict in dictList)
             {
-                dl.AddRange(dictList);
                 map.MapDictionary = map.MapDictionary.Concat(dict).ToDictionary(k => k.Key, v => v.Value);
             }
 
@@ -90,28 +91,30 @@ namespace TileMaster.Map
         }
 
         /// <summary>
-        /// generates a row of blocks
+        /// generates a column of blocks (one x across all y)
         /// </summary>
         /// <param name="mapMatrice"></param>
-        /// <param name="startingX"></param>
+        /// <param name="startingX">column (x) index</param>
         /// <param name="globalCounter"></param>
         /// <returns></returns>
         public Dictionary<int, CollisionTiles> GenRow(int[,] mapMatrice, int startingX, int globalCounter)
         {
             var dictMap = new Dictionary<int, CollisionTiles>();
-            for (var y = 0; y < mapMatrice.GetLength(0); y++)
+
+            // Fix: iterate y over the second dimension (height)
+            for (var y = 0; y < mapMatrice.GetLength(1); y++)
             {
                 var number = mapMatrice[startingX, y];
-                //X e Y are inverted
-                var tType = map.TileTypes.FirstOrDefault(x => x.TileId == number);
-                dictMap.Add(globalCounter, new CollisionTiles(tType, startingX, y, 0, globalCounter));
-                globalCounter++;
+                var tType = map.TileTypes.FirstOrDefault(tt => tt.TileId == number);
 
+                // Pass (x,y) in the expected order
+                dictMap.Add(globalCounter, new CollisionTiles(tType,y, startingX, 0, globalCounter));
+                globalCounter++;
             }
             return dictMap;
         }
         #endregion
-        
+
         #region Map Loading
         /// <summary>
         /// Saves the map data into their respective files
@@ -171,7 +174,7 @@ namespace TileMaster.Map
                 //chunks are empty, needs regen
                 ChunkSizer();
             }
-            chunks.Sort((y, x) => y.Item1.CompareTo(x.Item1));
+            chunks.Sort((x, y) => x.Item1.CompareTo(y.Item1));
 
             //chunk never stat at zero
             var chunkId = 1;
@@ -186,7 +189,7 @@ namespace TileMaster.Map
                 for (var i = 0; i < dict.Count; i++)
                 {
                     var chunkTile = dict.ElementAt(i).Value;
-                    var globalId = dict[dict.ElementAt(i).Key].GlobalId;                 
+                    var globalId = dict[dict.ElementAt(i).Key].GlobalId;
                     dict[dict.ElementAt(i).Key] = new CollisionTiles(map.TileTypes.FirstOrDefault(x => x.Name == chunkTile.Name), dict[dict.ElementAt(i).Key])
                     {
                         ChunkId = chunkId
@@ -320,6 +323,7 @@ namespace TileMaster.Map
 
 
             //Task.WaitAll(taskList.ToArray());
+
 
 
 

@@ -23,7 +23,7 @@ namespace TileMaster.Entity
         protected const float Gravity = 1000f;       // px/s^2
         protected const float MaxFallSpeed = 1000f;  // px/s
         protected const float JumpVelocity = 350f;   // px/s (initial upward velocity)
-        protected const float MoveSpeed = 100f;      // px/s (horizontal)
+        protected const float MoveSpeed = 600f;      // px/s (horizontal)
         protected const float Friction = 400f;       // px/s^2 (deceleration)
 
 

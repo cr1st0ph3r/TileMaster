@@ -43,6 +43,7 @@ namespace TileMaster.UI
             Grid.SetColumn(spinButton3, 1);
             Grid.SetRow(spinButton3, 2);
 
+            // Framerate cap
             var capFpsTo60 = new CheckButton
             {Content = new Label{Text = "Limit to 60"}};
             Grid.SetColumn(capFpsTo60, 3);
@@ -70,6 +71,8 @@ namespace TileMaster.UI
             {
                 Type = Myra.Graphics2D.UI.ProportionType.Auto,
             };
+
+
 
             grid1.Widgets.Add(label2);
             grid1.Widgets.Add(spinButton1);

@@ -1,5 +1,6 @@
-﻿using System.Linq;
-using Microsoft.Xna.Framework.Input;
+﻿using Microsoft.Xna.Framework.Input;
+using System;
+using System.Linq;
 using TileMaster.Entity;
 
 namespace TileMaster.Helper
@@ -36,25 +37,6 @@ namespace TileMaster.Helper
 
         public static bool HandleMovingDown_old(Player player, Map.Map map)
         {
-            UpdateChunk(player, map);
-            if (map.IsBlockOnChunk(player.onChunk, player.SteppingOn) == true)
-            {
-                if (map.ChunkDictionary[player.onChunk].Tiles[player.SteppingOn].IsOccupied == false)
-                {
-                    return true;//proceed with the moving
-                }
-                return false;
-
-            }
-            else
-            {
-                //handle the player transitioning from a chunk to another
-                return false;
-            }
-        }
-
-        public static bool HandleMovingDown(Player player, Map.Map map)
-        {
             // Update chunk info first (keeps existing behavior)
             UpdateChunk(player, map);
 
@@ -89,6 +71,70 @@ namespace TileMaster.Helper
             }
 
             // No supporting tiles under the entire width -> allow falling
+            return true;
+        }
+
+        public static bool HandleMovingDown(Player player, Map.Map map)
+        {
+            // Update chunk info first (keeps existing behavior)
+            UpdateChunk(player, map);
+
+            // Use a small physics-aware test instead of only grid occupancy.
+            // Sample a few points under the player's feet (left, center, right).
+            // Only treat a tile as "supporting" if:
+            //  - it's occupied
+            //  - the tile top is within a small vertical tolerance from the player's bottom
+            //  - there is horizontal overlap between player and that tile
+            //
+            // This prevents slight horizontal clipping into wall tiles from being
+            // interpreted as "standing on top" of that tile (the usual wall-sticking cause).
+
+            var pr = player.GetRectangle();
+            int footRow = player.GridY + player.Height;
+
+            int[] sampleXs = new int[]
+            {
+                pr.Left + 2,
+                pr.Left + pr.Width / 2,
+                pr.Right - 2
+            };
+
+            const int supportTolerancePx = 4;    // max gap allowed between feet and tile top to count as supported
+            const int maxPenetrationPx = 4;      // allow tiny penetration before rejecting (prevents jitter)
+
+            foreach (var sampleX in sampleXs)
+            {
+                // clamp sampleX inside map bounds
+                if (sampleX < 0) continue;
+                int gx = sampleX / Global.TileSize;
+                if (gx < 0 || gx >= Global.MapWidth) continue;
+
+                int blockId = (footRow * Global.MapWidth) + gx;
+                string direction = gx > player.GridX ? "right" : (gx < player.GridX ? "left" : "right");
+                var tile = map.GetTileAt(blockId, player.onChunk, direction);
+
+                // if tile is missing, preserve previous behavior and allow falling
+                if (tile == null)
+                    return true;
+
+                if (!tile.IsOccupied)
+                    continue;
+
+                // get tile rectangle and check vertical relationship with player's bottom
+                var tileTop = tile.Rectangle.Top;
+                int verticalDelta = tileTop - pr.Bottom; // 0 when perfectly aligned, negative if player penetrates tile
+
+                // require horizontal overlap to be non-zero (avoid counting side-touching tiles)
+                int horizOverlap = Math.Min(pr.Right, tile.Rectangle.Right) - Math.Max(pr.Left, tile.Rectangle.Left);
+
+                if (horizOverlap > 0 && verticalDelta <= supportTolerancePx && verticalDelta >= -maxPenetrationPx)
+                {
+                    // found a supporting tile under player's foot -> do not fall
+                    return false;
+                }
+            }
+
+            // no supporting tiles under sampled foot points -> allow falling
             return true;
         }
 

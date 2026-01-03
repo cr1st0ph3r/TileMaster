@@ -1,10 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace TileMaster.Entity
 {
@@ -106,6 +107,10 @@ namespace TileMaster.Entity
 
         public void Draw(SpriteBatch spriteBatch)
         {
+            if (GlobalId == 46668)
+            {
+                var s = 2;
+            }
             if (texture != null)
             {
                 spriteBatch.Draw(texture, rectangle, getColor());
@@ -123,6 +128,7 @@ namespace TileMaster.Entity
     [Serializable]
     public class CollisionTiles : Tile
     {
+        //needed by deserialization
         public CollisionTiles()
         {
 
@@ -142,7 +148,7 @@ namespace TileMaster.Entity
             TextureName = refTile.TextureName;
             LocalId = positionOnChunk;
             Color = refTile.Color;
-            Rectangle = new Rectangle(y * Global.TileSize, x * Global.TileSize, Global.TileSize, Global.TileSize);
+            Rectangle = new Rectangle(x * Global.TileSize, y * Global.TileSize, Global.TileSize, Global.TileSize);
             X = x;
             Height = Global.TileSize;
             Width = Global.TileSize;
@@ -159,7 +165,11 @@ namespace TileMaster.Entity
             neighboringTiles = tileRef.neighboringTiles;
             Name = tileType.Name;
             TileId = tileType.TileId;
-            if (tileType.AlternateTextures.Any() && Global.UseAlternateTiles)
+            if (tileType.TextureName != tileRef.TextureName)
+            {
+                texture = tileType.Textures.FirstOrDefault(x => x.Name == tileRef.TextureName);
+            }
+            else if (tileType.AlternateTextures.Any() && Global.UseAlternateTiles)
             {
                 //give random texture                
                 texture = tileType.AltTextures[Game.rnd.Next(tileType.AltTextures.Count)];
@@ -180,7 +190,10 @@ namespace TileMaster.Entity
             LocalId = tileRef.LocalId;
             ChunkId = tileRef.ChunkId;
             Color = tileType.Color;
-            Rectangle = new Rectangle(tileRef.Y * Global.TileSize, tileRef.X * Global.TileSize, Global.TileSize, Global.TileSize);
+
+            // FIX: tileRef.X is the horizontal (pixel) coordinate; tileRef.Y is the vertical.
+            Rectangle = new Rectangle(tileRef.X * Global.TileSize, tileRef.Y * Global.TileSize, Global.TileSize, Global.TileSize);
+
             X = tileRef.X;
             Height = Global.TileSize;
             Width = Global.TileSize;
@@ -191,39 +204,25 @@ namespace TileMaster.Entity
         {
             var json = System.IO.File.ReadAllText(Global.TileDataLocation);
             var Tiles = JsonConvert.DeserializeObject<List<CollisionTiles>>(json);
+            var tilePath="Tiles";
 
             //load the texture
             foreach (var tile in Tiles.ToList())
             {
-                tile.texture = Content.Load<Texture2D>(tile.TextureName);
+                tile.texture = Content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{tile.TextureName}");
                 tile.Textures = new List<Texture2D>();
                 tile.AltTextures = new List<Texture2D>();
                 foreach (var subTiles in tile.TileSet)
                 {
-                    tile.Textures.Add(Content.Load<Texture2D>(subTiles));
+                    tile.Textures.Add(Content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{subTiles}"));
                 }
                 foreach (var alt in tile.AlternateTextures)
                 {
-                    tile.AltTextures.Add(Content.Load<Texture2D>(alt));
+                    tile.AltTextures.Add(Content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{alt}"));
                 }
             }
             return Tiles;
         }
-
-        public static Rectangle rectangleBuilder(int X, int Y, int Height, int Width)
-        {
-            return new Rectangle(X, Y, Width, Height);
-        }
-        public static Texture2D rectangleVectorBuilder(int textureId)
-        {
-            return Content.Load<Texture2D>("Tile" + textureId);
-        }
-
-
     }
 
 }
-
-
-
-
