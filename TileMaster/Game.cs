@@ -53,7 +53,7 @@ namespace TileMaster
         /// <summary>
         /// Background manager
         /// </summary>
-        BackgroundManager backgroundManager;  
+        BackgroundManager backgroundManager;
         #endregion
 
         #endregion
@@ -73,9 +73,9 @@ namespace TileMaster
             Window.Position = new Point(50, 50);
 
         }
-        public static void LogMessage(string message,Color? color,int timeout = 300)
+        public static void LogMessage(string message, Color? color, int timeout = 300)
         {
-            if(color == null)
+            if (color == null)
             {
                 color = Color.White;
             }
@@ -138,7 +138,7 @@ namespace TileMaster
             ChunksToUpdate = new List<int>();
 
             backgroundManager = new BackgroundManager();
-           
+
             backgroundManager.Load(Content, player);
 
             _desktop = new Desktop
@@ -169,15 +169,10 @@ namespace TileMaster
         {
             if (Game._state == GameState.Running && Global.IsMapLoaded)
             {
-
-             
-
                 Vector2 cursorPosition = Vector2.Transform(new Vector2(current_mouse.Position.X, current_mouse.Position.Y), Matrix.Invert(camera.Transform));
                 var mouseY = (int)((cursorPosition.Y) / Global.TileSize) * Global.MapHeight;
                 var mouseX = (int)((cursorPosition.X) / Global.TileSize);
                 mouseIsOverBlock = (mouseX + mouseY);
-
-
 
                 cursorGridX = (int)((cursorPosition.X) / Global.TileSize);
                 cursorGridY = (int)((cursorPosition.Y) / Global.TileSize);
@@ -217,7 +212,7 @@ namespace TileMaster
                 _mainPanel._loadMapProgressBar.Visible = false;
             }
             //handle the progress of loading the map 
-            _mainPanel._loadMapProgressBar.Value = Map.MapManager.Progress;
+            _mainPanel._loadMapProgressBar.Value = MapManager.Progress;
 
 
             base.Update(gameTime);
@@ -228,7 +223,6 @@ namespace TileMaster
             GraphicsDevice.Clear(Color.Black);
 
             spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, null, null, null, null, camera.Transform);
-
 
             backgroundManager.Draw(gameTime, spriteBatch);
 
@@ -261,23 +255,18 @@ namespace TileMaster
                 {
                     Messages.Remove(mess);
                 }
-
             }
 
             Global.FrameRate = (Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)).ToString();
             _mainPanel.UpdateFPS((int)(Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)));
-
             spriteBatch.End();
-
             base.Draw(gameTime);
             _desktop.Render();
-
         }
 
         #region Misc
         public void LogMessage(string message, Color color, int timeout = 300)
         {
-
             //drawstring cannot be called at will, it must be called within the draw event
             //in this case a list of messages must be defined and then when the game is drawing, 
             //this list must be called and then the messages will be shown
@@ -287,7 +276,6 @@ namespace TileMaster
             {
                 var ms = Messages.FirstOrDefault(x => x.Text == message);
                 ms.Timeout = timeout;
-
             }
             else
             {
@@ -298,8 +286,6 @@ namespace TileMaster
                     Timeout = timeout,
                     Id = Messages.Count
                 };
-
-
                 Messages.Add(mess);
             }
 
@@ -382,11 +368,8 @@ namespace TileMaster
             DrawWithShadow(mouseBlockIn, new Vector2(debugXCoordinate, debugYCoordinate + 240));
             DrawWithShadow(MousePos, new Vector2(debugXCoordinate, debugYCoordinate + 260));
             DrawWithShadow(mouseOnChunk, new Vector2(debugXCoordinate, debugYCoordinate + 280));
-
-
-
+            
             //DrawWithShadow("Tile type: "+map.ChunkDictionary[cursorOnChunk].Tiles[mouseIsOverBlock].texture.Name, new Vector2(debugXcoordinate, debugYcoordinate + 240));
-
 
             //DrawWithShadow("FPS: " + Global.FrameRate, new Vector2(debugXCoordinate, debugYCoordinate + 350));
 
@@ -408,6 +391,7 @@ namespace TileMaster
                 Thread thread = new Thread(() =>
                 {
                     map.grass.GrowGrass(player.onChunk);
+                    map.tileShadeMgr.UpdateTileShadingForChunk(player.onChunk);
                     ChunksToUpdate.Remove(player.onChunk);
                 });
                 thread.Start();
@@ -419,11 +403,11 @@ namespace TileMaster
                 Thread thread = new Thread(() =>
                 {
                     map.grass.GrowGrass(chunkId);
+                    map.tileShadeMgr.UpdateTileShadingForChunk(chunkId);
                     ChunksToUpdate.Remove(chunkId);
                 });
                 thread.Start();
                 LogMessage("Checking Chunk " + chunkId + " for grass growth", Color.Green, 180);
-
             }
 
         }
@@ -450,19 +434,13 @@ namespace TileMaster
                 if (current_mouse.RightButton == ButtonState.Pressed)
                 {
 
-                    if (map.IsBlockOnChunk(cursorOnChunk, mouseIsOverBlock ))
+                    if (map.IsBlockOnChunk(cursorOnChunk, mouseIsOverBlock))
                     {
                         map.PlaceBlockAt((int)TileType.Air, mouseIsOverBlock, cursorOnChunk);
                     }
                     else
                     {
-                        LogMessage("Block ID " + mouseIsOverBlock + " was not present at chunk " + cursorOnChunk, Color.Red);
-                        //for some reason the first line of blocks of a given chunk is not being recognized as being of the said chunk
-                        //but instead of the next (+8) chunk, for now this fixes the problem, but it need to be addressed
-                        //if (map.IsBlockOnChunk(cursorOnChunk + 8, mouseIsOverBlock))
-                        //{
-                        //    map.PlaceBlockAt((int)TileType.Air, mouseIsOverBlock, cursorOnChunk + 8);
-                        //}
+                        LogMessage("Block ID " + mouseIsOverBlock + " was not present at chunk " + cursorOnChunk, Color.Red);                     
                     }
                 }
                 //leave game

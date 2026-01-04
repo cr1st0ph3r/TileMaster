@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 using TileMaster.Entity;
 using TileMaster.Util;
 
-namespace TileMaster.Map
+namespace TileMaster.Manager
 {
     public class MapManager
     {
-        private Map map;
+        private Map.Map map;
         public static int Progress;
-        public MapManager(Map map)
+        public MapManager(Map.Map map)
         {
             this.map = map;
         }

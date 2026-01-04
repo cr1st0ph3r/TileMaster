@@ -16,6 +16,7 @@ namespace TileMaster.Entity
         {
             return position;
         }
+     
         public Rectangle GetRectangle()
         {
             return rectangle;
@@ -30,7 +31,6 @@ namespace TileMaster.Entity
         {
             if (Game._state == GameState.Running && Global.IsMapLoaded)
             {
-
                 //updates the player info about block positioning
                 int playerOnGridX = (int)((player.GetPosition().X + (player.GetRectangle().Width / 2)) / Global.TileSize);
                 int playerOnGridY = (int)((player.GetPosition().Y + (player.GetRectangle().Height)) / Global.TileSize);
@@ -118,7 +118,6 @@ namespace TileMaster.Entity
                     isOnSolidBlock = true;
                     hasJumped = false;
                 }
-
             }
             else
             {
@@ -149,8 +148,6 @@ namespace TileMaster.Entity
                     position.Y += 5F;
                 }
             }
-
-
         }       
     }
 }

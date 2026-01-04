@@ -13,6 +13,7 @@ namespace TileMaster.Map
     {
         public TileInspector tileInspector;
         public GrassManager grass;
+        public TileShadeManager tileShadeMgr;
         public MapManager mapManager;
         //The map dictionary used for map generation
         public Dictionary<int, CollisionTiles> MapDictionary { get; set; }
@@ -34,6 +35,7 @@ namespace TileMaster.Map
             grass = new GrassManager(this);
             tileInspector = new TileInspector(this);
             mapManager = new MapManager(this);
+            tileShadeMgr = new TileShadeManager(this);
         }
 
         /// <summary>
@@ -119,17 +121,19 @@ namespace TileMaster.Map
         {
             SetTile(mouseIsOverBlock, tileId, chunkId);
         }
-        public void SetTile(int blockId, int tileId, int chunkId, Texture2D texture)
+        public void SetTile(int blockId, int tileId, int chunkId, Texture2D texture, float rotation = 0f)
         {
             ChunkDictionary[chunkId].Tiles[blockId].texture = texture;
             ChunkDictionary[chunkId].Tiles[blockId].TextureName = texture.Name;
             ChunkDictionary[chunkId].Tiles[blockId].Name = ((TileType)tileId).ToString();
             ChunkDictionary[chunkId].Tiles[blockId].TileId = tileId;
-     
+            ChunkDictionary[chunkId].Tiles[blockId].Rotation = rotation;
+
             MapDictionary[blockId].texture = ChunkDictionary[chunkId].Tiles[blockId].texture;
             MapDictionary[blockId].TextureName = ChunkDictionary[chunkId].Tiles[blockId].TextureName;
             MapDictionary[blockId].Name = ChunkDictionary[chunkId].Tiles[blockId].Name;
             MapDictionary[blockId].TileId = ChunkDictionary[chunkId].Tiles[blockId].TileId;
+            MapDictionary[blockId].Rotation = ChunkDictionary[chunkId].Tiles[blockId].Rotation;
 
             MapDictionary[blockId].IsOccupied = ChunkDictionary[chunkId].Tiles[blockId].IsOccupied;
             MapDictionary[blockId].IsSolid = ChunkDictionary[chunkId].Tiles[blockId].IsSolid;
@@ -142,6 +146,10 @@ namespace TileMaster.Map
             SetTile(blockId, tileId, chunkId, texture);
             ChunkDictionary[chunkId].HasGrass = true;
             ChunkDictionary[chunkId].NeedGrassUpdate = true;
+        }
+        public void ApplyTextureToTile(int blockId, int tileId, int chunkId, Texture2D texture, float rotation = 0f)
+        {
+            SetTile(blockId, tileId, chunkId, texture, rotation);
         }
 
 

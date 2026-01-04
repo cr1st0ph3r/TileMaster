@@ -2,17 +2,13 @@
 using System.Collections.Generic;
 using TileMaster.Entity;
 
-namespace TileMaster.Map
+namespace TileMaster.Manager
 {
     public class GrassManager
     {
-        private Map map;
-        private int Up = 1;
-        private int Left = 3;
-        private int Right = 5;
-        private int Down = 7;
+        private Map.Map map;
 
-        public GrassManager(Map map)
+        public GrassManager(Map.Map map)
         {
             this.map = map;
         }
@@ -58,27 +54,9 @@ namespace TileMaster.Map
 
             // mark chunk if any change occurred           
             map.ChunkDictionary[chunkId].NeedGrassUpdate = hasChanged;
-
-
-            SetTileColor(chunkId);
         }
 
-        public void SetTileColor(int chunkId)
-        {
-            foreach (var tile in map.ChunkDictionary[chunkId].Tiles.Where(x => x.Value.IsSolid).ToList())
-            {
-                //checks if the neighboring block is dirt and if it has air above it so it can grow grass              
-                var neighbors = map.tileInspector.GetNeighboringTiles(tile.Value, 2);
-                if (neighbors.All(x => x.IsSolid))
-                {
-                    tile.Value.Color = "Gray";
-                }
-                else
-                {
-                    tile.Value.Color = "White";
-                }
-            }
-        }
+
 
         /// <summary>
         /// Checks whether a tile can have grass
@@ -128,10 +106,72 @@ namespace TileMaster.Map
                     map.SetTile(destinationTile.GlobalId, (int)TileType.Dirt, destinationTile.ChunkId);
                     return true;
                 }
+                else if (destinationTile.TileId == (int)TileType.Dirt)
+                {
+                    //check corner
+                    var res = GetInnerCornerDecorations(destinationTile);
+                    if (res > 0)
+                    {
+                        // determine rotation (radians) for single-corner cases (values from GetInnerCornerDecorations)
+                        float rotation = 0f;
+                        var textureToUse = "DirtWithGrassCorner4";
+                        var grassDef = map.TileTypes.FirstOrDefault(x => x.TileId == (int)TileType.DirtWithGrass);
+                        if (res == 1)
+                        {
+                            textureToUse = "DirtWithGrassCorner1";
+                        }
+                        if ( res == 2)
+                        {
+                            rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(90f);
+                            textureToUse = "DirtWithGrassCorner1";
+                        }
+                        if (res == 4)
+                        {
+                            rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(180f);
+                            textureToUse = "DirtWithGrassCorner1";
+                        }
+                        if (res == 8 )
+                        {
+                            rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(270f);
+                            textureToUse = "DirtWithGrassCorner1";
+                        }
+                        else if (res == 5)
+                        {
+                            textureToUse = "DirtWithGrassCorner2";
+                        }
+                        else if ( res == 10)
+                        {
+                            rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(90f);
+                            textureToUse = "DirtWithGrassCorner2";
+                        }
+                        else if(res == 7 )
+                        {
+                            textureToUse = "DirtWithGrassCorner3";
+                        }
+                        else if( res == 11)
+                        {
+                            textureToUse = "DirtWithGrassCorner3";
+                            rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(90f);
+                        }
+                        else if( res == 13 )
+                        {
+                            textureToUse = "DirtWithGrassCorner3";
+                            rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(1800f);
+                        }
+                        else if(res == 14)
+                        {
+                            textureToUse = "DirtWithGrassCorner3";
+                            rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(270f);
+                        }
+                            var grassTexture = grassDef?.Textures.FirstOrDefault(x => x.Name.EndsWith(textureToUse));
+                        map.ApplyTextureToTile(destinationTile.GlobalId, (int)TileType.Dirt, destinationTile.ChunkId, grassTexture, rotation);
+                    }
+                }
                 return false;
             }
             else
-            {         // Mapping the mask value to your "TileX" naming convention
+            {         
+                // Mapping the mask value to your "TileX" naming convention
                 string textureName = $"DirtWithGrass{mask}";
 
                 var grassDef = map.TileTypes.FirstOrDefault(x => x.TileId == (int)TileType.DirtWithGrass);
@@ -172,29 +212,29 @@ namespace TileMaster.Map
             return mask;
         }
 
-        private List<string> GetInnerCornerDecorations(Tile tile)
-        {
-            var neighbors = map.tileInspector.GetNeighboringTiles(tile);
-            var tufts = new List<string>();
+        private int GetInnerCornerDecorations(Tile tile)
+        {           
+            var neighbors = map.tileInspector.GetNeighboringTiles(tile);          
+            int mask = 0;
 
             // Condition: Cardinal neighbors are Solid, but Diagonal is Air
             // Top-Left Tuft
             if (neighbors[1].IsSolid && neighbors[3].IsSolid && neighbors[0].TileId == (int)TileType.Air)
-                tufts.Add("InnerCorner_TL");
+                mask |= 1;  // Top Left Tuft
 
             // Top-Right Tuft
             if (neighbors[1].IsSolid && neighbors[5].IsSolid && neighbors[2].TileId == (int)TileType.Air)
-                tufts.Add("InnerCorner_TR");
+                mask |= 2; // Top Right Tuft
 
             // Bottom-Left Tuft
             if (neighbors[7].IsSolid && neighbors[3].IsSolid && neighbors[6].TileId == (int)TileType.Air)
-                tufts.Add("InnerCorner_BL");
+                mask |= 8; // Bottom Left Tuft
 
             // Bottom-Right Tuft
             if (neighbors[7].IsSolid && neighbors[5].IsSolid && neighbors[8].TileId == (int)TileType.Air)
-                tufts.Add("InnerCorner_BR");
+                mask |= 4; // Bottom Right Tuft
 
-            return tufts;
+            return mask;
         }
     }
 }

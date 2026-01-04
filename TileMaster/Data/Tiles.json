@@ -11,7 +11,6 @@
         "IsOccupied": false,
         "IsSolid": false,
         "Color": "White"
-
       },
       {
         "Id": 1,
@@ -41,7 +40,7 @@
         "Id": 3,
         "Name": "DirtWithGrass",
         "TextureName": "DirtWithGrass",
-        "TileSet": [ "DirtWithGrass1", "DirtWithGrass2", "DirtWithGrass3", "DirtWithGrass4", "DirtWithGrass5", "DirtWithGrass6", "DirtWithGrass7", "DirtWithGrass8", "DirtWithGrass9", "DirtWithGrass10", "DirtWithGrass11", "DirtWithGrass12", "DirtWithGrass13", "DirtWithGrass14", "DirtWithGrass15" ],
+        "TileSet": [ "DirtWithGrass1", "DirtWithGrass2", "DirtWithGrass3", "DirtWithGrass4", "DirtWithGrass5", "DirtWithGrass6", "DirtWithGrass7", "DirtWithGrass8", "DirtWithGrass9", "DirtWithGrass10", "DirtWithGrass11", "DirtWithGrass12", "DirtWithGrass13", "DirtWithGrass14", "DirtWithGrass15", "DirtWithGrassCorner1","DirtWithGrassCorner2","DirtWithGrassCorner2","DirtWithGrassCorner4", ],
         "AlternateTextures": [],
         "TextureId": 3,
         "ParentTileId": 0,

@@ -87,6 +87,10 @@ namespace TileMaster.Entity
         /// The color filter which MonoGame uses to paint the tile upon drawing. White for no filter.
         /// </summary>
         public string Color = "Gray";
+        /// <summary>
+        /// Rotation in radians. Default 0. Set to MathHelper.ToRadians(90/180/270) to rotate sprite on draw.
+        /// </summary>
+        public float Rotation { get; set; } = 0f;
 
         public List<KeyValuePair<int, int>> neighboringTiles;
 
@@ -107,13 +111,29 @@ namespace TileMaster.Entity
 
         public void Draw(SpriteBatch spriteBatch)
         {
-            if (GlobalId == 46668)
-            {
-                var s = 2;
-            }
             if (texture != null)
             {
-                spriteBatch.Draw(texture, rectangle, getColor());
+                if (Rotation == 0)
+                {
+                    spriteBatch.Draw(texture, rectangle, getColor());
+                }
+                else
+                {
+                    // draw using the position+scale overload so rotation origin is positioned correctly
+                    var origin = new Vector2(texture.Width * 0.5f, texture.Height * 0.5f);
+                    var scale = new Vector2(rectangle.Width / (float)texture.Width, rectangle.Height / (float)texture.Height);
+                    var position = new Vector2(rectangle.X + rectangle.Width * 0.5f, rectangle.Y + rectangle.Height * 0.5f);
+
+                    spriteBatch.Draw(texture,
+                                     position,        // center position in screen pixels
+                                     null,            // source rectangle (whole texture)
+                                     getColor(),
+                                     Rotation,
+                                     origin,          // origin in texture pixels (center)
+                                     scale,           // scale to fit the destination rectangle
+                                     SpriteEffects.None,
+                                     0f);
+                }
             }
         }
 
@@ -204,7 +224,7 @@ namespace TileMaster.Entity
         {
             var json = System.IO.File.ReadAllText(Global.TileDataLocation);
             var Tiles = JsonConvert.DeserializeObject<List<CollisionTiles>>(json);
-            var tilePath="Tiles";
+            var tilePath = "Tiles";
 
             //load the texture
             foreach (var tile in Tiles.ToList())

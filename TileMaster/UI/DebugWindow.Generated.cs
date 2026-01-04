@@ -45,7 +45,7 @@ namespace TileMaster.UI
 
             // Framerate cap
             var capFpsTo60 = new CheckButton
-            {Content = new Label{Text = "Limit to 60"}};
+            {Content = new Label{Text = "Limit FPS to 60"}};
             Grid.SetColumn(capFpsTo60, 3);
               capFpsTo60.IsCheckedChanged += (s, a) =>
                 {
@@ -60,6 +60,23 @@ namespace TileMaster.UI
                     }
                 };
 
+            //show chunk boundaries
+            var showChunkBoundaries = new CheckButton
+            { Content = new Label { Text = "Show Chunk Boundaries" } };
+            Grid.SetColumn(showChunkBoundaries, 3);
+            Grid.SetRow(showChunkBoundaries, 1);
+            showChunkBoundaries.IsCheckedChanged += (s, a) =>
+            {
+                if (showChunkBoundaries.IsChecked)
+                {
+                    Global.MarkTilesOnTheEdge = true;
+                }
+                else
+                {
+                    Global.MarkTilesOnTheEdge = false;
+                }
+            };
+
             var grid1 = new Grid();
             grid1.ColumnSpacing = 8;
             grid1.RowSpacing = 8;
@@ -72,8 +89,6 @@ namespace TileMaster.UI
                 Type = Myra.Graphics2D.UI.ProportionType.Auto,
             };
 
-
-
             grid1.Widgets.Add(label2);
             grid1.Widgets.Add(spinButton1);
             grid1.Widgets.Add(label3);
@@ -81,6 +96,7 @@ namespace TileMaster.UI
             grid1.Widgets.Add(label4);
             grid1.Widgets.Add(spinButton3);
             grid1.Widgets.Add(capFpsTo60);
+            grid1.Widgets.Add(showChunkBoundaries);
 
             var verticalStackPanel1 = new VerticalStackPanel();
             verticalStackPanel1.Spacing = 8;

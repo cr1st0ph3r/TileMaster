@@ -89,7 +89,7 @@ namespace TileMaster
         /// <summary>
         /// Paints the tiles at the edge of a chunk of a different color
         /// </summary>
-        public static bool MarkTilesOnTheEdge = true;
+        public static bool MarkTilesOnTheEdge = false;
 
 
         //this is an experimental feature that have no practical usage
