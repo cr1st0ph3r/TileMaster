@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
 using TileMaster.Entity;
 using TileMaster.Manager;
 using TileMaster.Util;
@@ -96,13 +96,6 @@ namespace TileMaster.Map
                     return chunk.Tiles[globalId];
                 }
             }
-
-            // Fallback to the global MapDictionary
-            if (MapDictionary != null && MapDictionary.ContainsKey(globalId))
-            {
-                return MapDictionary[globalId];
-            }
-
             return null;
         }
 
@@ -145,7 +138,7 @@ namespace TileMaster.Map
         {
             SetTile(blockId, tileId, chunkId, texture);
             ChunkDictionary[chunkId].HasGrass = true;
-            ChunkDictionary[chunkId].NeedGrassUpdate = true;
+            ChunkDictionary[chunkId].NeedUpdate = true;
         }
         public void ApplyTextureToTile(int blockId, int tileId, int chunkId, Texture2D texture, float rotation = 0f)
         {
@@ -155,39 +148,36 @@ namespace TileMaster.Map
 
         public void SetTile(int blockId, int tileId, int chunkId)
         {
-            //this verification isn't needed
-            if (IsBlockOnChunk(chunkId, blockId))
+            var refTile = TileTypes.FirstOrDefault(x => x.TileId == tileId);
+            if (refTile.AlternateTextures.Any())
             {
-                var refTile = TileTypes.FirstOrDefault(x => x.TileId == tileId);
-                if (refTile.AlternateTextures.Any())
-                {
-                    ChunkDictionary[chunkId].Tiles[blockId].texture = refTile.AltTextures[Game.rnd.Next(refTile.AltTextures.Count)];
-                }
-                else
-                {
-                    ChunkDictionary[chunkId].Tiles[blockId].texture = refTile.texture;
-                }
-
-                ChunkDictionary[chunkId].Tiles[blockId].Name = ((TileType)tileId).ToString();
-                ChunkDictionary[chunkId].Tiles[blockId].TextureName = ChunkDictionary[chunkId].Tiles[blockId].texture.Name;
-                ChunkDictionary[chunkId].Tiles[blockId].TileId = tileId;
-                ChunkDictionary[chunkId].Tiles[blockId].IsOccupied = refTile.IsOccupied;
-                ChunkDictionary[chunkId].Tiles[blockId].IsSolid = refTile.IsSolid;
-                ChunkDictionary[chunkId].NeedGrassUpdate = true;
-
-                MapDictionary[blockId].Name = ChunkDictionary[chunkId].Tiles[blockId].Name;
-                MapDictionary[blockId].TextureName = ChunkDictionary[chunkId].Tiles[blockId].TextureName;
-                MapDictionary[blockId].texture = ChunkDictionary[chunkId].Tiles[blockId].texture;
-                MapDictionary[blockId].TileId = ChunkDictionary[chunkId].Tiles[blockId].TileId;
-                MapDictionary[blockId].IsOccupied = ChunkDictionary[chunkId].Tiles[blockId].IsOccupied;
-                MapDictionary[blockId].IsSolid = ChunkDictionary[chunkId].Tiles[blockId].IsSolid;
-
-                Game.LogMessage("Setting block " + blockId + " on chunk " + chunkId + " to " + (TileType)tileId, Color.Green);
+                ChunkDictionary[chunkId].Tiles[blockId].texture = refTile.AltTextures[Game.rnd.Next(refTile.AltTextures.Count)];
             }
             else
             {
-                Game.LogMessage("Block " + blockId + " was not present on chunk  " + chunkId, Color.Green);
+                ChunkDictionary[chunkId].Tiles[blockId].texture = refTile.texture;
             }
+
+            ChunkDictionary[chunkId].Tiles[blockId].Name = ((TileType)tileId).ToString();
+            ChunkDictionary[chunkId].Tiles[blockId].TextureName = ChunkDictionary[chunkId].Tiles[blockId].texture.Name;
+            ChunkDictionary[chunkId].Tiles[blockId].TileId = tileId;
+            ChunkDictionary[chunkId].Tiles[blockId].IsOccupied = refTile.IsOccupied;
+            ChunkDictionary[chunkId].Tiles[blockId].IsSolid = refTile.IsSolid;
+            ChunkDictionary[chunkId].NeedUpdate = true;
+
+            MapDictionary[blockId].Name = ChunkDictionary[chunkId].Tiles[blockId].Name;
+            MapDictionary[blockId].TextureName = ChunkDictionary[chunkId].Tiles[blockId].TextureName;
+            MapDictionary[blockId].texture = ChunkDictionary[chunkId].Tiles[blockId].texture;
+            MapDictionary[blockId].TileId = ChunkDictionary[chunkId].Tiles[blockId].TileId;
+            MapDictionary[blockId].IsOccupied = ChunkDictionary[chunkId].Tiles[blockId].IsOccupied;
+            MapDictionary[blockId].IsSolid = ChunkDictionary[chunkId].Tiles[blockId].IsSolid;
+
+        }
+
+        public void UpdateTile(CollisionTiles updated)
+        {
+            ChunkDictionary[updated.ChunkId].Tiles[updated.GlobalId] = updated;
+            MapDictionary[updated.GlobalId] = updated;
         }
 
         /// <summary>

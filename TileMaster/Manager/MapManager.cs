@@ -19,37 +19,6 @@ namespace TileMaster.Manager
         }
         #region Map Generation
         /// <summary>
-        /// Generate a dictionary map from a 2d integer array
-        /// </summary>
-        /// <param name="mapMatrice"></param>
-        public void GenerateMapDictionaryRetail(int[,] mapMatrice)
-        {
-            map.TileTypes = CollisionTiles.LoadTilesTypes();
-            var createText = "";
-            map.MapDictionary = new Dictionary<int, CollisionTiles>();
-            //the global counter should always start at zero for proper tile calculation
-            var globalCounter = 0;
-
-            // Fix: iterate first dimension as X (width) and second as Y (height).
-            for (var x = 0; x < mapMatrice.GetLength(0); x++)
-            {
-                for (var y = 0; y < mapMatrice.GetLength(1); y++)
-                {
-                    var number = mapMatrice[x, y];
-
-                    createText += number + ",";
-                    var tType = map.TileTypes.FirstOrDefault(tt => tt.TileId == number);
-
-                    // CollisionTiles expects (x, y) in grid coordinates where x is column and y is row.
-                    map.MapDictionary.Add(globalCounter, new CollisionTiles(tType, x, y, 0, globalCounter));
-                    globalCounter++;
-                }
-                createText += Environment.NewLine;
-            }
-            File.WriteAllText("map.csv", createText);
-        }
-
-        /// <summary>
         /// Generate a dictionary map from a 2d integer array using threads
         /// </summary>
         /// <param name="mapMatrice"></param>
@@ -131,8 +100,6 @@ namespace TileMaster.Manager
                 {
                     File.Delete(sFile);
                 }
-                //delete
-                var tile = map.MapDictionary.FirstOrDefault(x => x.Value.GlobalId == 44337);
                 DictionaryHelper.Serialize(map.MapDictionary, File.Open(Global.MapDataLocation, FileMode.Create));
                 ChunkSizer();
             }
@@ -206,7 +173,7 @@ namespace TileMaster.Manager
                 if (dict.Values.Any(x => x.TileId == (int)TileType.DirtWithGrass))
                 {
                     chunk.HasGrass = true;
-                    chunk.NeedGrassUpdate = true;
+                    chunk.NeedUpdate = true;
                 }
 
                 chunk.Tiles = dict;

@@ -10,7 +10,7 @@ namespace TileMaster.Entity
         public int FirstBlock;
         public int LastBlock;
         public bool HasGrass;
-        public bool NeedGrassUpdate;
+        public bool NeedUpdate;
         /// <summary>
         /// Indicates if the chunk has been modified since the last save
         /// </summary>

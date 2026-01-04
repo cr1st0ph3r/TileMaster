@@ -98,7 +98,16 @@ namespace TileMaster.UI
                 butt.Padding = new Thickness(5, 5);
                 butt.PressedChanged += _actionBarButtonPress;
                 butt.Background = new SolidBrush(CommonComponents.ActionBarButtonColor);
-                butt.Image = MyraEnvironment.DefaultAssetManager.LoadTextureRegion("content/UIDirt.png");
+                if (i % 2 == 0) { 
+                    butt.Image = MyraEnvironment.DefaultAssetManager.LoadTextureRegion("content/UI/UIStone.png");
+                    butt.MinHeight = 2;
+                }
+                   
+                else {
+                    butt.Image = MyraEnvironment.DefaultAssetManager.LoadTextureRegion("content/UI/UIDirt.png");
+                    butt.MinHeight = 1;
+                }
+                    
 
                 butt.Height = 40;
                 butt.Top = 10;

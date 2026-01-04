@@ -14,7 +14,6 @@ namespace TileMaster.Util
                 {
                     // create BinaryFormatter
                     BinaryFormatter bin = new BinaryFormatter();
-                    // serialize the collection (EmployeeList1) to file (stream)
                     bin.Serialize(stream, dictionary);
                 }
             }
@@ -34,7 +33,6 @@ namespace TileMaster.Util
                 {
                     // create BinaryFormatter
                     BinaryFormatter bin = new BinaryFormatter();
-                    // deserialize the collection (Employee) from file (stream)
                     ret = (Object)bin.Deserialize(stream);
                 }
             }
@@ -49,8 +47,5 @@ namespace TileMaster.Util
         {
             return (Object)Activator.CreateInstance(typeof(Object));
         }
-
-
-
     }
 }

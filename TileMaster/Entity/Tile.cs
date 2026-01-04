@@ -1,11 +1,11 @@
-﻿using Microsoft.Xna.Framework;
+﻿
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace TileMaster.Entity
 {
@@ -85,8 +85,25 @@ namespace TileMaster.Entity
         public string TextureName;
         /// <summary>
         /// The color filter which MonoGame uses to paint the tile upon drawing. White for no filter.
+        /// Kept as a string for serialization backwards-compatibility (existing data uses names).
         /// </summary>
         public string Color = "Gray";
+
+        /// <summary>
+        /// Serialized integer ARGB representation of the runtime color filter.
+        /// Storing this allows tiles to be deserialized with the calculated color already present,
+        /// avoiding expensive recalculation for off-screen chunks.
+        /// Format: (A << 24) | (R << 16) | (G << 8) | B
+        /// </summary>
+        public int? ColorArgb = null;
+
+        /// <summary>
+        /// Runtime color filter using actual RGB(A) values. Not serialized.
+        /// When present, this takes precedence over the string-based Color name.
+        /// </summary>
+        [NonSerialized]
+        public Color? ColorFilter = null;
+
         /// <summary>
         /// Rotation in radians. Default 0. Set to MathHelper.ToRadians(90/180/270) to rotate sprite on draw.
         /// </summary>
@@ -139,10 +156,69 @@ namespace TileMaster.Entity
 
         private Color getColor()
         {
+            // If a runtime RGB(A) color filter is present, use it (preferred for smooth gradients).
+            if (ColorFilter.HasValue)
+                return ColorFilter.Value;
+
+            // If an ARGB integer was stored with the tile, restore it to ColorFilter and use it.
+            if (ColorArgb.HasValue)
+            {
+                ColorFilter = UnpackArgb(ColorArgb.Value);
+                return ColorFilter.Value;
+            }
+
+            // Fallback to the existing reflection-based named color lookup so older code/data still works.
             var prop = typeof(Color).GetProperty(Color);
             if (prop != null)
                 return (Color)prop.GetValue(null, null);
-            return default(Color);
+            return default;
+        }
+
+        /// <summary>
+        /// Helper to set color via bytes (RGB[A]). Sets runtime ColorFilter and persists the value into ColorArgb.
+        /// </summary>
+        public void SetColor(byte r, byte g, byte b, byte a = 255)
+        {
+            ColorFilter = new Color(r, g, b, a);
+            ColorArgb = PackArgb(ColorFilter.Value);            
+        }
+
+        /// <summary>
+        /// Helper to clear runtime color filter and revert to named color.
+        /// Does NOT remove the saved ColorArgb; call ClearSavedColor to remove stored value as well.
+        /// </summary>
+        public void ClearRuntimeColor()
+        {
+            ColorFilter = null;
+        }
+
+        /// <summary>
+        /// Remove any saved ARGB so the tile will fully revert to the legacy named color.
+        /// </summary>
+        public void ClearSavedColor()
+        {
+            ColorArgb = null;
+            ColorFilter = null;
+        }
+
+        /// <summary>
+        /// Pack a Color into an int (A<<24 | R<<16 | G<<8 | B).
+        /// </summary>
+        private static int PackArgb(Color c)
+        {
+            return (c.A << 24) | (c.R << 16) | (c.G << 8) | c.B;
+        }
+
+        /// <summary>
+        /// Unpack an int ARGB into a Color.
+        /// </summary>
+        private static Color UnpackArgb(int argb)
+        {
+            byte a = (byte)((argb >> 24) & 0xFF);
+            byte r = (byte)((argb >> 16) & 0xFF);
+            byte g = (byte)((argb >> 8) & 0xFF);
+            byte b = (byte)(argb & 0xFF);
+            return new Color(r, g, b, a);
         }
     }
     [Serializable]
@@ -155,15 +231,15 @@ namespace TileMaster.Entity
         }
 
 
-        //TODO whys is this needed?
+        //constructor for map generation
         public CollisionTiles(CollisionTiles refTile, int x, int y, int positionOnChunk, int blockId)
         {
             IsOccupied = refTile.IsOccupied;
+            ColorArgb = refTile.ColorArgb;
             IsSolid = refTile.IsSolid;
             GlobalId = blockId;
             Name = refTile.Name;
             TileId = refTile.TileId;
-            //this.texture = refTile.texture;
             textureId = refTile.textureId;
             TextureName = refTile.TextureName;
             LocalId = positionOnChunk;
@@ -173,7 +249,6 @@ namespace TileMaster.Entity
             Height = Global.TileSize;
             Width = Global.TileSize;
             Y = y;
-
         }
 
         public CollisionTiles(CollisionTiles tileType, CollisionTiles tileRef)
@@ -208,16 +283,14 @@ namespace TileMaster.Entity
             textureId = tileType.textureId;
             TextureName = tileRef.TextureName;
             LocalId = tileRef.LocalId;
+            ColorArgb = tileRef.ColorArgb;
             ChunkId = tileRef.ChunkId;
             Color = tileType.Color;
-
-            // FIX: tileRef.X is the horizontal (pixel) coordinate; tileRef.Y is the vertical.
             Rectangle = new Rectangle(tileRef.X * Global.TileSize, tileRef.Y * Global.TileSize, Global.TileSize, Global.TileSize);
-
             X = tileRef.X;
             Height = Global.TileSize;
             Width = Global.TileSize;
-            Y = tileRef.Y;
+            Y = tileRef.Y;     
         }
 
         public static List<CollisionTiles> LoadTilesTypes()

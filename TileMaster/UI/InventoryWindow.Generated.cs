@@ -38,7 +38,10 @@ namespace TileMaster.UI
                     var _imageButton = new Myra.Graphics2D.UI.Button();
                     var style = new ImageButtonStyle();
                     var image1 = new Image();
-                    image1.Renderable = MyraEnvironment.DefaultAssetManager.LoadTextureRegion("content/UIDirt.png");
+                    if(j%2==0)
+                        image1.Renderable = MyraEnvironment.DefaultAssetManager.LoadTextureRegion("content/UI/UIStone.png");
+                    else
+                        image1.Renderable = MyraEnvironment.DefaultAssetManager.LoadTextureRegion("content/UI/UIDirt.png");
 
                     var inventoryItemAmount = new Label();
                     inventoryItemAmount.Text = "99";

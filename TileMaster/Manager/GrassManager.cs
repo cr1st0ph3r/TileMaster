@@ -53,7 +53,7 @@ namespace TileMaster.Manager
             }
 
             // mark chunk if any change occurred           
-            map.ChunkDictionary[chunkId].NeedGrassUpdate = hasChanged;
+            map.ChunkDictionary[chunkId].NeedUpdate = hasChanged;
         }
 
 

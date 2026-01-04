@@ -15,6 +15,8 @@ namespace TileMaster.UI
         private readonly Window3 _window3 = new Window3();
         public Panel ActionBarPanel;
         public static CommonComponents CommonComponents = new CommonComponents();
+        private int selectedIndex = 0;
+        public int SelectedItem = 1;
         public MainPanel()
         {
             BuildUI();
@@ -44,6 +46,9 @@ namespace TileMaster.UI
             };
 
             inventoryWindow = new InventoryWindow();
+
+            //set the first action bar button as selected
+            ActionBarPanel.Widgets.First(x => x.Id == "ActionBarButton0").Background = new SolidBrush(CommonComponents.ButtonPressedColor);
         }
         public void ShowWindows()
         {
@@ -51,6 +56,24 @@ namespace TileMaster.UI
             //_button2.IsPressed = true;
             //_button3.IsPressed = true;
             // _actionBarWindow.Show(Desktop, new Point(300, Global.WindowHeight-100));
+        }
+
+        public void ChangeActionBarSelectedItem(int index)
+        {
+            selectedIndex += index;
+            if (selectedIndex < 0)
+            {
+                selectedIndex = 0;
+            }
+            else if (selectedIndex > 9)
+            {
+                selectedIndex = 9;
+            }
+            var button = ActionBarPanel.Widgets.FirstOrDefault(x => x.Id == "ActionBarButton" + selectedIndex) as ImageTextButton;
+            if (button != null)
+            {
+                HandleActionBarPress(button);
+            }
         }
 
         public void LoadMap()
@@ -77,7 +100,8 @@ namespace TileMaster.UI
         public void HandleActionBarPress(ImageTextButton pressedButton)
         {
             pressedButton.Background = new SolidBrush(CommonComponents.ButtonPressedColor);
-            foreach (var butt in ActionBarPanel.Widgets.Where(x=>x.Id!=pressedButton.Id))
+            SelectedItem = pressedButton.MinHeight.Value;
+            foreach (var butt in ActionBarPanel.Widgets.Where(x => x.Id != pressedButton.Id))
             {
                 butt.Background = new SolidBrush(CommonComponents.ActionBarButtonColor);
             }
@@ -99,10 +123,10 @@ namespace TileMaster.UI
 
         #region Handlers
         private void _actionBarButtonPress(object sender, EventArgs e)
-        {            
+        {
             HandleActionBarPress(sender as ImageTextButton);
         }
-   
+
         private void _button1_PressedChanged(object sender, EventArgs e)
         {
             if (_debugButton.IsPressed)
@@ -121,7 +145,7 @@ namespace TileMaster.UI
             {
                 LoadMap();
             }
-        }  
+        }
 
         private void _saveMapButton_PressedChanged(object sender, EventArgs e)
         {
@@ -129,7 +153,7 @@ namespace TileMaster.UI
             {
                 SaveMap();
             }
-        }  
+        }
 
         /// <summary>
         /// Handles the opening and closing of the inventory
@@ -140,13 +164,13 @@ namespace TileMaster.UI
         {
             if (_openInventoryButton.IsPressed)
             {
-                inventoryWindow.Show(Desktop, new Point(Global.WindowWidth/2-100, Global.WindowHeight/2));
+                inventoryWindow.Show(Desktop, new Point(Global.WindowWidth / 2 - 100, Global.WindowHeight / 2));
             }
             else
             {
                 inventoryWindow.Close();
             }
-        }  
+        }
 
         private void _quitButton_PressedChanged(object sender, EventArgs e)
         {
@@ -154,7 +178,7 @@ namespace TileMaster.UI
             //perform a minimize action to make it looks like the game quit faster
             var game = Game.GetInstance();
             var form = (System.Windows.Forms.Form)System.Windows.Forms.Control.FromHandle(game.Window.Handle);
-            form.WindowState = System.Windows.Forms. FormWindowState.Minimized;
+            form.WindowState = System.Windows.Forms.FormWindowState.Minimized;
 
             //quit game dialog?
 

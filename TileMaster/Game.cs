@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Myra;
@@ -7,9 +8,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Windows.Forms;
 using TileMaster.Entity;
 using TileMaster.Manager;
 using TileMaster.UI;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ProgressBar;
+using ButtonState = Microsoft.Xna.Framework.Input.ButtonState;
 
 namespace TileMaster
 {
@@ -30,6 +34,8 @@ namespace TileMaster
         private int[,] initialArrayMap;
         public static readonly Random rnd = new(DateTime.Now.GetHashCode());
         private MouseState current_mouse;
+        private MouseState previous_mouse;
+        public event Action<int> ScrollWheelChanged;
         private int cursorOnChunk = 0;
         List<int> ChunksToUpdate;
 
@@ -111,6 +117,10 @@ namespace TileMaster
                 map.mapManager.SaveMap();
             }
             map.mapManager.LoadMap();
+
+            //apply the correct lighting to all blocks
+            Thread UpdateBlockLighting = new Thread(() => { map.tileShadeMgr.UpdateTileShadingForMap(); });
+            UpdateBlockLighting.Start();
         }
 
         public void SaveMap()
@@ -152,7 +162,6 @@ namespace TileMaster
             _mainPanel.ShowWindows();
 
             player.Load(Content);
-
         }
 
         protected override void UnloadContent()
@@ -167,6 +176,21 @@ namespace TileMaster
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
+            // Capture mouse state at start of Update so input handling is consistent
+            previous_mouse = current_mouse;
+            current_mouse = Mouse.GetState();
+
+            // detect scroll wheel changes
+            int scrollDelta = current_mouse.ScrollWheelValue - previous_mouse.ScrollWheelValue;
+            if (scrollDelta != 0)
+            {
+                // forward the event only when the game window is active and GUI doesn't own the input
+                if (this.IsActive && (_desktop?.IsMouseOverGUI == false))
+                {
+                    OnScrollWheelChanged(scrollDelta);
+                }
+            }
+
             if (Game._state == GameState.Running && Global.IsMapLoaded)
             {
                 Vector2 cursorPosition = Vector2.Transform(new Vector2(current_mouse.Position.X, current_mouse.Position.Y), Matrix.Invert(camera.Transform));
@@ -197,7 +221,7 @@ namespace TileMaster
 
                     if (ChunksToUpdate.Any() == false)
                     {
-                        foreach (var chunk in map.ChunkDictionary.Where(x => x.Value.HasGrass && x.Value.NeedGrassUpdate))
+                        foreach (var chunk in map.ChunkDictionary.Where(x => x.Value.HasGrass && x.Value.NeedUpdate))
                         {
                             ChunksToUpdate.Add(chunk.Key);
                         }
@@ -207,7 +231,7 @@ namespace TileMaster
                 if (timer2s < 0)
                 {
                     timer2s = TIMER2S;
-                    CheckChunkForGrass();
+                    CheckChunkForUpdates();
                 }
                 _mainPanel._loadMapProgressBar.Visible = false;
             }
@@ -233,10 +257,9 @@ namespace TileMaster
                 player.Draw(spriteBatch);
             }
 
-            //Cursor info
-            current_mouse = Mouse.GetState();
-            Global.CursorX = (int)current_mouse.Position.X;
-            Global.CursorY = (int)current_mouse.Position.Y;
+            //Cursor info (mouse state is captured in Update)
+            Global.CursorX = current_mouse.Position.X;
+            Global.CursorY = current_mouse.Position.Y;
 
             if (Global.isDebugging)
             {
@@ -289,6 +312,60 @@ namespace TileMaster
                 Messages.Add(mess);
             }
 
+        }
+        #endregion
+
+        #region Event Handlers
+        private void HandleMouseEvents()
+        {
+            if (this.IsActive && Global.isCursorOverAButton == false)
+            {
+                //temporary handlers for the buttons
+                if (current_mouse.LeftButton == ButtonState.Pressed && _desktop.IsMouseOverGUI == false)
+                {
+                    try
+                    {
+                        map.PlaceBlockAt(_mainPanel.SelectedItem, mouseIsOverBlock, cursorOnChunk);
+                    }
+                    catch
+                    {
+                        //mouse clicked outside the game context
+                        //for the mean time this can be neglected
+                    }
+                }
+                if (current_mouse.RightButton == ButtonState.Pressed)
+                {
+
+                    if (map.IsBlockOnChunk(cursorOnChunk, mouseIsOverBlock))
+                    {
+                        map.PlaceBlockAt((int)TileType.Air, mouseIsOverBlock, cursorOnChunk);
+                    }
+                    else
+                    {
+                        LogMessage("Block ID " + mouseIsOverBlock + " was not present at chunk " + cursorOnChunk, Color.Red);
+                    }
+                }
+                //leave game
+                if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
+                    Exit();
+            }
+        }
+        private void GenericAction(object sender, EventArgs e)
+        {
+
+            //map.GrowGrass(player.onChunk);
+            map.GrowTree(player.onChunk, player.onBlock);
+
+        }
+
+        private void OnScrollWheelChanged(int delta)
+        {
+            // raise event for external subscribers
+            ScrollWheelChanged?.Invoke(delta);
+
+            // default internal behavior: log the delta
+            // replace or extend with your own logic (change selected hotbar item, zoom camera, etc.)
+            _mainPanel.ChangeActionBarSelectedItem(delta > 0 ? 1 : -1);
         }
         #endregion
 
@@ -368,11 +445,6 @@ namespace TileMaster
             DrawWithShadow(mouseBlockIn, new Vector2(debugXCoordinate, debugYCoordinate + 240));
             DrawWithShadow(MousePos, new Vector2(debugXCoordinate, debugYCoordinate + 260));
             DrawWithShadow(mouseOnChunk, new Vector2(debugXCoordinate, debugYCoordinate + 280));
-            
-            //DrawWithShadow("Tile type: "+map.ChunkDictionary[cursorOnChunk].Tiles[mouseIsOverBlock].texture.Name, new Vector2(debugXcoordinate, debugYcoordinate + 240));
-
-            //DrawWithShadow("FPS: " + Global.FrameRate, new Vector2(debugXCoordinate, debugYCoordinate + 350));
-
         }
         private void DrawWithShadow(string text, Vector2 position)
         {
@@ -384,7 +456,7 @@ namespace TileMaster
             spriteBatch.DrawString(_debugFont, text, position, Color.White);
             spriteBatch.DrawString(_debugFont, text, position + Vector2.One, color);
         }
-        private void CheckChunkForGrass()
+        private void CheckChunkForUpdates()
         {
             if (Global.updatePlayerChunkOnly)
             {
@@ -403,57 +475,12 @@ namespace TileMaster
                 Thread thread = new Thread(() =>
                 {
                     map.grass.GrowGrass(chunkId);
-                    map.tileShadeMgr.UpdateTileShadingForChunk(chunkId);
                     ChunksToUpdate.Remove(chunkId);
+                    map.tileShadeMgr.UpdateTileShadingForChunk(chunkId);
                 });
                 thread.Start();
                 LogMessage("Checking Chunk " + chunkId + " for grass growth", Color.Green, 180);
             }
-
-        }
-        #endregion
-
-        #region Event Handlers
-        private void HandleMouseEvents()
-        {
-            if (this.IsActive && Global.isCursorOverAButton == false)
-            {
-                //temporary handlers for the buttons
-                if (current_mouse.LeftButton == ButtonState.Pressed && _desktop.IsMouseOverGUI == false)
-                {
-                    try
-                    {
-                        map.PlaceBlockAt((int)TileType.Dirt, mouseIsOverBlock, cursorOnChunk);
-                    }
-                    catch
-                    {
-                        //mouse clicked outside the game context
-                        //for the mean time this can be neglected
-                    }
-                }
-                if (current_mouse.RightButton == ButtonState.Pressed)
-                {
-
-                    if (map.IsBlockOnChunk(cursorOnChunk, mouseIsOverBlock))
-                    {
-                        map.PlaceBlockAt((int)TileType.Air, mouseIsOverBlock, cursorOnChunk);
-                    }
-                    else
-                    {
-                        LogMessage("Block ID " + mouseIsOverBlock + " was not present at chunk " + cursorOnChunk, Color.Red);                     
-                    }
-                }
-                //leave game
-                if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-                    Exit();
-            }
-        }
-        private void GenericAction(object sender, EventArgs e)
-        {
-
-            //map.GrowGrass(player.onChunk);
-            map.GrowTree(player.onChunk, player.onBlock);
-
         }
         #endregion
     }

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Xna.Framework;
 
 namespace TileMaster.Manager
 {
@@ -11,11 +12,11 @@ namespace TileMaster.Manager
         {
             this.map = map;
         }
-
+        // breath-first search from each solid tile to find nearest air tile and set shading accordingly
         public void UpdateTileShadingForChunk(int chunkId)
         {
             // maximum distance (in tiles) we'll propagate light from air
-            const int maxDistance = 4;
+            const int maxDistance = 10;
 
             if (!map.ChunkDictionary.ContainsKey(chunkId))
                 return;
@@ -84,32 +85,34 @@ namespace TileMaster.Manager
                     }
                 }
 
-                // Map foundDistance to a brightness level and then to a Color name string
-                // immediate neighbor (distance == 1) = fully lit; distance increases -> darker
-                string colorName;
-                if (foundDistance == 1)
+                // Compute a smooth brightness value (1.0 for distance==1, decreasing to 0 at >maxDistance)
+                float brightness;
+                if (foundDistance <= 0)
                 {
-                    colorName = "White"; // 100%
-                }
-                else if (foundDistance == 2)
-                {
-                    colorName = "LightGray"; // ~75%
-                }
-                else if (foundDistance == 3)
-                {
-                    colorName = "DarkGray"; // ~50%
-                 
-                }
-                else if (foundDistance == 4)
-                {
-                    colorName = "Gray"; // ~25%
+                    brightness = 0f;
                 }
                 else
                 {
-                    colorName = "Black"; // no light within range
+                    // distance 1 -> 1.0, distance maxDistance -> ~1 - (maxDistance-1)/maxDistance
+                    brightness = 1f - (foundDistance - 1) * (1f / maxDistance);
+                    brightness = MathHelper.Clamp(brightness, 0f, 1f);
                 }
 
-                tile.Color = colorName;
+                // Use an actual RGB(A) filter instead of XNA named colors to get smoother steps.
+                // Multiply white by brightness for simple light/dark; change baseColor for tinted light.
+                byte level = (byte)(brightness * 255f);
+                tile.SetColor(level, level, level, 255);
+                map.UpdateTile(tile);
+                // Optional: if you want to fall back to named color when brightness == 0, uncomment:
+                // if (brightness == 0f) { tile.ClearRuntimeColor(); tile.Color = "Black"; }
+            }
+        }
+
+        public void UpdateTileShadingForMap()
+        {
+            foreach(var chunk in map.ChunkDictionary.Keys)
+            {
+                UpdateTileShadingForChunk(chunk);
             }
         }
     }

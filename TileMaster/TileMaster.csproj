@@ -47,11 +47,11 @@
     <None Update="Content\UIDirt.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Data\TileColor\Tile1.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <None Update="Content\UI\UIDirt.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="Data\TileColor\Tile2.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <None Update="Content\UI\UIStone.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Data\Tiles.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
