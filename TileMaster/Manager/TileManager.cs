@@ -34,14 +34,7 @@ namespace TileMaster.Manager
 
             TileTextures.Add(tileId, listT);
         }
-
-        public void Load(List<TileColor> tileColors)
-        {
-            foreach (var tileC in tileColors)
-            {
-                AddTileTexture(tileC.Id, Global.RandomizationFactorAmount, tileC.BuildColors());
-            }
-        }
+    
         public List<CollisionTiles> LoadTileTextures(List<CollisionTiles> tiles)
         {
             foreach (var tile in tiles)

@@ -90,7 +90,7 @@ namespace TileMaster.Manager
         /// </summary>
         public void SaveMap()
         {
-            if (map.MapDictionary != null)
+            //if (map.MapDictionary != null)
             {
                 if (Directory.Exists(Global.ChunkFolderLocation) == false)
                 {
@@ -100,7 +100,6 @@ namespace TileMaster.Manager
                 {
                     File.Delete(sFile);
                 }
-                DictionaryHelper.Serialize(map.MapDictionary, File.Open(Global.MapDataLocation, FileMode.Create));
                 ChunkSizer();
             }
         }
@@ -115,8 +114,6 @@ namespace TileMaster.Manager
             //sw.Start(); 
             //load tile data (namely colors) so we can build tiles at runtime
             map.TileTypes = CollisionTiles.LoadTilesTypes();
-            map.TileColors = TileHelper.GetTileColors(Global.TileColorDataLocation);
-            map.TileMgr.Load(map.TileColors);
             if (Global.UseTileTextureRandomization)
             {
                 map.TileTypes = map.TileMgr.LoadTileTextures(map.TileTypes);
@@ -128,7 +125,7 @@ namespace TileMaster.Manager
 
             //upon load, tiles has no information about texture or other complex properties
             //because these can't be serialized
-            map.MapDictionary = DictionaryHelper.DeSerialize<Dictionary<int, CollisionTiles>>(File.Open(Global.MapDataLocation, FileMode.Open));
+            //map.MapDictionary = DictionaryHelper.DeSerialize<Dictionary<int, CollisionTiles>>(File.Open(Global.MapDataLocation, FileMode.Open));
 
 
             var chunks = new List<Tuple<int, string>>();
@@ -163,8 +160,8 @@ namespace TileMaster.Manager
                     };
 
                     //make global map aware of this information
-                    map.MapDictionary[globalId].ChunkId = dict[dict.ElementAt(i).Key].ChunkId;
-                    map.MapDictionary[globalId].LocalId = dict[dict.ElementAt(i).Key].LocalId;
+                    //map.MapDictionary[globalId].ChunkId = dict[dict.ElementAt(i).Key].ChunkId;
+                    //map.MapDictionary[globalId].LocalId = dict[dict.ElementAt(i).Key].LocalId;
 
                     globalCounter++;
 
@@ -311,6 +308,8 @@ namespace TileMaster.Manager
                 DictionaryHelper.Serialize(item.Tiles, File.Open(@"Chunks\chunk" + iii + ".bin", FileMode.Create));
                 iii++;
             }
+
+            map.MapDictionary = null;
         }
     }
 }

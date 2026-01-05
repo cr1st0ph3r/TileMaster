@@ -8,11 +8,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Windows.Forms;
 using TileMaster.Entity;
 using TileMaster.Manager;
 using TileMaster.UI;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ProgressBar;
 using ButtonState = Microsoft.Xna.Framework.Input.ButtonState;
 
 namespace TileMaster
@@ -410,14 +408,14 @@ namespace TileMaster
                     DrawWithShadow("Is Edge Tile?: " + block.isEdgeTile, new Vector2(debugXCoordinate + 350, debugYCoordinate + 100));
 
                     DrawWithShadow("Tile from global map: ", new Vector2(debugXCoordinate + 350, debugYCoordinate + 140));
-                    DrawWithShadow("edge?: " + map.MapDictionary[block.GlobalId].isEdgeTile, new Vector2(debugXCoordinate + 350, debugYCoordinate + 160));
-                    DrawWithShadow("chunkId: " + map.MapDictionary[block.GlobalId].ChunkId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 180));
-                    DrawWithShadow("localId: " + map.MapDictionary[block.GlobalId].LocalId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 200));
-                    DrawWithShadow("globalId: " + map.MapDictionary[block.GlobalId].GlobalId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 220));
-                    DrawWithShadow("TileId: " + map.MapDictionary[block.GlobalId].TileId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 240));
-                    DrawWithShadow("Name: " + map.MapDictionary[block.GlobalId].Name, new Vector2(debugXCoordinate + 350, debugYCoordinate + 260));
-                    DrawWithShadow("Texture name: " + map.MapDictionary[block.GlobalId].TextureName, new Vector2(debugXCoordinate + 350, debugYCoordinate + 280));
-                    DrawWithShadow("Texture.name: " + map.MapDictionary[block.GlobalId].texture?.Name, new Vector2(debugXCoordinate + 350, debugYCoordinate + 300));
+                    //DrawWithShadow("edge?: " + map.MapDictionary[block.GlobalId].isEdgeTile, new Vector2(debugXCoordinate + 350, debugYCoordinate + 160));
+                    //DrawWithShadow("chunkId: " + map.MapDictionary[block.GlobalId].ChunkId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 180));
+                    //DrawWithShadow("localId: " + map.MapDictionary[block.GlobalId].LocalId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 200));
+                    //DrawWithShadow("globalId: " + map.MapDictionary[block.GlobalId].GlobalId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 220));
+                    //DrawWithShadow("TileId: " + map.MapDictionary[block.GlobalId].TileId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 240));
+                    //DrawWithShadow("Name: " + map.MapDictionary[block.GlobalId].Name, new Vector2(debugXCoordinate + 350, debugYCoordinate + 260));
+                    //DrawWithShadow("Texture name: " + map.MapDictionary[block.GlobalId].TextureName, new Vector2(debugXCoordinate + 350, debugYCoordinate + 280));
+                    //DrawWithShadow("Texture.name: " + map.MapDictionary[block.GlobalId].texture?.Name, new Vector2(debugXCoordinate + 350, debugYCoordinate + 300));
 
                 }
                 //else

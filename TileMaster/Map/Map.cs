@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using TileMaster.Entity;
 using TileMaster.Manager;
-using TileMaster.Util;
 
 namespace TileMaster.Map
 {
@@ -21,8 +20,6 @@ namespace TileMaster.Map
         public Dictionary<int, Chunk> ChunkDictionary { get; set; }
         //Tile types
         public List<CollisionTiles> TileTypes { get; set; }
-        //Tile colors (used for texture generation on the go)
-        public List<TileColor> TileColors { get; set; }
         public TileManager TileMgr { get; set; }
 
         //shoudnt be public
@@ -121,16 +118,6 @@ namespace TileMaster.Map
             ChunkDictionary[chunkId].Tiles[blockId].Name = ((TileType)tileId).ToString();
             ChunkDictionary[chunkId].Tiles[blockId].TileId = tileId;
             ChunkDictionary[chunkId].Tiles[blockId].Rotation = rotation;
-
-            MapDictionary[blockId].texture = ChunkDictionary[chunkId].Tiles[blockId].texture;
-            MapDictionary[blockId].TextureName = ChunkDictionary[chunkId].Tiles[blockId].TextureName;
-            MapDictionary[blockId].Name = ChunkDictionary[chunkId].Tiles[blockId].Name;
-            MapDictionary[blockId].TileId = ChunkDictionary[chunkId].Tiles[blockId].TileId;
-            MapDictionary[blockId].Rotation = ChunkDictionary[chunkId].Tiles[blockId].Rotation;
-
-            MapDictionary[blockId].IsOccupied = ChunkDictionary[chunkId].Tiles[blockId].IsOccupied;
-            MapDictionary[blockId].IsSolid = ChunkDictionary[chunkId].Tiles[blockId].IsSolid;
-
             Game.LogMessage("Setting block " + blockId + " on chunk " + chunkId + " to " + (TileType)tileId, Color.Green);
 
         }
@@ -144,8 +131,6 @@ namespace TileMaster.Map
         {
             SetTile(blockId, tileId, chunkId, texture, rotation);
         }
-
-
         public void SetTile(int blockId, int tileId, int chunkId)
         {
             var refTile = TileTypes.FirstOrDefault(x => x.TileId == tileId);
@@ -164,20 +149,10 @@ namespace TileMaster.Map
             ChunkDictionary[chunkId].Tiles[blockId].IsOccupied = refTile.IsOccupied;
             ChunkDictionary[chunkId].Tiles[blockId].IsSolid = refTile.IsSolid;
             ChunkDictionary[chunkId].NeedUpdate = true;
-
-            MapDictionary[blockId].Name = ChunkDictionary[chunkId].Tiles[blockId].Name;
-            MapDictionary[blockId].TextureName = ChunkDictionary[chunkId].Tiles[blockId].TextureName;
-            MapDictionary[blockId].texture = ChunkDictionary[chunkId].Tiles[blockId].texture;
-            MapDictionary[blockId].TileId = ChunkDictionary[chunkId].Tiles[blockId].TileId;
-            MapDictionary[blockId].IsOccupied = ChunkDictionary[chunkId].Tiles[blockId].IsOccupied;
-            MapDictionary[blockId].IsSolid = ChunkDictionary[chunkId].Tiles[blockId].IsSolid;
-
         }
-
         public void UpdateTile(CollisionTiles updated)
         {
             ChunkDictionary[updated.ChunkId].Tiles[updated.GlobalId] = updated;
-            MapDictionary[updated.GlobalId] = updated;
         }
 
         /// <summary>
@@ -223,8 +198,8 @@ namespace TileMaster.Map
             //it will also have to be taken into account as well.
             //Currently, for the standard 1920x1080 resolution the approximate value for chunks to be rendered is 2
             //how many chunks fit on the screen?
-            var chunksOnTheScreenHorizontally = 2;//((((Global.WindowWidth) / (Global.ChunkSize * Global.TileSize))) - 1);
-            var chunksOnTheScreenVertically = 2;// (((Global.WindowHeight) / (Global.ChunkSize * Global.TileSize)));
+            var chunksOnTheScreenHorizontally = 2;
+            var chunksOnTheScreenVertically = 2;
 
             //used to access upper and lower row chunks
             var rowMultiplier = Global.MapWidth / Global.ChunkSize;
