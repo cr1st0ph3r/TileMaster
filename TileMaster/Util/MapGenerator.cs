@@ -26,9 +26,9 @@ namespace TileMaster.Util
             //cellular automata 
 
             //Create surface terrain discrepancies in height for a more natural look
-            matrice = Noise.RandomWalkTopSmoothed(matrice, r.Next(100000000), 3, 7);
+            matrice = Noise.Noise.RandomWalkTopSmoothed(matrice, r.Next(100000000), 3, 7, Global.GroundLevel);
             //create caves
-            matrice = Noise.GenerateCaves(matrice, Global.RockLevel - 5, r.Next(100000000), 50, true, 10);
+            matrice = Noise.Noise.GenerateCaves(matrice, Global.RockLevel - 5, r.Next(100000000), 50, true, 10);
 
            
 
@@ -45,13 +45,7 @@ namespace TileMaster.Util
             //plant gras on surface
             matrice = plantGrass(matrice);
 
-
-    
-
-
-
-
-            return matrice;
+           return matrice;
         }
         private static int[,] plantGrass(int[,] matrice)
         {

@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit" Version="2.9.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TileMaster.Util\TileMaster.Util.csproj" />
+    <ProjectReference Include="..\TileMaster\TileMaster.csproj" />
+  </ItemGroup>
+
+</Project>

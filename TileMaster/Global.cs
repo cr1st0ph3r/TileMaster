@@ -99,7 +99,6 @@ namespace TileMaster
 
         //Files and folders locations
         public static readonly string ChunkFolderLocation = "Chunks";
-        public static readonly string MapDataLocation = @"Chunks\data.bin";
         public static readonly string TileDataLocation = @"Data\Tiles.json";
     }
 }

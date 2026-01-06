@@ -77,6 +77,15 @@ namespace TileMaster.UI
                 }
             };
 
+            //button to perform action
+            var rndActBtn = new Button();
+            rndActBtn.Content = new Label { Text = "Perform Action" };
+            Grid.SetRow(rndActBtn, 4);
+            rndActBtn.Click += (s, a) => SetValue();
+
+
+
+
             var grid1 = new Grid();
             grid1.ColumnSpacing = 8;
             grid1.RowSpacing = 8;
@@ -97,15 +106,18 @@ namespace TileMaster.UI
             grid1.Widgets.Add(spinButton3);
             grid1.Widgets.Add(capFpsTo60);
             grid1.Widgets.Add(showChunkBoundaries);
+            grid1.Widgets.Add(rndActBtn);
 
             var verticalStackPanel1 = new VerticalStackPanel();
             verticalStackPanel1.Spacing = 8;
             verticalStackPanel1.Widgets.Add(grid1);
             Content = verticalStackPanel1;
         }
+
         public void SetValue()
         {
-
+            var game = Game.GetInstance();
+            game.GenericAction();
         }
 
     }

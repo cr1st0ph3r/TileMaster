@@ -1,18 +1,15 @@
-﻿using System;
-
-namespace TileMaster.Util
+﻿namespace TileMaster.Util.Noise
 {
     public class Noise
     {
-
-        public static int[,] RandomWalkTop(int[,] map, float seed)
+        public static int[,] RandomWalkTop(int[,] map, float seed, int groundLevel)
         {
             //Seed our random
             System.Random rand = new System.Random(seed.GetHashCode());
 
             //Set our starting height
             //int lastHeight = rand.Next(0, map.GetUpperBound(1));
-            int lastHeight = Global.GroundLevel;
+            int lastHeight = groundLevel;
 
             //Cycle through our width
             for (int x = 0; x < map.GetUpperBound(0); x++)
@@ -40,13 +37,13 @@ namespace TileMaster.Util
             //Return the map
             return map;
         }
-        public static int[,] RandomWalkTopSmoothed(int[,] map, float seed, int minSectionWidth,int maxSectionWidth)
+        public static int[,] RandomWalkTopSmoothed(int[,] map, float seed, int minSectionWidth,int maxSectionWidth,int groundLevel)
         {
             //Seed our random
             System.Random rand = new System.Random(seed.GetHashCode());
       
             //Determine the start position
-            int lastHeight = Global.GroundLevel-1;
+            int lastHeight = groundLevel-1;
 
             //Used to determine which direction to go
             int nextMove = 0;

@@ -2,8 +2,10 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.Json;
 using TileMaster.Entity;
 using TileMaster.Util;
 
@@ -77,7 +79,7 @@ namespace TileMaster.Manager
                 var tType = map.TileTypes.FirstOrDefault(tt => tt.TileId == number);
 
                 // Pass (x,y) in the expected order
-                dictMap.Add(globalCounter, new CollisionTiles(tType,y, startingX, 0, globalCounter));
+                dictMap.Add(globalCounter, new CollisionTiles(tType, y, startingX, 0, globalCounter));
                 globalCounter++;
             }
             return dictMap;
@@ -96,11 +98,22 @@ namespace TileMaster.Manager
                 {
                     Directory.CreateDirectory(Global.ChunkFolderLocation);
                 }
-                foreach (var sFile in Directory.GetFiles(@"Chunks\", "*.bin"))
+
+                // remove legacy per-chunk files
+                foreach (var sFile in Directory.GetFiles(Global.ChunkFolderLocation, "*.bin"))
                 {
                     File.Delete(sFile);
                 }
-                ChunkSizer();
+
+                // remove existing single-archive if present
+                var archivePath = Path.Combine(Global.ChunkFolderLocation, "map.tlm");
+                if (File.Exists(archivePath))
+                {
+                    File.Delete(archivePath);
+                }
+
+                // create new archive containing all chunks
+                ChunkSizer(archivePath);
             }
         }
 
@@ -110,8 +123,6 @@ namespace TileMaster.Manager
         /// <param name="content"></param>
         public void LoadMap()
         {
-            //var sw = new Stopwatch();
-            //sw.Start(); 
             //load tile data (namely colors) so we can build tiles at runtime
             map.TileTypes = CollisionTiles.LoadTilesTypes();
             if (Global.UseTileTextureRandomization)
@@ -119,77 +130,96 @@ namespace TileMaster.Manager
                 map.TileTypes = map.TileMgr.LoadTileTextures(map.TileTypes);
             }
 
-            //sw.Stop();
-            //var time = sw.Elapsed.TotalSeconds;
-
-
-            //upon load, tiles has no information about texture or other complex properties
-            //because these can't be serialized
-            //map.MapDictionary = DictionaryHelper.DeSerialize<Dictionary<int, CollisionTiles>>(File.Open(Global.MapDataLocation, FileMode.Open));
-
-
+            // Prefer reading single archive if present
+            var archivePath = Path.Combine(Global.ChunkFolderLocation, "map.tlm");
             var chunks = new List<Tuple<int, string>>();
-            foreach (var file in Directory.GetFiles("Chunks/").Where(x => x.Contains("chunk") && x.Contains(".bin")))
-            {
-                chunks.Add(new Tuple<int, string>(int.Parse(file.Replace("Chunks/chunk", "").Replace(".bin", "")), file));
-            }
-            if (chunks.Count == 0)
-            {
-                //chunks are empty, needs regen
-                ChunkSizer();
-            }
-            chunks.Sort((x, y) => x.Item1.CompareTo(y.Item1));
 
-            //chunk never stat at zero
-            var chunkId = 1;
-            var globalCounter = 0;
-            //loads chunks files into dictionaries
-            foreach (var file in chunks)
+            if (File.Exists(archivePath))
             {
-                var chunk = new Chunk();
-                Dictionary<int, CollisionTiles> dict = DictionaryHelper.DeSerialize<Dictionary<int, CollisionTiles>>(File.Open(file.Item2, FileMode.Open));
-                Progress = chunkId * 100 / chunks.Count;
-                //set the blocks ids, positions and textures
-                for (var i = 0; i < dict.Count; i++)
+                using (var fs = File.OpenRead(archivePath))
+                using (var archive = new ZipArchive(fs, ZipArchiveMode.Read, leaveOpen: false))
                 {
-                    var chunkTile = dict.ElementAt(i).Value;
-                    var globalId = dict[dict.ElementAt(i).Key].GlobalId;
-                    dict[dict.ElementAt(i).Key] = new CollisionTiles(map.TileTypes.FirstOrDefault(x => x.Name == chunkTile.Name), dict[dict.ElementAt(i).Key])
+                    foreach (var entry in archive.Entries)
                     {
-                        ChunkId = chunkId
-                    };
+                        // Expect entry names like "chunk{n}.json" or similar
+                        if (entry.Name.StartsWith("chunk", StringComparison.OrdinalIgnoreCase))
+                        {
+                            // try to parse the number part
+                            var name = entry.Name;
+                            var numPart = name.Replace("chunk", "").Replace(".json", "").Replace(".bin", "");
+                            if (int.TryParse(numPart, out var id))
+                            {
+                                chunks.Add(new Tuple<int, string>(id, name));
+                            }
+                        }
+                    }
 
-                    //make global map aware of this information
-                    //map.MapDictionary[globalId].ChunkId = dict[dict.ElementAt(i).Key].ChunkId;
-                    //map.MapDictionary[globalId].LocalId = dict[dict.ElementAt(i).Key].LocalId;
+                    if (chunks.Count == 0)
+                    {
+                        // archive empty or unexpected -> regenerate
+                        ChunkSizer(archivePath);
+                    }
+                    else
+                    {
+                        chunks.Sort((x, y) => x.Item1.CompareTo(y.Item1));
+                        var chunkId = 1;
 
-                    globalCounter++;
+                        foreach (var file in chunks)
+                        {
+                            var chunk = new Chunk();
+                            var entry = archive.GetEntry(file.Item2);
+                            if (entry == null) continue;
 
+                            var options = new JsonSerializerOptions { IncludeFields = true };
+                            Dictionary<int, CollisionTiles> dict = null;
+                            using (var entryStream = entry.Open())
+                            {
+                                dict = JsonSerializer.Deserialize<Dictionary<int, CollisionTiles>>(entryStream, options);
+                            }
+
+                            if (dict == null) continue;
+
+                            Progress = chunkId * 100 / chunks.Count;
+                            //set the blocks ids, positions and textures
+                            for (var i = 0; i < dict.Count; i++)
+                            {
+                                var chunkTile = dict.ElementAt(i).Value;
+                                var globalId = dict[dict.ElementAt(i).Key].GlobalId;
+                                dict[dict.ElementAt(i).Key] = new CollisionTiles(map.TileTypes.FirstOrDefault(x => x.Name == chunkTile.Name), dict[dict.ElementAt(i).Key])
+                                {
+                                    ChunkId = chunkId
+                                };
+
+                                globalId++; // keep same progression as before
+                            }
+
+                            if (dict.Values.Any(x => x.TileId == (int)TileType.DirtWithGrass))
+                            {
+                                chunk.HasGrass = true;
+                                chunk.NeedUpdate = true;
+                            }
+
+                            chunk.Tiles = dict;
+                            chunk.PositionOnscreen = chunkId;
+                            map.ChunkDictionary.Add(chunkId, chunk);
+                            chunkId++;
+                        }
+
+                        map.Width = Global.MapWidth * Global.TileSize;
+                        map.Height = Global.MapHeight * Global.TileSize;
+
+                        Global.IsMapLoaded = true;
+                        return;
+                    }
                 }
-
-                if (dict.Values.Any(x => x.TileId == (int)TileType.DirtWithGrass))
-                {
-                    chunk.HasGrass = true;
-                    chunk.NeedUpdate = true;
-                }
-
-                chunk.Tiles = dict;
-                chunk.PositionOnscreen = chunkId;
-                map.ChunkDictionary.Add(chunkId, chunk);
-                chunkId++;
             }
-
-            map.Width = Global.MapWidth * Global.TileSize;
-            map.Height = Global.MapHeight * Global.TileSize;
-
-            Global.IsMapLoaded = true;
         }
         #endregion
 
         /// <summary>
         /// Turn a map dictionary into smaller dictionaries for better management
         /// </summary>
-        public void ChunkSizer()
+        public void ChunkSizer(string archivePath = null)
         {
             //divides the map into chunks of x size
             var Chunks = new Dictionary<int, Chunk>();
@@ -197,18 +227,6 @@ namespace TileMaster.Manager
 
             var SectorsInX = Global.MapWidth / Global.ChunkSize;
             var SectorsInY = Global.MapHeight / Global.ChunkSize;
-            //[x][x][x][x][x][x][x][x][x][x]
-            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
-            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
-            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
-            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
-            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
-            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
-            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
-            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
-            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
-            //[x][ ][ ][ ][ ][ ][ ][ ][ ][x]
-            //[x][x][x][x][x][x][x][x][x][x]
             var tempX = 0;
             var tempY = 0;
             var gridCounter = 1;
@@ -265,51 +283,35 @@ namespace TileMaster.Manager
                 rowMultiplier = gridCounter - 1;
             }
 
-
-
-            //var taskList = new List<Task>();
-
-            //for (int i = 0; i < Chunks.Values.Count; i++)
-            //{
-            //    var t = new Task(() =>
-            //    {
-            //        foreach (var tile in Chunks[i].Tiles.Where(x => x.Value.isEdgeTile))
-            //        {
-            //            var neibs = GetNeighboringTiles(tile.Value);
-            //            tile.Value.neighboringTiles = neibs.Select(x => new KeyValuePair<int, int>(x.ChunkId, x.LocalId)).ToList();
-            //        }
-
-            //    });
-            //    taskList.Add(t);
-            //    t.Start();
-
-            //}
-
-
-            //Task.WaitAll(taskList.ToArray());
-
-
-
-
-            //foreach (var chunk in Chunks.Values)
-            //{
-            //    foreach (var tile in chunk.Tiles.Where(x => x.Value.isEdgeTile))
-            //    {
-            //        var neibs = GetNeighboringTiles(tile.Value);
-            //        tile.Value.neighboringTiles = neibs.Select(x => new KeyValuePair<int, int>(x.ChunkId, x.LocalId)).ToList();
-            //    }
-            //}
-
-
-
-            var iii = 0;
-            foreach (var item in Chunks.Values)
+            // If archivePath provided, write all chunks to a single ZIP archive (.tlm)
+            if (!string.IsNullOrEmpty(archivePath))
             {
-                DictionaryHelper.Serialize(item.Tiles, File.Open(@"Chunks\chunk" + iii + ".bin", FileMode.Create));
-                iii++;
-            }
+                var options = new JsonSerializerOptions
+                {
+                    IncludeFields = true,
+                    WriteIndented = false
+                };
 
-            map.MapDictionary = null;
+                using (var fs = File.Open(archivePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                using (var archive = new ZipArchive(fs, ZipArchiveMode.Create, leaveOpen: false))
+                {
+                    var iii = 0;
+                    foreach (var item in Chunks.Values)
+                    {
+                        var entry = archive.CreateEntry($"chunk{iii}.json", CompressionLevel.Optimal);
+                        using (var entryStream = entry.Open())
+                        {
+                            var bytes = JsonSerializer.SerializeToUtf8Bytes(item.Tiles, options);
+                            entryStream.Write(bytes, 0, bytes.Length);
+                        }
+                        iii++;
+                    }
+                }
+
+                // free the big map dictionary to reduce memory
+                map.MapDictionary = null;
+                return;
+            }
         }
     }
 }

@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.3.11218.70 d18.3
+VisualStudioVersion = 18.3.11218.70
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TileMaster", "TileMaster\TileMaster.csproj", "{66A27D3D-E61A-4F14-8A0B-7FEDA42A9A7C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TileMaster.Util", "TileMaster.Util\TileMaster.Util.csproj", "{B3BF65F8-5164-4303-9568-9B0E58D28EEB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TileMaster.Test", "TileMaster.Test\TileMaster.Test.csproj", "{3FBA82AD-A84A-4DD3-B5BA-B0B14D58DB7E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{B3BF65F8-5164-4303-9568-9B0E58D28EEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B3BF65F8-5164-4303-9568-9B0E58D28EEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B3BF65F8-5164-4303-9568-9B0E58D28EEB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3FBA82AD-A84A-4DD3-B5BA-B0B14D58DB7E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3FBA82AD-A84A-4DD3-B5BA-B0B14D58DB7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3FBA82AD-A84A-4DD3-B5BA-B0B14D58DB7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3FBA82AD-A84A-4DD3-B5BA-B0B14D58DB7E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

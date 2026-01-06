@@ -189,7 +189,7 @@ namespace TileMaster
                 }
             }
 
-            if (Game._state == GameState.Running && Global.IsMapLoaded)
+            if (_state == GameState.Running && Global.IsMapLoaded)
             {
                 Vector2 cursorPosition = Vector2.Transform(new Vector2(current_mouse.Position.X, current_mouse.Position.Y), Matrix.Invert(camera.Transform));
                 var mouseY = (int)((cursorPosition.Y) / Global.TileSize) * Global.MapHeight;
@@ -344,11 +344,11 @@ namespace TileMaster
                     }
                 }
                 //leave game
-                if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
+                if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                     Exit();
             }
         }
-        private void GenericAction(object sender, EventArgs e)
+        public void GenericAction()
         {
 
             //map.GrowGrass(player.onChunk);
