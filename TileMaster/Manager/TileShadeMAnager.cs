@@ -103,8 +103,6 @@ namespace TileMaster.Manager
                 byte level = (byte)(brightness * 255f);
                 tile.SetColor(level, level, level, 255);
                 map.UpdateTile(tile);
-                // Optional: if you want to fall back to named color when brightness == 0, uncomment:
-                // if (brightness == 0f) { tile.ClearRuntimeColor(); tile.Color = "Black"; }
             }
         }
 
@@ -113,6 +111,14 @@ namespace TileMaster.Manager
             foreach(var chunk in map.ChunkDictionary.Keys)
             {
                 UpdateTileShadingForChunk(chunk);
+            }
+        }
+        public void UpdateTileShadingForModifiedChunks()
+        {
+            foreach (var chunk in map.ChunkDictionary.Where(x=>x.Value.NeedUpdate))
+            {
+                UpdateTileShadingForChunk(chunk.Key);
+                chunk.Value.NeedUpdate = false;
             }
         }
     }

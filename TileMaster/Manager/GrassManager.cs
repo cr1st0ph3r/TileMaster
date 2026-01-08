@@ -49,6 +49,10 @@ namespace TileMaster.Manager
             // This ensures mask computations use the original map state (no race between neighboring updates).
             foreach (var candidate in candidates.Values)
             {
+                if (candidate.GlobalId == 22464)
+                {
+
+                }
                 hasChanged |= CheckTileEligibilityForGrass(candidate);
             }
 
@@ -65,9 +69,13 @@ namespace TileMaster.Manager
         /// <returns></returns>
         private bool CheckTileEligibilityForGrass(Tile destTile)
         {
-            if (destTile.TileId == (int)TileType.Dirt || destTile.TileId == (int)TileType.DirtWithGrass)
+            if (destTile.TileId == (int)TileType.Dirt)
             {
                 return SetGrassTile(destTile);
+            }
+            else if (destTile.TileId == (int)TileType.DirtWithGrass)
+            {
+
             }
             return false;
         }
@@ -82,19 +90,14 @@ namespace TileMaster.Manager
                     string textureName = $"Grass{mask}";
                     var grassDef = map.TileTypes.FirstOrDefault(x => x.TileId == (int)TileType.DirtWithGrass);
                     var grassTexture = grassDef?.Textures.FirstOrDefault(x => x.Name.EndsWith(textureName));
-                    map.SetTileAsGrass(refTile.GlobalId, (int)TileType.DirtWithGrass, refTile.ChunkId, grassTexture);
+                    map.SetTile(refTile, grassTexture);
                 }
             }
         }
         private bool SetGrassTile(Tile destinationTile)
         {
-            if (destinationTile.TileId != (int)TileType.Dirt && destinationTile.TileId != (int)TileType.DirtWithGrass)
-            {
-                return false;
-            }
-
             int mask = GetGrassMask(destinationTile);
-            if (destinationTile.TextureName.EndsWith(mask.ToString()))
+            if (destinationTile.TextureName.EndsWith($"DirtWithGrass{mask.ToString()}"))
             {
                 return false;
             }
@@ -103,7 +106,7 @@ namespace TileMaster.Manager
             {
                 if (destinationTile.TileId == (int)TileType.DirtWithGrass)
                 {
-                    map.SetTile(destinationTile.GlobalId, (int)TileType.Dirt, destinationTile.ChunkId);
+                    map.SetTile(destinationTile, (int)TileType.Dirt);
                     return true;
                 }
                 else if (destinationTile.TileId == (int)TileType.Dirt)
@@ -120,7 +123,7 @@ namespace TileMaster.Manager
                         {
                             textureToUse = "DirtWithGrassCorner1";
                         }
-                        if ( res == 2)
+                        if (res == 2)
                         {
                             rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(90f);
                             textureToUse = "DirtWithGrassCorner1";
@@ -130,7 +133,7 @@ namespace TileMaster.Manager
                             rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(180f);
                             textureToUse = "DirtWithGrassCorner1";
                         }
-                        if (res == 8 )
+                        if (res == 8)
                         {
                             rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(270f);
                             textureToUse = "DirtWithGrassCorner1";
@@ -139,51 +142,47 @@ namespace TileMaster.Manager
                         {
                             textureToUse = "DirtWithGrassCorner2";
                         }
-                        else if ( res == 10)
+                        else if (res == 10)
                         {
                             rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(90f);
                             textureToUse = "DirtWithGrassCorner2";
                         }
-                        else if(res == 7 )
+                        else if (res == 7)
                         {
                             textureToUse = "DirtWithGrassCorner3";
                         }
-                        else if( res == 11)
+                        else if (res == 11)
                         {
                             textureToUse = "DirtWithGrassCorner3";
                             rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(90f);
                         }
-                        else if( res == 13 )
+                        else if (res == 13)
                         {
                             textureToUse = "DirtWithGrassCorner3";
                             rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(1800f);
                         }
-                        else if(res == 14)
+                        else if (res == 14)
                         {
                             textureToUse = "DirtWithGrassCorner3";
                             rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(270f);
                         }
-                            var grassTexture = grassDef?.Textures.FirstOrDefault(x => x.Name.EndsWith(textureToUse));
-                        map.ApplyTextureToTile(destinationTile.GlobalId, (int)TileType.Dirt, destinationTile.ChunkId, grassTexture, rotation);
+                        var grassTexture = grassDef?.Textures.FirstOrDefault(x => x.Name.EndsWith(textureToUse));
+                        map.SetTile(destinationTile, grassTexture, rotation);
                     }
                 }
                 return false;
             }
             else
-            {         
+            {
                 // Mapping the mask value to your "TileX" naming convention
                 string textureName = $"DirtWithGrass{mask}";
 
                 var grassDef = map.TileTypes.FirstOrDefault(x => x.TileId == (int)TileType.DirtWithGrass);
                 var grassTexture = grassDef?.Textures.FirstOrDefault(x => x.Name.EndsWith(textureName));
-
-                if (grassTexture != null)
-                {
-                    map.SetTileAsGrass(destinationTile.GlobalId, (int)TileType.DirtWithGrass, destinationTile.ChunkId, grassTexture);
-                    return true;
-                }
-
-                return false;
+                destinationTile.TextureName = grassTexture.Name;
+                destinationTile.TileId = (int)TileType.DirtWithGrass;
+                map.SetTile(destinationTile, grassTexture);
+                return true;
             }
 
         }
@@ -213,8 +212,8 @@ namespace TileMaster.Manager
         }
 
         private int GetInnerCornerDecorations(Tile tile)
-        {           
-            var neighbors = map.tileInspector.GetNeighboringTiles(tile);          
+        {
+            var neighbors = map.tileInspector.GetNeighboringTiles(tile);
             int mask = 0;
 
             // Condition: Cardinal neighbors are Solid, but Diagonal is Air

@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using System;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -34,11 +35,14 @@ namespace TileMaster.Entity
             {
                 // compute current grid indices from current position (needed by InputHelper)
                 int playerOnGridX = (int)((player.GetPosition().X + (player.GetRectangle().Width / 2)) / Global.TileSize);
-                int playerOnGridY = (int)((player.GetPosition().Y + (player.GetRectangle().Height)) / Global.TileSize);
+                int playerOnGridY = (int)((player.GetPosition().Y + player.GetRectangle().Height - 1) / Global.TileSize); // bottom tile index
+
                 player.onBlock = (playerOnGridY * Global.MapWidth) + (playerOnGridX);
                 player.SteppingOn = (player.onBlock + Global.MapWidth);
                 player.GridX = playerOnGridX;
-                player.GridY = (int)((player.GetPosition().Y + (player.GetRectangle().Height / player.Height)) / Global.TileSize);
+                // GridY should refer to the tile row at the player's feet (bottom-most pixel)
+                player.GridY = playerOnGridY;
+
                 int playerChunkX = (player.GridX / Global.ChunkSize);
                 int playerChunkY = (player.GridY / Global.ChunkSize);
                 player.onChunk = (1/*chunks are 1 based*/+ ((playerChunkY * (Global.MapWidth / Global.ChunkSize)) + playerChunkX));
@@ -47,6 +51,12 @@ namespace TileMaster.Entity
 
                 // process input first (decides velocity / intent)
                 Input(gameTime, player, map);
+
+                // Ground detection: use the same helper used elsewhere but keep it
+                // out of Input() to avoid duplicate snapping logic. HandleMovingDown
+                // returns true if the player should fall (no support under feet).
+                bool shouldFall = InputHelper.HandleMovingDown(player, map);
+                isOnSolidBlock = !shouldFall;
 
                 // gravity (time-based) - applied to velocity before integration
                 if (velocity.Y < MaxFallSpeed && !isOnSolidBlock)
@@ -113,21 +123,33 @@ namespace TileMaster.Entity
                 // small conditional snap to ground to avoid tiny floating above tiles (keeps previous behavior)
                 if (isOnSolidBlock)
                 {
-                    float targetY = (player.GridY) * Global.TileSize - 0.1f;
-                    position.Y = (int)targetY;
-                    velocity.Y = 0f;
-                    hasJumped = false;
-                    rectangle = new Rectangle((int)position.X, (int)position.Y, texture.Width, texture.Height);
+                    // Snap only when the player's bottom is very near the tile top.
+                    // Avoid using player.GridY (which may be stale or computed differently); compute from rectangle instead.
+                    var bottom = position.Y + rectangle.Height;
+                    int tileBelow = (int)(bottom / Global.TileSize);
+                    float tileTop = tileBelow * Global.TileSize;
+                    float delta = tileTop - bottom; // negative if penetrating
+
+                    const float snapTolerance = 3f; // pixels
+                    if (Math.Abs(delta) <= snapTolerance)
+                    {
+                        position.Y = tileTop - rectangle.Height;
+                        velocity.Y = 0f;
+                        hasJumped = false;
+                        rectangle = new Rectangle((int)position.X, (int)position.Y, texture.Width, texture.Height);
+                    }
                 }
 
                 // update grid indices to reflect new position
                 player.GridX = (int)((player.GetPosition().X + (player.GetRectangle().Width / 2)) / Global.TileSize);
-                player.GridY = (int)((player.GetPosition().Y + (player.GetRectangle().Height / player.Height)) / Global.TileSize);
-                int newChunkX = (int)(player.GridX / Global.ChunkSize);
-                int newChunkY = (int)(player.GridY / Global.ChunkSize);
+                // make GridY reflect the tile row containing the player's feet (bottom-most pixel)
+                player.GridY = (int)((player.GetPosition().Y + player.GetRectangle().Height - 1) / Global.TileSize);
+
+                int newChunkX = player.GridX / Global.ChunkSize;
+                int newChunkY = player.GridY / Global.ChunkSize;
                 player.onChunk = (1 + ((newChunkY * (Global.MapWidth / Global.ChunkSize)) + newChunkX));
                 player.onBlock = (player.GridY * Global.MapWidth) + player.GridX;
-                player.SteppingOn = (int)(player.onBlock + Global.MapWidth);
+                player.SteppingOn = player.onBlock + Global.MapWidth;
 
                 // set if the player is in motion or not
                 if (velocity.X > 0.01f || velocity.Y > 0.4f || velocity.X < -0.01f || velocity.Y < -0.4f)
@@ -212,25 +234,19 @@ namespace TileMaster.Entity
             }
             else { velocity.X = 0; }
 
-            // ground detection
-            if (!InputHelper.HandleMovingDown(player, map))
-            {
-                float targetY = (player.GridY) * Global.TileSize - 1; // matches previous layout
-                float delta = targetY - position.Y;
-                if (delta < 1)
-                {
-                    velocity.Y = 0;
-                    isOnSolidBlock = true;
-                    hasJumped = false;
-                }
-            }
-            else
-            {
-                isOnSolidBlock = false;
-            }
+            // NOTE:
+            // Ground detection that ran here previously caused a second, slightly different
+            // determination of "isOnSolidBlock" which conflicted with the Y-axis collision
+            // resolution performed later in Update(). That produced toggling of isOnSolidBlock
+            // and tiny positional adjustments every frame (the observed jitter).
+            //
+            // We now rely on the vertical collision resolution performed in Update() to set
+            // isOnSolidBlock and to clamp the player's Y position. Removing the duplicate
+            // ground-check avoids oscillation.
 
             // handle player jump (jump impulse is in px/s)
-            if (Keyboard.GetState().IsKeyDown(Keys.Space) && hasJumped == false)
+            // only allow a jump when we believe we are on solid ground
+            if (Keyboard.GetState().IsKeyDown(Keys.Space) && hasJumped == false && isOnSolidBlock)
             {
                 // small positional tweak to avoid immediate collision
                 position.Y -= 5F;
@@ -238,12 +254,6 @@ namespace TileMaster.Entity
                 hasJumped = true;
                 isOnSolidBlock = false;
             }
-
-            if (isOnSolidBlock)
-            {
-                // removed abrupt snap to grid; handled with small conditional snap in Update
-            }
-
             if (hasJumped)
             {
                 if (!InputHelper.HandleJump(player, map))
@@ -251,6 +261,7 @@ namespace TileMaster.Entity
                     // collision while jumping: cancel upward motion and nudge down
                     velocity.Y = 0f;
                     position.Y += 5F;
+                    hasJumped = false;
                 }
             }
         }

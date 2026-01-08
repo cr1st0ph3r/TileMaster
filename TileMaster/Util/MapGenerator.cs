@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing.Imaging;
 using TileMaster.Entity;
 
 namespace TileMaster.Util
@@ -15,7 +16,8 @@ namespace TileMaster.Util
             //2 rocks
 
             Random r = new Random();
-            var matrice = GenerateInitialArrayMap(X, Y);
+            int[,] matrice = GenerateInitialArrayMap(X, Y);
+
 
             //cave generator
 
@@ -27,15 +29,17 @@ namespace TileMaster.Util
 
             //Create surface terrain discrepancies in height for a more natural look
             matrice = Noise.Noise.RandomWalkTopSmoothed(matrice, r.Next(100000000), 3, 7, Global.GroundLevel);
+
+
             //create caves
             matrice = Noise.Noise.GenerateCaves(matrice, Global.RockLevel - 5, r.Next(100000000), 50, true, 10);
 
-           
+
 
             //set layer to rock after certain depth
             matrice = setTilesAfterLayer(matrice, Global.RockLevel, 2);
             //adds granite
-            matrice = SpreadTile(matrice, Global.RockLevel+5, 0.01F, 4, 1, 10);
+            matrice = SpreadTile(matrice, Global.RockLevel + 5, 0.01F, 4, 1, 10);
             //layer blending
             matrice = randomizeLayer(matrice, (Global.RockLevel - 2), new int[4] { 1, 2, 1, 1 });
             matrice = randomizeLayer(matrice, (Global.RockLevel - 1), new int[3] { 1, 2, 1 });
@@ -45,22 +49,25 @@ namespace TileMaster.Util
             //plant gras on surface
             matrice = plantGrass(matrice);
 
-           return matrice;
+            SaveMatrixAsImage(matrice, "initial_map.png");
+
+            return matrice;
         }
         private static int[,] plantGrass(int[,] matrice)
         {
             int grassRange = 5;
-            for (int i = Global.GroundLevel - grassRange; i < Global.GroundLevel + grassRange; i++)
+            for (int x = 0; x < matrice.GetLength(1); x++)
             {
-                for (int j = 0; j < matrice.GetLength(1); j++)
-                {
+                for (int y = Global.GroundLevel - grassRange; y < Global.GroundLevel + grassRange; y++)
+            {
+               
                     //check if the block is dirt
-                    if (matrice[i, j] == (int)TileType.Dirt)
+                    if (matrice[x, y] == (int)TileType.Dirt)
                     {
                         //check if the tile has air above it
-                        if (matrice[i - 1, j] == (int)TileType.Air)
+                        if (matrice[x,y - 1] == (int)TileType.Air)
                         {
-                            matrice[i, j] = (int)TileType.DirtWithGrass;
+                            matrice[x,y] = (int)TileType.DirtWithGrass;
                         }
 
                     }
@@ -72,11 +79,11 @@ namespace TileMaster.Util
         private static int[,] randomizeLayer(int[,] matrice, int layer, int[] values)
         {
             Random r = new Random();
-            for (int i = 0; i < matrice.GetLength(1); i++)
+            for (int x = 0; x < matrice.GetLength(1); x++)
             {
-                if (matrice[layer, i] > 0)
+                if (matrice[x, layer] > 0)
                 {
-                    matrice[layer, i] = values[r.Next(0, values.Length)];
+                    matrice[x, layer] = values[r.Next(0, values.Length)];
                 }
             }
             return matrice;
@@ -84,9 +91,9 @@ namespace TileMaster.Util
 
         private static int[,] setTilesAfterLayer(int[,] matrice, int layer, int material)
         {
-            for (int xx = layer; xx < matrice.GetLength(0); xx++)
+            for (int xx = 0; xx < matrice.GetLength(0); xx++)
             {
-                for (int yy = 0; yy < matrice.GetLength(1); yy++)
+                for (int yy = layer; yy < matrice.GetLength(1); yy++)
                 {
                     if (matrice[xx, yy] > 0)
                     {
@@ -110,9 +117,9 @@ namespace TileMaster.Util
         public static int[,] SpreadTile(int[,] matrice, int startLayer, float percentage, int tileId, int minSize, int maxSize)
         {
             var size = Game.rnd.Next(minSize, maxSize);
-            for (int x = startLayer; x < matrice.GetLength(0); x++)
+            for (int x = 0; x < matrice.GetLength(0); x++)
             {
-                for (int yy = 0; yy < matrice.GetLength(1); yy++)
+                for (int yy = startLayer; yy < matrice.GetLength(1); yy++)
                 {
                     //make sure to replace solid tiles only
                     if (matrice[x, yy] > 0)
@@ -125,7 +132,7 @@ namespace TileMaster.Util
                             {
                                 continue;
                             }
-                            if (randN.Item1 <= matrice.GetLength(0) || randN.Item2 <=matrice.GetLength(1))
+                            if (randN.Item1 <= matrice.GetLength(0) || randN.Item2 <= matrice.GetLength(1))
                             {
                                 matrice[randN.Item1, randN.Item2] = CoinFlipper(percentage, matrice[x, yy], tileId);
                             }
@@ -134,7 +141,7 @@ namespace TileMaster.Util
                                 //out of bounds
                                 break;
                             }
-                        
+
                         }
                     }
                 }
@@ -145,20 +152,16 @@ namespace TileMaster.Util
 
         public static int CoinFlipper(float probability, int currentTileId, int tileId)
         {
-
-
             int perCent = Game.rnd.Next(0, 100);
             if (perCent < probability)
             {
                 return tileId;
             }
             return currentTileId;
-
         }
 
         private static Tuple<int, int> GetRandomNeighborBlock(int X, int Y)
         {
-          
             return Tuple.Create(Game.rnd.Next(X - 1, X + 1), Game.rnd.Next(Y - 1, Y + 1));
         }
 
@@ -177,7 +180,7 @@ namespace TileMaster.Util
             {
                 for (int yy = 0; yy < matrice.GetLength(1); yy++)
                 {
-                    if (xx > Global.GroundLevel)
+                    if (yy > Global.GroundLevel)
                     {
                         matrice[xx, yy] = (int)TileType.Dirt;
                     }
@@ -190,6 +193,47 @@ namespace TileMaster.Util
             }
 
             return matrice;
+        }
+
+        public static void SaveMatrixAsImage(int[,] matrix, string fileName)
+        {
+            int width = matrix.GetLength(0);
+            int height = matrix.GetLength(1);
+
+            // Create a new bitmap with the same dimensions as the matrix
+            using (System.Drawing.Bitmap bitmap = new System.Drawing.Bitmap(width, height))
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        System.Drawing.Color pixelColor = System.Drawing.Color.White;
+
+                        if (matrix[x, y] == (int)TileType.Dirt)
+                        {
+                            pixelColor = System.Drawing.Color.Brown;
+                        }
+                        else if (matrix[x, y] == (int)TileType.Stone)
+                        {
+                            pixelColor = System.Drawing.Color.Gray;
+                        }
+                        else if (matrix[x, y] == (int)TileType.DirtWithGrass)
+                        {
+                            pixelColor = System.Drawing.Color.Green;
+                        }
+                        else if (matrix[x, y] == (int)TileType.Granite)
+                        {
+                            pixelColor = System.Drawing.Color.DarkRed;
+                        }
+
+
+                        bitmap.SetPixel(x, y, pixelColor);
+                    }
+                }
+
+                // Save the result as a PNG
+                bitmap.Save(fileName, ImageFormat.Png);
+            }
         }
     }
 }

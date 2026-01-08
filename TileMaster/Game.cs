@@ -1,5 +1,4 @@
-﻿
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Myra;
@@ -115,7 +114,7 @@ namespace TileMaster
                 map.mapManager.SaveMap();
             }
             map.mapManager.LoadMap();
-
+            map.SaveChunkDictionaryAsImage(map.ChunkDictionary, "loaded_map.png");
             //apply the correct lighting to all blocks
             Thread UpdateBlockLighting = new Thread(() => { map.tileShadeMgr.UpdateTileShadingForMap(); });
             UpdateBlockLighting.Start();
@@ -192,14 +191,14 @@ namespace TileMaster
             if (_state == GameState.Running && Global.IsMapLoaded)
             {
                 Vector2 cursorPosition = Vector2.Transform(new Vector2(current_mouse.Position.X, current_mouse.Position.Y), Matrix.Invert(camera.Transform));
-                var mouseY = (int)((cursorPosition.Y) / Global.TileSize) * Global.MapHeight;
+                var mouseY = (int)((cursorPosition.Y) / Global.TileSize) * Global.MapWidth;
                 var mouseX = (int)((cursorPosition.X) / Global.TileSize);
                 mouseIsOverBlock = (mouseX + mouseY);
 
                 cursorGridX = (int)((cursorPosition.X) / Global.TileSize);
                 cursorGridY = (int)((cursorPosition.Y) / Global.TileSize);
-                int cursorChunkX = (int)(cursorGridX / Global.ChunkSize);
-                int cursorChunkY = (int)(cursorGridY / Global.ChunkSize);
+                int cursorChunkX = (cursorGridX / Global.ChunkSize);
+                int cursorChunkY = (cursorGridY / Global.ChunkSize);
                 cursorOnChunk = (1/*chunks are 1 based*/+ ((cursorChunkY * (Global.MapWidth / Global.ChunkSize)) + cursorChunkX));
 
                 //these actions should only be checked if the game windows is active
@@ -232,11 +231,13 @@ namespace TileMaster
                     CheckChunkForUpdates();
                 }
                 _mainPanel._loadMapProgressBar.Visible = false;
+
+                map.UpdateModifiedTiles();
             }
             //handle the progress of loading the map 
             _mainPanel._loadMapProgressBar.Value = MapManager.Progress;
 
-
+            
             base.Update(gameTime);
         }
 
@@ -323,7 +324,7 @@ namespace TileMaster
                 {
                     try
                     {
-                        map.PlaceBlockAt(_mainPanel.SelectedItem, mouseIsOverBlock, cursorOnChunk);
+                        map.SetTile(cursorOnChunk, mouseIsOverBlock, _mainPanel.SelectedItem);
                     }
                     catch
                     {
@@ -336,7 +337,7 @@ namespace TileMaster
 
                     if (map.IsBlockOnChunk(cursorOnChunk, mouseIsOverBlock))
                     {
-                        map.PlaceBlockAt((int)TileType.Air, mouseIsOverBlock, cursorOnChunk);
+                        map.SetTile(cursorOnChunk, mouseIsOverBlock, (int)TileType.Air);
                     }
                     else
                     {
@@ -398,17 +399,17 @@ namespace TileMaster
             {
                 if (map.IsBlockOnChunk(cursorOnChunk, mouseIsOverBlock))
                 {
-
+                    int referenceStart = 300;
                     var block = map.ChunkDictionary[cursorOnChunk].Tiles[mouseIsOverBlock];
-                    DrawWithShadow("Tile TileId:" + block.TileId, new Vector2(debugXCoordinate + 350, debugYCoordinate));
-                    DrawWithShadow("Tile Name:" + block.Name, new Vector2(debugXCoordinate + 350, debugYCoordinate + 20));
-                    DrawWithShadow("Tile Local Id:" + block.LocalId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 40));
-                    DrawWithShadow("Tile Global Id:" + block.GlobalId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 60));
-                    DrawWithShadow("Tile Chunk Id:" + block.ChunkId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 80));
-                    DrawWithShadow("Is Edge Tile?: " + block.isEdgeTile, new Vector2(debugXCoordinate + 350, debugYCoordinate + 100));
+                    DrawWithShadow("Tile TileId:" + block.TileId, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart));
+                    DrawWithShadow("Tile Name:" + block.Name, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 20));
+                    DrawWithShadow("Tile Local Id:" + block.LocalId, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 40));
+                    DrawWithShadow("Tile Global Id:" + block.GlobalId, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 60));
+                    DrawWithShadow("Tile Chunk Id:" + block.ChunkId, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 80));
+                    DrawWithShadow("Tile is edge?: " + block.isEdgeTile, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 100));
+                    DrawWithShadow("Tile from global map: ", new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 120));
 
-                    DrawWithShadow("Tile from global map: ", new Vector2(debugXCoordinate + 350, debugYCoordinate + 140));
-                    //DrawWithShadow("edge?: " + map.MapDictionary[block.GlobalId].isEdgeTile, new Vector2(debugXCoordinate + 350, debugYCoordinate + 160));
+
                     //DrawWithShadow("chunkId: " + map.MapDictionary[block.GlobalId].ChunkId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 180));
                     //DrawWithShadow("localId: " + map.MapDictionary[block.GlobalId].LocalId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 200));
                     //DrawWithShadow("globalId: " + map.MapDictionary[block.GlobalId].GlobalId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 220));
@@ -418,11 +419,12 @@ namespace TileMaster
                     //DrawWithShadow("Texture.name: " + map.MapDictionary[block.GlobalId].texture?.Name, new Vector2(debugXCoordinate + 350, debugYCoordinate + 300));
 
                 }
-                //else
-                //{
-                //    var block = map.MapDictionary[mouseIsOverBlock];
-                //    DrawWithShadow("Tile TileId:" + block.GlobalId + " is expected to be on chunk:" + block.ChunkId, new Vector2(debugXCoordinate + 350, debugYCoordinate));
-                //}
+                else
+                {
+                    //var block = map.MapDictionary[mouseIsOverBlock];
+                    //DrawWithShadow("Tile TileId:" + block.GlobalId + " is expected to be on chunk:" + block.ChunkId, new Vector2(debugXCoordinate + 350, debugYCoordinate));
+                    DrawWithShadow("Tile TileId:" + mouseIsOverBlock + " is expected to be on chunk:" + cursorOnChunk, new Vector2(debugXCoordinate + 350, debugYCoordinate + 400));
+                }
             }
 
 
@@ -472,7 +474,7 @@ namespace TileMaster
                 int chunkId = ChunksToUpdate.FirstOrDefault();
                 Thread thread = new Thread(() =>
                 {
-                    map.grass.GrowGrass(chunkId);
+                    //map.grass.GrowGrass(chunkId);
                     ChunksToUpdate.Remove(chunkId);
                     map.tileShadeMgr.UpdateTileShadingForChunk(chunkId);
                 });

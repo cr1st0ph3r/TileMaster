@@ -18,6 +18,10 @@ namespace TileMaster
         /// Defines the map width multiplier
         /// </summary>
         public static readonly int MapWidthMultiplier = 12;
+        /// <summary>
+        /// Defines the map width multiplier
+        /// </summary>
+        public static readonly int MapHeightMultiplier = 6;
 
         /// <summary>
         /// Defines if the game will run in full screen mode
@@ -37,7 +41,7 @@ namespace TileMaster
         /// <summary>
         /// Y - needs to be a multiple of chunkSize
         /// </summary>
-        public static int MapHeight = ChunkSize * MapWidthMultiplier;
+        public static int MapHeight = ChunkSize * MapHeightMultiplier;
 
         /// <summary>
         /// defines the layers where grass should be planted on map generation
@@ -85,7 +89,7 @@ namespace TileMaster
         /// <summary>
         /// Defines if the game should update the player chunk only
         /// </summary>
-        public static bool updatePlayerChunkOnly = false;
+        public static bool updatePlayerChunkOnly = true;
         /// <summary>
         /// Paints the tiles at the edge of a chunk of a different color
         /// </summary>

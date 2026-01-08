@@ -1,7 +1,7 @@
-﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
+﻿using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using TileMaster.Entity;
@@ -15,12 +15,12 @@ namespace TileMaster.Map
         public GrassManager grass;
         public TileShadeManager tileShadeMgr;
         public MapManager mapManager;
-        //The map dictionary used for map generation
-        public Dictionary<int, CollisionTiles> MapDictionary { get; set; }
+
         //The chunk dictionary used for chunk storage
         public Dictionary<int, Chunk> ChunkDictionary { get; set; }
         //Tile types
         public List<CollisionTiles> TileTypes { get; set; }
+        public List<CollisionTiles> ModifiedTiles { get; set; }
         public TileManager TileMgr { get; set; }
 
         //shoudnt be public
@@ -34,6 +34,7 @@ namespace TileMaster.Map
             tileInspector = new TileInspector(this);
             mapManager = new MapManager(this);
             tileShadeMgr = new TileShadeManager(this);
+            ModifiedTiles = new List<CollisionTiles>();
         }
 
         /// <summary>
@@ -102,59 +103,57 @@ namespace TileMaster.Map
             return File.Exists($"{Global.ChunkFolderLocation}/map.tlm");
         }
 
-        /// <summary>
-        /// places a block at a given location
-        /// </summary>
-        /// <param name="tileId"></param>
-        /// <param name="mouseIsOverBlock"></param>
-        /// <param name="chunkId"></param>
-        public void PlaceBlockAt(int tileId, int mouseIsOverBlock, int chunkId)
+        #region Modify Tiles
+        public void SetTile(int chunkId, int blockId, int referenceTileId)
         {
-            SetTile(mouseIsOverBlock, tileId, chunkId);
+            var targetTile = ChunkDictionary[chunkId].Tiles[blockId];
+            SetTile(targetTile, referenceTileId);
         }
-        public void SetTile(int blockId, int tileId, int chunkId, Texture2D texture, float rotation = 0f)
+        public void SetTile(Tile targetTile, int referenceTileId, float rotation = 0f)
         {
-            ChunkDictionary[chunkId].Tiles[blockId].texture = texture;
-            ChunkDictionary[chunkId].Tiles[blockId].TextureName = texture.Name;
-            ChunkDictionary[chunkId].Tiles[blockId].Name = ((TileType)tileId).ToString();
-            ChunkDictionary[chunkId].Tiles[blockId].TileId = tileId;
-            ChunkDictionary[chunkId].Tiles[blockId].Rotation = rotation;
-            Game.LogMessage("Setting block " + blockId + " on chunk " + chunkId + " to " + (TileType)tileId, Color.Green);
+            var referenceTile = TileTypes.FirstOrDefault(x => x.TileId == referenceTileId);
 
-        }
-        public void SetTileAsGrass(int blockId, int tileId, int chunkId, Texture2D texture)
-        {
-            SetTile(blockId, tileId, chunkId, texture);
-            ChunkDictionary[chunkId].HasGrass = true;
-            ChunkDictionary[chunkId].NeedUpdate = true;
-        }
-        public void ApplyTextureToTile(int blockId, int tileId, int chunkId, Texture2D texture, float rotation = 0f)
-        {
-            SetTile(blockId, tileId, chunkId, texture, rotation);
-        }
-        public void SetTile(int blockId, int tileId, int chunkId)
-        {
-            var refTile = TileTypes.FirstOrDefault(x => x.TileId == tileId);
-            if (refTile.AlternateTextures.Any())
+            if (referenceTile.AlternateTextures.Any())
             {
-                ChunkDictionary[chunkId].Tiles[blockId].texture = refTile.AltTextures[Game.rnd.Next(refTile.AltTextures.Count)];
+                targetTile.texture = referenceTile.AltTextures[Game.rnd.Next(referenceTile.AltTextures.Count)];
             }
             else
             {
-                ChunkDictionary[chunkId].Tiles[blockId].texture = refTile.texture;
+                targetTile.texture = referenceTile.texture;
             }
 
-            ChunkDictionary[chunkId].Tiles[blockId].Name = ((TileType)tileId).ToString();
-            ChunkDictionary[chunkId].Tiles[blockId].TextureName = ChunkDictionary[chunkId].Tiles[blockId].texture.Name;
-            ChunkDictionary[chunkId].Tiles[blockId].TileId = tileId;
-            ChunkDictionary[chunkId].Tiles[blockId].IsOccupied = refTile.IsOccupied;
-            ChunkDictionary[chunkId].Tiles[blockId].IsSolid = refTile.IsSolid;
-            ChunkDictionary[chunkId].NeedUpdate = true;
+            targetTile.Name = ((TileType)referenceTileId).ToString();
+            targetTile.TextureName = targetTile.texture.Name;
+            targetTile.TileId = referenceTileId;
+            targetTile.IsOccupied = referenceTile.IsOccupied;
+            targetTile.IsSolid = referenceTile.IsSolid;
+            targetTile.Rotation = rotation;
+            ChunkDictionary[targetTile.ChunkId].NeedUpdate = true;
+            AddTileToModificationTracker(targetTile);
+
+            UpdateTile(targetTile);
         }
-        public void UpdateTile(CollisionTiles updated)
+        public void SetTile(Tile targetTile, Texture2D texture = default, float rotation = 0f)
         {
-            ChunkDictionary[updated.ChunkId].Tiles[updated.GlobalId] = updated;
+            targetTile.texture = texture;
+            targetTile.TextureName = targetTile.texture.Name;
+            targetTile.Rotation = rotation;       
+            ChunkDictionary[targetTile.ChunkId].NeedUpdate = true;
+
+            UpdateTile(targetTile);
         }
+        public void UpdateTile(Tile updated)
+        {
+            ChunkDictionary[updated.ChunkId].Tiles[updated.GlobalId] = (CollisionTiles)updated;
+        }
+        private void AddTileToModificationTracker(Tile tile)
+        {
+            if (!ModifiedTiles.Contains((CollisionTiles)tile))
+            {
+                ModifiedTiles.Add((CollisionTiles)tile);
+            }
+        }
+        #endregion
 
         /// <summary>
         /// Checks whether a chunk is present on the chunk dictionary
@@ -273,7 +272,7 @@ namespace TileMaster.Map
                     var targetChunkId = 1 + (chunkY * chunksPerRow + chunkX);
                     if (!ChunkDictionary.ContainsKey(targetChunkId)) return false;
                     if (!ChunkDictionary[targetChunkId].Tiles.ContainsKey(globalId)) return false;
-                    SetTile(globalId, tileType, targetChunkId);
+                    SetTile(targetChunkId, globalId, tileType);
                     return true;
                 }
 
@@ -415,6 +414,113 @@ namespace TileMaster.Map
                 tile.Draw(spriteBatch);
             }
 
+        }
+        
+        /// <summary>
+        /// Processes all tiles that have been marked as modified and clears the list of modified tiles.
+        /// </summary>
+        /// <remarks>Call this method after making changes to tiles to ensure that all modifications are
+        /// handled and the internal list of modified tiles is reset. This method should be called before performing
+        /// operations that require the tile state to be up to date.</remarks>
+        public void UpdateModifiedTiles()
+        {
+            foreach (var tile in ModifiedTiles)
+            {
+                //do whatever needs to be done and move on
+            }
+            ModifiedTiles.Clear();
+            tileShadeMgr.UpdateTileShadingForModifiedChunks();
+        }
+        /// <summary>
+        /// Save the provided chunk dictionary into a PNG image file.
+        /// Each tile maps to a single pixel (x = column, y = row).
+        /// Preference: use tile entries found in chunks; fall back to a simple TileType -> color mapping.
+        /// </summary>
+        /// <param name="chunkDict">Chunk dictionary (key = chunkId, value = Chunk)</param>
+        /// <param name="fileName">Output file path (png recommended)</param>
+        public void SaveChunkDictionaryAsImage(Dictionary<int, Chunk> chunkDict, string fileName)
+        {
+            try
+            {
+                if (chunkDict == null)
+                    throw new InvalidOperationException("chunkDict is null.");
+
+                int width = Global.MapWidth;
+                int height = Global.MapHeight;
+
+                // Flatten chunk tiles into a quick lookup of globalId -> CollisionTiles
+                var mapLookup = new Dictionary<int, CollisionTiles>(width * height);
+                foreach (var chunk in chunkDict.Values)
+                {
+                    if (chunk?.Tiles == null) continue;
+                    foreach (var kv in chunk.Tiles)
+                    {
+                        // kv.Key is expected to be the globalId (consistent with other code)
+                        mapLookup[kv.Key] = kv.Value;
+                    }
+                }
+
+                using (var bitmap = new System.Drawing.Bitmap(width, height))
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            var globalId = y * width + x;
+                            System.Drawing.Color pixelColor = System.Drawing.Color.White;
+
+                            if (mapLookup.TryGetValue(globalId, out var tile) && tile != null)
+                            {
+                                // Fallback mapping by TileId (mirrors MapManager.SaveMapDictionaryAsImage)
+                                switch ((TileType)tile.TileId)
+                                {
+                                    case TileType.Air:
+                                        pixelColor = System.Drawing.Color.White;
+                                        break;
+                                    case TileType.Dirt:
+                                        pixelColor = System.Drawing.Color.Brown;
+                                        break;
+                                    case TileType.Stone:
+                                        pixelColor = System.Drawing.Color.Gray;
+                                        break;
+                                    case TileType.DirtWithGrass:
+                                        pixelColor = System.Drawing.Color.Green;
+                                        break;
+                                    case TileType.Granite:
+                                        pixelColor = System.Drawing.Color.DarkRed;
+                                        break;
+                                    case TileType.TreeTrunk:
+                                        pixelColor = System.Drawing.Color.SaddleBrown;
+                                        break;
+                                    case TileType.TreeLeaf:
+                                        pixelColor = System.Drawing.Color.LightGreen;
+                                        break;
+                                    default:
+                                        pixelColor = System.Drawing.Color.LightGray;
+                                        break;
+                                }
+                            }
+
+                            bitmap.SetPixel(x, y, pixelColor);
+                        }
+                    }
+
+                    // Ensure directory exists
+                    var dir = Path.GetDirectoryName(fileName);
+                    if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                        Directory.CreateDirectory(dir);
+
+                    bitmap.Save(fileName, ImageFormat.Png);
+                }
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    Game.LogMessage($"SaveChunkDictionaryAsImage failed: {ex.Message}", Microsoft.Xna.Framework.Color.Red);
+                }
+                catch { }
+            }
         }
     }
 

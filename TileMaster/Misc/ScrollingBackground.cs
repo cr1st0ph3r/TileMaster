@@ -1,6 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using System;
 using System.Collections.Generic;
 using TileMaster.Entity;
 
@@ -48,12 +47,11 @@ namespace TileMaster.Misc
             {
                 var texture = textures[i];
 
+                // Position sprites exactly next to each other (no odd Math.Min trick that created off-by-one drift)
                 _sprites.Add(new Sprite.Sprite(texture)
                 {
-                    //TODO aplicar a altura correta para que a textura seja alocada proximo do groundlevel
-                    //apply the correct height so the textures are close to the groundlevel
-                    //replace 800 with the said parameter
-                    Position = new Vector2(i * texture.Width - Math.Min(i, i + 1), Global.WindowHeight - texture.Height + 800),
+                    // TODO apply the correct height so the textures are close to the groundlevel
+                    Position = new Vector2(i * texture.Width, Global.WindowHeight - texture.Height + 800),
                 });
             }
 
@@ -69,7 +67,7 @@ namespace TileMaster.Misc
             _speed = (float)(_scrollingSpeed * gameTime.ElapsedGameTime.TotalSeconds);
 
             if (!_constantSpeed || _player.velocity.X > 0)
-                _speed *= (_player.velocity.X/20);
+                _speed *= (_player.velocity.X / 20);
 
             foreach (var sprite in _sprites)
             {
@@ -85,12 +83,21 @@ namespace TileMaster.Misc
 
                 if (sprite.Rectangle.Right <= 0)
                 {
-                    var index = i - 1;
+                    // Find the current rightmost sprite (robust regardless of list order)
+                    int rightmostIndex = 0;
+                    int maxRight = _sprites[0].Rectangle.Right;
+                    for (int j = 1; j < _sprites.Count; j++)
+                    {
+                        if (_sprites[j].Rectangle.Right > maxRight)
+                        {
+                            maxRight = _sprites[j].Rectangle.Right;
+                            rightmostIndex = j;
+                        }
+                    }
 
-                    if (index < 0)
-                        index = _sprites.Count - 1;
-
-                    sprite.X = _sprites[index].Rectangle.Right - (_speed * 2);
+                    // Place this off-screen sprite immediately to the right of the rightmost one.
+                    // Using exact right edge avoids accumulating gaps when the world is large.
+                    sprite.X = _sprites[rightmostIndex].Rectangle.Right;
                 }
             }
         }
