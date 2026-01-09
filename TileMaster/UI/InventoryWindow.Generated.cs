@@ -27,9 +27,6 @@ namespace TileMaster.UI
             InventoryPanel.Background = new SolidBrush(CommonComponents.PanelColor);
 
 
-
-            var TileTypes = CollisionTiles.LoadTilesTypes();
-
             int buttonWidthHeight = 40;
             for (int i = 0; i < 10; i++)
             {

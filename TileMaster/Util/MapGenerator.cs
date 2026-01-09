@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing.Imaging;
-using TileMaster.Entity;
+using TileMaster.Entity.Enums;
+using TileMaster.Helper;
 
 namespace TileMaster.Util
 {
@@ -49,7 +50,7 @@ namespace TileMaster.Util
             //plant gras on surface
             matrice = plantGrass(matrice);
 
-            SaveMatrixAsImage(matrice, "initial_map.png");
+            ImageHelper.SaveMatrixAsImage(matrice, "initial_map.png");
 
             return matrice;
         }
@@ -59,15 +60,15 @@ namespace TileMaster.Util
             for (int x = 0; x < matrice.GetLength(1); x++)
             {
                 for (int y = Global.GroundLevel - grassRange; y < Global.GroundLevel + grassRange; y++)
-            {
-               
+                {
+
                     //check if the block is dirt
                     if (matrice[x, y] == (int)TileType.Dirt)
                     {
                         //check if the tile has air above it
-                        if (matrice[x,y - 1] == (int)TileType.Air)
+                        if (matrice[x, y - 1] == (int)TileType.Air)
                         {
-                            matrice[x,y] = (int)TileType.DirtWithGrass;
+                            matrice[x, y] = (int)TileType.DirtWithGrass;
                         }
 
                     }
@@ -195,45 +196,6 @@ namespace TileMaster.Util
             return matrice;
         }
 
-        public static void SaveMatrixAsImage(int[,] matrix, string fileName)
-        {
-            int width = matrix.GetLength(0);
-            int height = matrix.GetLength(1);
 
-            // Create a new bitmap with the same dimensions as the matrix
-            using (System.Drawing.Bitmap bitmap = new System.Drawing.Bitmap(width, height))
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    for (int y = 0; y < height; y++)
-                    {
-                        System.Drawing.Color pixelColor = System.Drawing.Color.White;
-
-                        if (matrix[x, y] == (int)TileType.Dirt)
-                        {
-                            pixelColor = System.Drawing.Color.Brown;
-                        }
-                        else if (matrix[x, y] == (int)TileType.Stone)
-                        {
-                            pixelColor = System.Drawing.Color.Gray;
-                        }
-                        else if (matrix[x, y] == (int)TileType.DirtWithGrass)
-                        {
-                            pixelColor = System.Drawing.Color.Green;
-                        }
-                        else if (matrix[x, y] == (int)TileType.Granite)
-                        {
-                            pixelColor = System.Drawing.Color.DarkRed;
-                        }
-
-
-                        bitmap.SetPixel(x, y, pixelColor);
-                    }
-                }
-
-                // Save the result as a PNG
-                bitmap.Save(fileName, ImageFormat.Png);
-            }
-        }
     }
 }

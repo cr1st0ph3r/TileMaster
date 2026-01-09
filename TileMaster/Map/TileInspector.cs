@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using TileMaster.Entity;
+using TileMaster.Entity.Enums;
 
 namespace TileMaster.Map
 {
@@ -39,7 +40,7 @@ namespace TileMaster.Map
                     else
                     {
                         // create a lightweight placeholder representing "Air" for out-of-map tiles
-                        var air = new CollisionTiles()
+                        var air = new CollisionTile()
                         {
                             TileId = (int)TileType.Air,
                             IsSolid = false,

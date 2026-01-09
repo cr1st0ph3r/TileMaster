@@ -4,6 +4,7 @@ using Myra.Graphics2D.UI;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using TileMaster.Entity.Enums;
 
 namespace TileMaster.UI
 {

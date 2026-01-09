@@ -1,5 +1,4 @@
-﻿
-namespace TileMaster
+﻿namespace TileMaster.Entity.Enums
 {
     public enum GameState
     {

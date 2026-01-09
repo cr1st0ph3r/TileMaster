@@ -1,4 +1,6 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
+using System.Collections.Generic;
+using TileMaster.Entity;
 
 namespace TileMaster
 {
@@ -17,11 +19,11 @@ namespace TileMaster
         /// <summary>
         /// Defines the map width multiplier
         /// </summary>
-        public static readonly int MapWidthMultiplier = 12;
+        public static int MapWidthMultiplier = 12;
         /// <summary>
         /// Defines the map width multiplier
         /// </summary>
-        public static readonly int MapHeightMultiplier = 6;
+        public static int MapHeightMultiplier = 6;
 
         /// <summary>
         /// Defines if the game will run in full screen mode
@@ -95,11 +97,9 @@ namespace TileMaster
         /// </summary>
         public static bool MarkTilesOnTheEdge = false;
 
-
-        //this is an experimental feature that have no practical usage
-        public static bool UseTileTextureRandomization = false;
+        public static List<ReferenceTile> ReferenceTiles { get; set; } = new List<ReferenceTile>();
+          
         public static bool UseAlternateTiles = true;
-        public static int RandomizationFactorAmount = 20;
 
         //Files and folders locations
         public static readonly string ChunkFolderLocation = "Chunks";

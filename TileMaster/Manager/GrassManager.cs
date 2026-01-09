@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Collections.Generic;
 using TileMaster.Entity;
+using TileMaster.Entity.Enums;
 
 namespace TileMaster.Manager
 {
@@ -88,7 +89,7 @@ namespace TileMaster.Manager
                 if (!refTile.TextureName.EndsWith(mask.ToString()))
                 {
                     string textureName = $"Grass{mask}";
-                    var grassDef = map.TileTypes.FirstOrDefault(x => x.TileId == (int)TileType.DirtWithGrass);
+                    var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
                     var grassTexture = grassDef?.Textures.FirstOrDefault(x => x.Name.EndsWith(textureName));
                     map.SetTile(refTile, grassTexture);
                 }
@@ -118,7 +119,7 @@ namespace TileMaster.Manager
                         // determine rotation (radians) for single-corner cases (values from GetInnerCornerDecorations)
                         float rotation = 0f;
                         var textureToUse = "DirtWithGrassCorner4";
-                        var grassDef = map.TileTypes.FirstOrDefault(x => x.TileId == (int)TileType.DirtWithGrass);
+                        var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
                         if (res == 1)
                         {
                             textureToUse = "DirtWithGrassCorner1";
@@ -177,7 +178,7 @@ namespace TileMaster.Manager
                 // Mapping the mask value to your "TileX" naming convention
                 string textureName = $"DirtWithGrass{mask}";
 
-                var grassDef = map.TileTypes.FirstOrDefault(x => x.TileId == (int)TileType.DirtWithGrass);
+                var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
                 var grassTexture = grassDef?.Textures.FirstOrDefault(x => x.Name.EndsWith(textureName));
                 destinationTile.TextureName = grassTexture.Name;
                 destinationTile.TileId = (int)TileType.DirtWithGrass;

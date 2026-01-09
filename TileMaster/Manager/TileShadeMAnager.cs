@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Xna.Framework;
 
@@ -12,114 +13,136 @@ namespace TileMaster.Manager
         {
             this.map = map;
         }
-        // breath-first search from each solid tile to find nearest air tile and set shading accordingly
-        public void UpdateTileShadingForChunk(int chunkId)
+        // Global light map: [x, y] -> light level (0.0 to 1.0)
+        private float[,] lightMap;
+
+        public void UpdateLighting()
         {
-            // maximum distance (in tiles) we'll propagate light from air
-            const int maxDistance = 10;
+            int width = Global.MapWidth;
+            int height = Global.MapHeight;
 
-            if (!map.ChunkDictionary.ContainsKey(chunkId))
-                return;
-
-            var tiles = map.ChunkDictionary[chunkId].Tiles
-                .Where(x => x.Value.IsSolid)
-                .ToList();
-
-            foreach (var kv in tiles)
+            // Initialize light map if needed or resize
+            if (lightMap == null || lightMap.GetLength(0) != width || lightMap.GetLength(1) != height)
             {
-                var tile = kv.Value;
-                var startX = tile.X;
-                var startY = tile.Y;
+                lightMap = new float[width, height];
+            }
 
-                // BFS outwards from the tile to find the nearest non-solid (air) tile
-                var visited = new HashSet<(int x, int y)>();
-                var q = new Queue<(int x, int y, int d)>();
+            // Clear light map
+            Array.Clear(lightMap, 0, lightMap.Length);
 
-                // enqueue 4-neighbors at distance 1
-                var neighbors = new (int x, int y)[]
+            // Queue for light propagation
+            var lightQueue = new Queue<Point>();
+
+            // 1. Sunlight Pass (Vertical Rays)
+            // Iterate over every column
+            for (int x = 0; x < width; x++)
+            {
+                // Sunlight comes from top (y=0) down
+                for (int y = 0; y < height; y++)
                 {
-                    (startX + 1, startY),
-                    (startX - 1, startY),
-                    (startX, startY + 1),
-                    (startX, startY - 1)
+                    var tile = map.GetTileAt(x, y);
+
+                    // If tile is solid, sunlight stops here (but the tile itself gets lit if it's the first hit)
+                    if (tile != null && tile.IsSolid)
+                    {
+                        // Solid blocks exposed to sun get full light
+                        lightMap[x, y] = 1.0f;
+                        lightQueue.Enqueue(new Point(x, y));
+                        break; // Stop vertical ray
+                    }
+
+                    // Otherwise, it's air (or transparent), gets full sunlight
+                    lightMap[x, y] = 1.0f;
+                    lightQueue.Enqueue(new Point(x, y));
+                }
+            }
+
+            // 2. Light Propagation (Flood Fill with Decay)
+            // Light spreads from high intensity neighbors to lower intensity ones
+            while (lightQueue.Count > 0)
+            {
+                var p = lightQueue.Dequeue();
+                float currentLight = lightMap[p.X, p.Y];
+
+                // If light is too low, stop propagating
+                if (currentLight <= 0.05f) continue;
+
+                // Neighbors (up, down, left, right)
+                var neighbors = new Point[]
+                {
+                    new Point(p.X + 1, p.Y),
+                    new Point(p.X - 1, p.Y),
+                    new Point(p.X, p.Y + 1),
+                    new Point(p.X, p.Y - 1)
                 };
 
                 foreach (var n in neighbors)
                 {
-                    q.Enqueue((n.x, n.y, 1));
-                    visited.Add((n.x, n.y));
-                }
+                    // Check bounds
+                    if (n.X < 0 || n.X >= width || n.Y < 0 || n.Y >= height) continue;
 
-                int foundDistance = -1;
-                while (q.Count > 0)
-                {
-                    var (x, y, d) = q.Dequeue();
-                    // out of range short-circuit
-                    if (d > maxDistance)
-                        continue;
+                    var neighborTile = map.GetTileAt(n.X, n.Y);
+                    bool isSolid = (neighborTile != null && neighborTile.IsSolid);
 
-                    var t = map.GetTileAt(x, y);
-                    // treat null or non-solid as "air"
-                    if (t == null || !t.IsSolid)
+                    // Light decay factor
+                    // - Air transmits light well (small decay)
+                    // - Solid blocks block light heavily (or completely)
+                    float decay = 0.1f; 
+                    if (isSolid) decay = 0.4f; // Light penetrates solids very poorly
+
+                    float potentialLight = currentLight - decay;
+
+                    // If we found a brighter path to this neighbor, update it and queue
+                    if (potentialLight > lightMap[n.X, n.Y])
                     {
-                        foundDistance = d;
-                        break;
-                    }
-
-                    // enqueue neighbors for next ring
-                    var ring = new (int x, int y)[]
-                    {
-                        (x + 1, y),
-                        (x - 1, y),
-                        (x, y + 1),
-                        (x, y - 1)
-                    };
-
-                    foreach (var r in ring)
-                    {
-                        if (!visited.Contains((r.x, r.y)))
+                        lightMap[n.X, n.Y] = potentialLight;
+                        
+                        // Only propagate FROM non-solid blocks or slightly into solids.
+                        // We typically don't propagate *out* of a solid block deeply, 
+                        // but allowing 1 step of absorption into the wall is good.
+                        if (!isSolid)
                         {
-                            visited.Add((r.x, r.y));
-                            q.Enqueue((r.x, r.y, d + 1));
+                            lightQueue.Enqueue(n);
                         }
                     }
                 }
+            }
 
-                // Compute a smooth brightness value (1.0 for distance==1, decreasing to 0 at >maxDistance)
-                float brightness;
-                if (foundDistance <= 0)
+            // 3. Apply Light to Tiles
+            foreach (var chunk in map.ChunkDictionary.Values)
+            {
+                // Optimization: if we wanted, we could only update modified chunks, 
+                // but global light propagation affects everything, so we update visuals for all.
+                
+                foreach (var tile in chunk.Tiles.Values)
                 {
-                    brightness = 0f;
+                    float l = lightMap[tile.X, tile.Y];
+                    byte val = (byte)(l * 255);
+                    // Minimal ambient light so complete darkness isn't pitch black logic-wise 
+                    // (optional, but pure black can be hard to see). Let's stick to calculated.
+                    
+                    tile.SetColor(val, val, val, 255);
                 }
-                else
-                {
-                    // distance 1 -> 1.0, distance maxDistance -> ~1 - (maxDistance-1)/maxDistance
-                    brightness = 1f - (foundDistance - 1) * (1f / maxDistance);
-                    brightness = MathHelper.Clamp(brightness, 0f, 1f);
-                }
-
-                // Use an actual RGB(A) filter instead of XNA named colors to get smoother steps.
-                // Multiply white by brightness for simple light/dark; change baseColor for tinted light.
-                byte level = (byte)(brightness * 255f);
-                tile.SetColor(level, level, level, 255);
-                map.UpdateTile(tile);
+                chunk.NeedUpdate = false;
             }
         }
 
+        // Wrapper to match potential external calls, although we recommend calling UpdateLighting directly.
         public void UpdateTileShadingForMap()
         {
-            foreach(var chunk in map.ChunkDictionary.Keys)
-            {
-                UpdateTileShadingForChunk(chunk);
-            }
+            UpdateLighting();
         }
+        
+        // This old method signature is kept for compatibility if needed, but it triggers a full update now
+        // because light is global.
         public void UpdateTileShadingForModifiedChunks()
         {
-            foreach (var chunk in map.ChunkDictionary.Where(x=>x.Value.NeedUpdate))
-            {
-                UpdateTileShadingForChunk(chunk.Key);
-                chunk.Value.NeedUpdate = false;
-            }
+             // Check if any chunk needs update
+             bool anyUpdate = map.ChunkDictionary.Values.Any(c => c.NeedUpdate);
+             if (anyUpdate)
+             {
+                 UpdateLighting();
+             }
         }
     }
 }

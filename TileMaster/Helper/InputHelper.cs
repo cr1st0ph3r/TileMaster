@@ -1,6 +1,5 @@
 ﻿using Microsoft.Xna.Framework.Input;
 using System;
-using System.Linq;
 using TileMaster.Entity;
 
 namespace TileMaster.Helper

@@ -84,9 +84,6 @@ namespace TileMaster.UI
             ActionBarPanel.Top = (Global.WindowHeight - ActionBarPanel.Height.Value);
             ActionBarPanel.Background = new SolidBrush(CommonComponents.PanelColor);
 
-
-            var tileTypes = CollisionTiles.LoadTilesTypes();
-
             int buttonWidth = 40;
             for (int i = 0; i < 10; i++)
             {

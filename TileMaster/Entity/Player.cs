@@ -3,12 +3,14 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using TileMaster.Entity.Enums;
 using TileMaster.Helper;
 
 namespace TileMaster.Entity
 {
     public class Player : Entity
     {
+        public Layer Layer { get; set; } = Layer.Surface;
         public Player()
         {
             this.Height = 3;//the height of the player in blocks
@@ -150,6 +152,24 @@ namespace TileMaster.Entity
                 player.onChunk = (1 + ((newChunkY * (Global.MapWidth / Global.ChunkSize)) + newChunkX));
                 player.onBlock = (player.GridY * Global.MapWidth) + player.GridX;
                 player.SteppingOn = player.onBlock + Global.MapWidth;
+
+                // determine the world layer by vertical distance from GroundLevel:
+                // - If the player's feet are 50 tiles or more above GroundLevel => Sky
+                // - If within 49 tiles above or below GroundLevel => Surface
+                // - If the player's feet are 50 tiles or more below GroundLevel => Caverns
+                int heightDelta = player.GridY - Global.GroundLevel;
+                if (heightDelta <= -50)
+                {
+                    player.Layer = Layer.Sky;
+                }
+                else if (heightDelta >= 50)
+                {
+                    player.Layer = Layer.Caverns;
+                }
+                else
+                {
+                    player.Layer = Layer.Surface;
+                }
 
                 // set if the player is in motion or not
                 if (velocity.X > 0.01f || velocity.Y > 0.4f || velocity.X < -0.01f || velocity.Y < -0.4f)

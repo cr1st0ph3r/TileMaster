@@ -35,7 +35,7 @@ namespace TileMaster.Manager
             TileTextures.Add(tileId, listT);
         }
     
-        public List<CollisionTiles> LoadTileTextures(List<CollisionTiles> tiles)
+        public List<CollisionTile> LoadTileTextures(List<CollisionTile> tiles)
         {
             foreach (var tile in tiles)
             {
@@ -53,7 +53,7 @@ namespace TileMaster.Manager
             {
                 return GetRandomTexture(t.TileId);
             }
-            return t.texture;
+            return t.Texture;
         }
         public Texture2D GetRandomTexture(int tileId)
         {

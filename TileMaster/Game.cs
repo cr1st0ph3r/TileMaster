@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using TileMaster.Entity;
+using TileMaster.Entity.Enums;
+using TileMaster.Helper;
 using TileMaster.Manager;
 using TileMaster.UI;
 using ButtonState = Microsoft.Xna.Framework.Input.ButtonState;
@@ -28,7 +30,6 @@ namespace TileMaster
         public static Camera camera;
         private SpriteFont _debugFont;
         public int mouseIsOverBlock;
-        private int[,] initialArrayMap;
         public static readonly Random rnd = new(DateTime.Now.GetHashCode());
         private MouseState current_mouse;
         private MouseState previous_mouse;
@@ -71,7 +72,7 @@ namespace TileMaster
             _game = this;
             //Limits the framerate to 60 fps
             IsFixedTimeStep = false;
-            //shor or hide title bar
+            //show or hide title bar
             Window.IsBorderless = true;
             Window.Position = new Point(50, 50);
 
@@ -93,28 +94,11 @@ namespace TileMaster
         }
         public void LoadMap()
         {
-            //if (Global.GenerateMapOnStartup)
-            //{
-            //    var sw = new Stopwatch();
-            //    sw.Start();
-
-            //    initialArrayMap = Util.MapGenerator.GenerateRandomMap();
-            //    map.GenerateMapDictionary(initialArrayMap);
-            //    map.SaveMap();
-
-            //    sw.Stop();
-            //    var time = sw.Elapsed.TotalSeconds;
-            //}
-
             //do I have a map to load?
-            if (map.CheckIfMapDataExists() == false)
-            {
-                initialArrayMap = Util.MapGenerator.GenerateRandomMap();
-                map.mapManager.GenerateMapDictionary(initialArrayMap);
-                map.mapManager.SaveMap();
+            if (map.CheckIfMapDataExists() == false) {
+                map.mapManager.GenerateMap();           
             }
             map.mapManager.LoadMap();
-            map.SaveChunkDictionaryAsImage(map.ChunkDictionary, "loaded_map.png");
             //apply the correct lighting to all blocks
             Thread UpdateBlockLighting = new Thread(() => { map.tileShadeMgr.UpdateTileShadingForMap(); });
             UpdateBlockLighting.Start();
@@ -159,6 +143,9 @@ namespace TileMaster
             _mainPanel.ShowWindows();
 
             player.Load(Content);
+
+            //load tile data
+            Global.ReferenceTiles = CollisionTile.LoadTilesTypes();
         }
 
         protected override void UnloadContent()
@@ -322,15 +309,30 @@ namespace TileMaster
                 //temporary handlers for the buttons
                 if (current_mouse.LeftButton == ButtonState.Pressed && _desktop.IsMouseOverGUI == false)
                 {
-                    try
+                    if (Keyboard.GetState().IsKeyDown(Keys.B))
                     {
-                        map.SetTile(cursorOnChunk, mouseIsOverBlock, _mainPanel.SelectedItem);
+                        try
+                        {
+                            map.SetBackgroundTile(cursorOnChunk, mouseIsOverBlock, _mainPanel.SelectedItem);
+                        }
+                        catch (Exception ex)
+                        {
+                            LogMessage("Failed to set background: " + ex.Message, Color.Red);
+                        }
                     }
-                    catch
+                    else
                     {
-                        //mouse clicked outside the game context
-                        //for the mean time this can be neglected
+                        try
+                        {
+                            map.SetTile(cursorOnChunk, mouseIsOverBlock, _mainPanel.SelectedItem);
+                        }
+                        catch
+                        {
+                            //mouse clicked outside the game context
+                            //for the mean time this can be neglected
+                        }
                     }
+                     
                 }
                 if (current_mouse.RightButton == ButtonState.Pressed)
                 {
@@ -344,6 +346,7 @@ namespace TileMaster
                         LogMessage("Block ID " + mouseIsOverBlock + " was not present at chunk " + cursorOnChunk, Color.Red);
                     }
                 }
+                
                 //leave game
                 if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                     Exit();
@@ -387,6 +390,7 @@ namespace TileMaster
             string isPlayerMoving = "isMoving?:" + player.isMoving;
             string playerVelocities = "Player Velocities: x" + player.velocity.X + "y:" + player.velocity.Y;
             string playerInside = "Player is inside of block n.: " + (player.onBlock);
+            string playerOnLayer = "Player is on layer: " + (player.Layer);
             string playerSteppingOn = "Player is stepping on block n.: " + (player.SteppingOn);
             string playerOnChunk = "Player is inside chunk n.: " + player.onChunk;
             string playerOnSolidGround = "Player is on solid ground? " + player.isOnSolidBlock;
@@ -401,13 +405,18 @@ namespace TileMaster
                 {
                     int referenceStart = 300;
                     var block = map.ChunkDictionary[cursorOnChunk].Tiles[mouseIsOverBlock];
+
+                    if (block.GlobalId == 20545)
+                    {
+
+                    }
                     DrawWithShadow("Tile TileId:" + block.TileId, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart));
                     DrawWithShadow("Tile Name:" + block.Name, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 20));
                     DrawWithShadow("Tile Local Id:" + block.LocalId, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 40));
                     DrawWithShadow("Tile Global Id:" + block.GlobalId, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 60));
                     DrawWithShadow("Tile Chunk Id:" + block.ChunkId, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 80));
                     DrawWithShadow("Tile is edge?: " + block.isEdgeTile, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 100));
-                    DrawWithShadow("Tile from global map: ", new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 120));
+                    DrawWithShadow("Is solid tile?: "+block.IsSolid, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 120));
 
 
                     //DrawWithShadow("chunkId: " + map.MapDictionary[block.GlobalId].ChunkId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 180));
@@ -441,10 +450,11 @@ namespace TileMaster
             DrawWithShadow(playerVelocities, new Vector2(debugXCoordinate, debugYCoordinate + 160));
             DrawWithShadow(playerSteppingOn, new Vector2(debugXCoordinate, debugYCoordinate + 180));
             DrawWithShadow(playerInside, new Vector2(debugXCoordinate, debugYCoordinate + 200));
+            DrawWithShadow(playerOnLayer, new Vector2(debugXCoordinate, debugYCoordinate + 220));
 
-            DrawWithShadow(mouseBlockIn, new Vector2(debugXCoordinate, debugYCoordinate + 240));
-            DrawWithShadow(MousePos, new Vector2(debugXCoordinate, debugYCoordinate + 260));
-            DrawWithShadow(mouseOnChunk, new Vector2(debugXCoordinate, debugYCoordinate + 280));
+            DrawWithShadow(mouseBlockIn, new Vector2(debugXCoordinate, debugYCoordinate + 260));
+            DrawWithShadow(MousePos, new Vector2(debugXCoordinate, debugYCoordinate + 280));
+            DrawWithShadow(mouseOnChunk, new Vector2(debugXCoordinate, debugYCoordinate + 300));
         }
         private void DrawWithShadow(string text, Vector2 position)
         {
@@ -463,7 +473,7 @@ namespace TileMaster
                 Thread thread = new Thread(() =>
                 {
                     map.grass.GrowGrass(player.onChunk);
-                    map.tileShadeMgr.UpdateTileShadingForChunk(player.onChunk);
+                    map.tileShadeMgr.UpdateTileShadingForMap();
                     ChunksToUpdate.Remove(player.onChunk);
                 });
                 thread.Start();
@@ -476,7 +486,7 @@ namespace TileMaster
                 {
                     //map.grass.GrowGrass(chunkId);
                     ChunksToUpdate.Remove(chunkId);
-                    map.tileShadeMgr.UpdateTileShadingForChunk(chunkId);
+                    map.tileShadeMgr.UpdateTileShadingForMap();
                 });
                 thread.Start();
                 LogMessage("Checking Chunk " + chunkId + " for grass growth", Color.Green, 180);
