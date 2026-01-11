@@ -19,11 +19,11 @@ namespace TileMaster
         /// <summary>
         /// Defines the map width multiplier
         /// </summary>
-        public static int MapWidthMultiplier = 12;
+        public static int MapWidthMultiplier = 48;
         /// <summary>
         /// Defines the map width multiplier
         /// </summary>
-        public static int MapHeightMultiplier = 6;
+        public static int MapHeightMultiplier = 12;
 
         /// <summary>
         /// Defines if the game will run in full screen mode
@@ -91,7 +91,7 @@ namespace TileMaster
         /// <summary>
         /// Defines if the game should update the player chunk only
         /// </summary>
-        public static bool updatePlayerChunkOnly = true;
+        public static bool updatePlayerChunkOnly = false;
         /// <summary>
         /// Paints the tiles at the edge of a chunk of a different color
         /// </summary>

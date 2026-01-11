@@ -5,8 +5,6 @@ using System.IO.Compression;
 using System.Text.Json;
 using TileMaster.Entity;
 using TileMaster.Map;
-using static System.Windows.Forms.Design.AxImporter;
-using Chunk = TileMaster.Entity.Chunk;
 
 namespace TileMaster.Manager
 {
@@ -80,11 +78,13 @@ namespace TileMaster.Manager
         /// <param name="content"></param>
         public static WorldData LoadGame()
         {
+            var gameInstance = Game.GetInstance();
             var data = new WorldData();
             var options = new JsonSerializerOptions { IncludeFields = true };
             var archivePath = Path.Combine(Global.ChunkFolderLocation, "map.tlm");
 
-            if (File.Exists(archivePath))
+            gameInstance._mainPanel.InitializeLoadProgress("Reading save file");
+            if (File.Exists(archivePath)) 
             {
                 var chunks = new List<Tuple<int, string>>();
                 var bgChunks = new List<Tuple<int, string>>();
@@ -103,8 +103,10 @@ namespace TileMaster.Manager
                             data.RawBackgroundData = new Dictionary<int, Dictionary<int, BackgroundTile>>();
                         }
                     }
+                    var count = 0;
                     foreach (var entry in archive.Entries)
                     {
+                        gameInstance._mainPanel.UpdateLoadProgress(count * 100 / archive.Entries.Count);
                         // Expect entry names like "chunk{n}.json" or similar
                         if (entry.Name.StartsWith("chunk", StringComparison.OrdinalIgnoreCase))
                         {
@@ -131,17 +133,19 @@ namespace TileMaster.Manager
                         // Sort chunks to ensure deterministic order and matching between foreground/background
                         chunks.Sort((a, b) => a.Item1.CompareTo(b.Item1));
                         bgChunks.Sort((a, b) => a.Item1.CompareTo(b.Item1));
-
-
-
+                        count++;
                     }
 
 
-                    var chunkId = 1;
+
 
                     // Load Foreground
+                    gameInstance._mainPanel.InitializeLoadProgress("Loading foreground chunks");
+                    count = 0;
+                    var chunkId = 1;
                     foreach (var file in chunks)
                     {
+                        gameInstance._mainPanel.UpdateLoadProgress(count * 100 / chunks.Count);
                         var fgEntry = archive.GetEntry(file.Item2);
                         if (fgEntry == null) continue;                         
                         Dictionary<int, CollisionTile> dict = null;
@@ -152,11 +156,15 @@ namespace TileMaster.Manager
 
                         data.RawMapData.Add(chunkId, dict);
                         chunkId++;
+                        count++;
                     }
 
                     // Load Background
+                    gameInstance._mainPanel.InitializeLoadProgress("Loading background chunks");
+                    count = 0;
                     foreach (var file in bgChunks)
                     {
+                        gameInstance._mainPanel.UpdateLoadProgress(count * 100 / bgChunks.Count);
                         var bgEntry = archive.GetEntry(file.Item2);
                         if (bgEntry == null) continue;                         
                         Dictionary<int, BackgroundTile> dict = null;
@@ -165,6 +173,7 @@ namespace TileMaster.Manager
                             dict = JsonSerializer.Deserialize<Dictionary<int, BackgroundTile>>(entryStream, options);
                         }     
                         data.RawBackgroundData.Add(file.Item1, dict);
+                        count++;
                     }
 
                     return data;

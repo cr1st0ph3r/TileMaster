@@ -108,6 +108,22 @@ namespace TileMaster.UI
             }
         }
 
+        public void InitializeLoadProgress(string action)
+        {
+            _loadMapProgressBar.Value = 0;
+            _loadMapProgressBar.Visible = true;
+            _progreessLabel.Text = action;
+            _progreessLabel.Visible = true;
+        }
+        public void UpdateLoadProgress(int value)
+        {
+            _loadMapProgressBar.Value = value;
+        }
+        public void HideLoadProgress()
+        {
+            _loadMapProgressBar.Visible = false;
+            _progreessLabel.Visible = false;
+        }
 
         #region Debug
         public void UpdateFPS(int value)

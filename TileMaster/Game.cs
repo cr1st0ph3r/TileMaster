@@ -9,7 +9,6 @@ using System.Linq;
 using System.Threading;
 using TileMaster.Entity;
 using TileMaster.Entity.Enums;
-using TileMaster.Helper;
 using TileMaster.Manager;
 using TileMaster.UI;
 using ButtonState = Microsoft.Xna.Framework.Input.ButtonState;
@@ -28,6 +27,8 @@ namespace TileMaster
         private Map.Map map;
         private Player player;
         public static Camera camera;
+        private Point _lastFocusPoint;
+        private bool placedBlock = false;
         private SpriteFont _debugFont;
         public int mouseIsOverBlock;
         public static readonly Random rnd = new(DateTime.Now.GetHashCode());
@@ -95,13 +96,44 @@ namespace TileMaster
         public void LoadMap()
         {
             //do I have a map to load?
-            if (map.CheckIfMapDataExists() == false) {
-                map.mapManager.GenerateMap();           
-            }
+            if (map.CheckIfMapDataExists() == false)
+            {
+                map.mapManager.GenerateMap();                
+            }           
             map.mapManager.LoadMap();
-            //apply the correct lighting to all blocks
-            Thread UpdateBlockLighting = new Thread(() => { map.tileShadeMgr.UpdateTileShadingForMap(); });
-            UpdateBlockLighting.Start();
+          
+           
+
+            // INTEGRATION TEST: Place a torch
+            try
+            {
+                var testTile = map.GetTileAt(767, 120);
+                if (testTile != null)
+                {
+                    var torch = new Item
+                    {
+                        Name = "Torch",
+                        TextureName = "Items/Torch/Torch1",
+                        IsLightSource = true,
+                        LightIntensity = 1.0f,
+                        LightRadius = 5.0f,
+                        IsPlaceable = true
+                    };
+                    // Manually load texture for now as Item.InitializeTexture relies on TextureName
+                    // verifying content manager is available
+                    if (Content != null)
+                    {
+                        torch.Texture = Content.Load<Texture2D>(torch.TextureName);
+                    }
+
+                    testTile.PlacedItem = torch;
+                    Game.LogMessage("TEST: Placed Torch at (25,30)", Color.Yellow, 500);
+                }
+            }
+            catch (Exception ex)
+            {
+                Game.LogMessage("TEST FAILED: " + ex.Message, Color.Red, 500);
+            }
         }
 
         public void SaveMap()
@@ -192,6 +224,9 @@ namespace TileMaster
                 HandleMouseEvents();
                 //updates player
                 player.Update(gameTime, player, map);
+                // Update focus point for lighting optimization
+                map.FocusPoint = new Point((int)player.GetPosition().X / Global.TileSize, (int)player.GetPosition().Y / Global.TileSize);
+                
                 camera.Update(player.GetPosition(), map.Width, map.Height);
                 backgroundManager.Update(gameTime);
 
@@ -217,14 +252,18 @@ namespace TileMaster
                     timer2s = TIMER2S;
                     CheckChunkForUpdates();
                 }
-                _mainPanel._loadMapProgressBar.Visible = false;
 
-                map.UpdateModifiedTiles();
+                // Check if focus point changed to avoid redundant lighting updates
+                if (map.FocusPoint != _lastFocusPoint || placedBlock)
+                {
+                     map.tileShadeMgr.UpdateLighting(map.FocusPoint);
+                     _lastFocusPoint = map.FocusPoint.Value;
+                    placedBlock = false;
+                }
+
+                   map.UpdateModifiedTiles();
             }
-            //handle the progress of loading the map 
-            _mainPanel._loadMapProgressBar.Value = MapManager.Progress;
 
-            
             base.Update(gameTime);
         }
 
@@ -325,6 +364,7 @@ namespace TileMaster
                         try
                         {
                             map.SetTile(cursorOnChunk, mouseIsOverBlock, _mainPanel.SelectedItem);
+                            placedBlock = true;
                         }
                         catch
                         {
@@ -332,7 +372,7 @@ namespace TileMaster
                             //for the mean time this can be neglected
                         }
                     }
-                     
+
                 }
                 if (current_mouse.RightButton == ButtonState.Pressed)
                 {
@@ -340,13 +380,14 @@ namespace TileMaster
                     if (map.IsBlockOnChunk(cursorOnChunk, mouseIsOverBlock))
                     {
                         map.SetTile(cursorOnChunk, mouseIsOverBlock, (int)TileType.Air);
+                        placedBlock = true;
                     }
                     else
                     {
                         LogMessage("Block ID " + mouseIsOverBlock + " was not present at chunk " + cursorOnChunk, Color.Red);
                     }
                 }
-                
+
                 //leave game
                 if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                     Exit();
@@ -416,7 +457,7 @@ namespace TileMaster
                     DrawWithShadow("Tile Global Id:" + block.GlobalId, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 60));
                     DrawWithShadow("Tile Chunk Id:" + block.ChunkId, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 80));
                     DrawWithShadow("Tile is edge?: " + block.isEdgeTile, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 100));
-                    DrawWithShadow("Is solid tile?: "+block.IsSolid, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 120));
+                    DrawWithShadow("Is solid tile?: " + block.IsSolid, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 120));
 
 
                     //DrawWithShadow("chunkId: " + map.MapDictionary[block.GlobalId].ChunkId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 180));
@@ -470,25 +511,22 @@ namespace TileMaster
         {
             if (Global.updatePlayerChunkOnly)
             {
-                Thread thread = new Thread(() =>
-                {
-                    map.grass.GrowGrass(player.onChunk);
-                    map.tileShadeMgr.UpdateTileShadingForMap();
-                    ChunksToUpdate.Remove(player.onChunk);
-                });
-                thread.Start();
-                LogMessage("Checking Chunk " + player.onChunk + " for grass growth", Color.Green, 180);
+                 // Run on main thread to avoid race conditions and crashes
+                 map.grass.GrowGrass(player.onChunk);
+                 // Lighting is handled in main loop on movement, but if grass grows/changes blocks, 
+                 // we might need a lighting update. 
+                 // However, GrowGrass usually just changes tiles. 
+                 // Let's force a lighting update here just in case grass affects light (unlikely but safe).
+                 map.tileShadeMgr.UpdateLighting(map.FocusPoint);
+                 ChunksToUpdate.Remove(player.onChunk);
+                 LogMessage("Checking Chunk " + player.onChunk + " for grass growth", Color.Green, 180);
             }
             else if (ChunksToUpdate.Any())
             {
                 int chunkId = ChunksToUpdate.FirstOrDefault();
-                Thread thread = new Thread(() =>
-                {
-                    //map.grass.GrowGrass(chunkId);
-                    ChunksToUpdate.Remove(chunkId);
-                    map.tileShadeMgr.UpdateTileShadingForMap();
-                });
-                thread.Start();
+                // Run on main thread
+                // map.grass.GrowGrass(chunkId);
+                ChunksToUpdate.Remove(chunkId);
                 LogMessage("Checking Chunk " + chunkId + " for grass growth", Color.Green, 180);
             }
         }

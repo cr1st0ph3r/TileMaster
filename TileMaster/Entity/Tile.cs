@@ -19,6 +19,8 @@ namespace TileMaster.Entity
     
         public Rectangle Rectangle { get; set; }
 
+        public Item PlacedItem { get; set; }
+
         public List<string> TileSet { get; set; }
       
         /// <summary>
@@ -59,6 +61,24 @@ namespace TileMaster.Entity
                                      SpriteEffects.None,
                                      0f);
                 }
+            }
+            
+            
+            if (PlacedItem != null && PlacedItem.Texture != null)
+            {
+                 // Draw the item centered on the tile
+                 var itemTexture = PlacedItem.Texture;
+                 var itemScale = new Vector2(
+                     (float)Rectangle.Width / itemTexture.Width * 0.8f, // Scale to 80% of tile size for padding
+                     (float)Rectangle.Height / itemTexture.Height * 0.8f
+                 );
+                 var itemPosition = new Vector2(
+                     Rectangle.X + Rectangle.Width / 2,
+                     Rectangle.Y + Rectangle.Height / 2
+                 );
+                 var itemOrigin = new Vector2(itemTexture.Width / 2f, itemTexture.Height / 2f);
+
+                 spriteBatch.Draw(itemTexture, itemPosition, null, Microsoft.Xna.Framework.Color.White, 0f, itemOrigin, itemScale, SpriteEffects.None, 0f);
             }
         }
 

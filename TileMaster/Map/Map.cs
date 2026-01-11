@@ -1,7 +1,7 @@
-﻿using Microsoft.Xna.Framework.Graphics;
+﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using TileMaster.Entity;
@@ -492,6 +492,8 @@ namespace TileMaster.Map
 
         }
         
+        public Point? FocusPoint { get; set; } = null;
+
         /// <summary>
         /// Processes all tiles that have been marked as modified and clears the list of modified tiles.
         /// </summary>
@@ -505,7 +507,6 @@ namespace TileMaster.Map
                 //do whatever needs to be done and move on
             }
             ModifiedTiles.Clear();
-            tileShadeMgr.UpdateTileShadingForModifiedChunks();
         }
     }
 }

@@ -49,11 +49,21 @@ namespace TileMaster.UI
             _quitButton.Toggleable = true;
             _quitButton.Id = "_button1";
 
+            //progres bar
             _loadMapProgressBar = new HorizontalProgressBar();   
             Grid.SetColumn(_loadMapProgressBar, 2);
             _loadMapProgressBar.Visible = false;
             _loadMapProgressBar.Id = "_horizontalProgressBar";
             _loadMapProgressBar.VerticalAlignment = Myra.Graphics2D.UI.VerticalAlignment.Center;
+
+            _progreessLabel = new Label();
+            _progreessLabel.Text = "placehoder";
+            _progreessLabel.TextColor = Microsoft.Xna.Framework.Color.White;
+            _progreessLabel.VerticalAlignment = Myra.Graphics2D.UI.VerticalAlignment.Center;
+            _progreessLabel.HorizontalAlignment = Myra.Graphics2D.UI.HorizontalAlignment.Center;
+            _progreessLabel.Id = "_progreessLabel";
+            _progreessLabel.Visible = false;
+            _progreessLabel.ZIndex = 999;
 
             var horizontalStackPanel1 = new HorizontalStackPanel();
             horizontalStackPanel1.Spacing = 8;
@@ -72,6 +82,7 @@ namespace TileMaster.UI
 
             Widgets.Add(horizontalStackPanel1);
             Widgets.Add(_loadMapProgressBar);
+            Widgets.Add(_progreessLabel);
             Widgets.Add(_labelOverGui);
         }
 
@@ -122,6 +133,7 @@ namespace TileMaster.UI
         public TextButton _saveMapButton;
         public static ToggleButton _openInventoryButton;
         public TextButton _quitButton;
+        public Label _progreessLabel;
         public Label _labelOverGui;
         public HorizontalProgressBar _loadMapProgressBar;
 

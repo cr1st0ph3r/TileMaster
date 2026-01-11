@@ -6,15 +6,14 @@ using TileMaster.Entity;
 using TileMaster.Entity.Enums;
 using TileMaster.Helper;
 using TileMaster.Map;
-using Chunk = TileMaster.Entity.Chunk;
 
 namespace TileMaster.Manager
 {
     public class MapManager
     {
+        
         private WorldData worldData;
         private Map.Map map;
-        public static int Progress;
         //The map dictionary used for map generation
         public Dictionary<int, CollisionTile> MapDictionary { get; set; }
         public MapManager(Map.Map map)
@@ -58,16 +57,18 @@ namespace TileMaster.Manager
         /// <param name="content"></param>
         public void LoadMap()
         {
+            var gameInstance = Game.GetInstance();
+            map.ChunkDictionary = new Dictionary<int, Chunk>();
             worldData = SaveDataManager.LoadGame();
-
+            gameInstance._mainPanel.InitializeLoadProgress("Calculating chunk data");
             var chunkId = 1;
 
             foreach (var rawChunk in worldData.RawMapData)
             {
                 var chunk = new Chunk();
 
-                Progress = chunkId * 100 / worldData.RawMapData.Count;
-         
+                gameInstance._mainPanel.UpdateLoadProgress(chunkId * 100 / worldData.RawMapData.Count);
+
                 if (rawChunk.Value.Values.Any(x => x.TileId == (int)TileType.DirtWithGrass))
                 {
                     chunk.HasGrass = true;
@@ -104,6 +105,7 @@ namespace TileMaster.Manager
 
             Global.IsMapLoaded = true;
             ImageHelper.SaveChunkDictionaryAsImage(map.ChunkDictionary, "loaded_map.png");
+            gameInstance._mainPanel.HideLoadProgress();
         }
         #endregion
 
@@ -112,10 +114,15 @@ namespace TileMaster.Manager
         public void GenerateMap()
         {
             var initialArrayMap = Util.MapGenerator.GenerateRandomMap();
+
+            var gameInstance = Game.GetInstance();
+            gameInstance._mainPanel.InitializeLoadProgress("Generating map dictionary");
             GenerateMapDictionary(initialArrayMap);
+            gameInstance._mainPanel.InitializeLoadProgress("Generating chunks");
             ToChunks();
-            SaveMap();
-            map.ChunkDictionary = null;
+            gameInstance._mainPanel.InitializeLoadProgress("Saving map to file");
+            SaveMap();            
+            gameInstance._mainPanel.HideLoadProgress();           
         }
         /// <summary>
         /// Generate a dictionary map from a 2d integer array using threads
@@ -123,36 +130,33 @@ namespace TileMaster.Manager
         /// <param name="mapMatrice"></param>
         public void GenerateMapDictionary(int[,] mapMatrice)
         {
-            MapDictionary = new Dictionary<int, CollisionTile>();
-            var dictList = new ConcurrentBag<Dictionary<int, CollisionTile>>();
-            var multiplier = mapMatrice.GetLength(0/*x*/);
-            var taskList = new List<Task>();
+            int width = mapMatrice.GetLength(0);
+            int height = mapMatrice.GetLength(1);
+            int totalTiles = width * height;
 
-            foreach (var col in Enumerable.Range(0, multiplier))
+            // 1. Pre-allocate an array to hold the results (fastest way to work in parallel)
+            var tileArray = new CollisionTile[totalTiles];
+
+            // 2. Use Parallel.For to handle thread pooling automatically
+            Parallel.For(0, width, col =>
             {
-                var capturedCol = col;
-                var t = new Task(() =>
+                for (int row = 0; row < height; row++)
                 {
-                    var rowDict = GenRow(mapMatrice, capturedCol, multiplier * capturedCol);
-                    if (rowDict != null)
-                    {
-                        dictList.Add(rowDict);
-                    }
+                    int tileId = mapMatrice[col, row];
+                    var tType = Global.ReferenceTiles[tileId];
 
-                });
-                taskList.Add(t);
-                t.Start();
-            }
+                    // Use your row-major indexing
+                    int globalId = row * width + col;
 
-            Task.WaitAll(taskList.ToArray());
+                    tileArray[globalId] = new CollisionTile(tType, col, row, 0, globalId);
+                }
+            });
 
-            foreach (var dict in dictList)
-            {
-                MapDictionary = MapDictionary.Concat(dict).ToDictionary(k => k.Key, v => v.Value);
-            }
+            // 3. Convert the array to a dictionary in one pass
+            // This avoids the expensive repeated 'Concat' operations
+            MapDictionary = tileArray.ToDictionary(t => t.GlobalId, t => t);
 
-            MapDictionary = MapDictionary.OrderBy(x => x.Key).ToDictionary(k => k.Key, v => v.Value);
-
+            // Save the map
             ImageHelper.SaveMapDictionaryAsImage(MapDictionary, "GeneratedMap.png");
         }
 

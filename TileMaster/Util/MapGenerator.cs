@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SharpDX.Direct2D1;
+using System;
 using System.Drawing.Imaging;
 using TileMaster.Entity.Enums;
 using TileMaster.Helper;
@@ -9,6 +10,8 @@ namespace TileMaster.Util
     {
         public static int[,] GenerateRandomMap()
         {
+            var gameInstance = Game.GetInstance();
+            gameInstance._mainPanel.InitializeLoadProgress("Generating primitive map");
             int X = Global.MapWidth;
             int Y = Global.MapHeight;
 
@@ -19,39 +22,32 @@ namespace TileMaster.Util
             Random r = new Random();
             int[,] matrice = GenerateInitialArrayMap(X, Y);
 
-
-            //cave generator
-
-            //random cave
-            //matrice = Noise.RandomWalkCave(matrice, r.Next(100000000), 10);
-            //directional tunnels
-            //matrice = Noise.DirectionalTunnel(matrice, 5, 5,50,15,10);
-            //cellular automata 
-
             //Create surface terrain discrepancies in height for a more natural look
+            gameInstance._mainPanel.InitializeLoadProgress("Generating surface topology");          
             matrice = Noise.Noise.RandomWalkTopSmoothed(matrice, r.Next(100000000), 3, 7, Global.GroundLevel);
 
-
             //create caves
-            matrice = Noise.Noise.GenerateCaves(matrice, Global.RockLevel - 5, r.Next(100000000), 50, true, 10);
-
-
+            gameInstance._mainPanel.InitializeLoadProgress("Generating caves");
+            matrice = Noise.Noise.GenerateCaves(matrice, Global.RockLevel - 5, r.Next(100000000), 15, true, 10);
 
             //set layer to rock after certain depth
             matrice = setTilesAfterLayer(matrice, Global.RockLevel, 2);
             //adds granite
             matrice = SpreadTile(matrice, Global.RockLevel + 5, 0.01F, 4, 1, 10);
             //layer blending
+            gameInstance._mainPanel.InitializeLoadProgress("Blending layers");
             matrice = randomizeLayer(matrice, (Global.RockLevel - 2), new int[4] { 1, 2, 1, 1 });
             matrice = randomizeLayer(matrice, (Global.RockLevel - 1), new int[3] { 1, 2, 1 });
             matrice = randomizeLayer(matrice, Global.RockLevel, new int[2] { 1, 2 });
             matrice = randomizeLayer(matrice, (Global.RockLevel + 1), new int[3] { 1, 2, 2 });
             matrice = randomizeLayer(matrice, (Global.RockLevel + 2), new int[4] { 1, 2, 2, 2 });
             //plant gras on surface
+            gameInstance._mainPanel.InitializeLoadProgress("Planting grass");
             matrice = plantGrass(matrice);
 
             ImageHelper.SaveMatrixAsImage(matrice, "initial_map.png");
 
+            gameInstance._mainPanel.HideLoadProgress();
             return matrice;
         }
         private static int[,] plantGrass(int[,] matrice)
@@ -89,7 +85,6 @@ namespace TileMaster.Util
             }
             return matrice;
         }
-
         private static int[,] setTilesAfterLayer(int[,] matrice, int layer, int material)
         {
             for (int xx = 0; xx < matrice.GetLength(0); xx++)
