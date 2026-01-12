@@ -1,7 +1,6 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
-using TileMaster.Map; // Ensure we have access to map types if needed, though maybe not for Item itself yet
 
 namespace TileMaster.Entity
 {

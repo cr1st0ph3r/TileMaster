@@ -49,6 +49,24 @@ namespace TileMaster.UI
             _quitButton.Toggleable = true;
             _quitButton.Id = "_button1";
 
+            CommandBox = new TextBox();
+            CommandBox.Visible = false;
+            CommandBox.Top = 50;
+            CommandBox.Width = 800;
+            CommandBox.KeyDown += (s, e) =>
+            {
+                if (e.Data == Microsoft.Xna.Framework.Input.Keys.Enter)
+                {
+                    string input = CommandBox.Text;
+
+                    if (!string.IsNullOrWhiteSpace(input))
+                    {
+                        ProccessCommand(input);
+                    }
+
+                }
+            };
+
             //progres bar
             _loadMapProgressBar = new HorizontalProgressBar();   
             Grid.SetColumn(_loadMapProgressBar, 2);
@@ -84,6 +102,7 @@ namespace TileMaster.UI
             Widgets.Add(_loadMapProgressBar);
             Widgets.Add(_progreessLabel);
             Widgets.Add(_labelOverGui);
+            Widgets.Add(CommandBox);
         }
 
         void BuildActionBar()
@@ -136,6 +155,7 @@ namespace TileMaster.UI
         public Label _progreessLabel;
         public Label _labelOverGui;
         public HorizontalProgressBar _loadMapProgressBar;
+        public TextBox CommandBox;
 
     }
 }

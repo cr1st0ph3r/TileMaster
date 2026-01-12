@@ -11,6 +11,7 @@ namespace TileMaster.Entity
     public class Player : Entity
     {
         public Layer Layer { get; set; } = Layer.Surface;
+        public bool InterruptInput { get; set; }
         public Player()
         {
             this.Height = 3;//the height of the player in blocks
@@ -52,7 +53,11 @@ namespace TileMaster.Entity
                 float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
                 // process input first (decides velocity / intent)
-                Input(gameTime, player, map);
+                if (!InterruptInput)
+                {
+                    Input(gameTime, player, map);
+                }
+
 
                 // Ground detection: use the same helper used elsewhere but keep it
                 // out of Input() to avoid duplicate snapping logic. HandleMovingDown
@@ -153,14 +158,26 @@ namespace TileMaster.Entity
                 player.onBlock = (player.GridY * Global.MapWidth) + player.GridX;
                 player.SteppingOn = player.onBlock + Global.MapWidth;
 
-                // determine the world layer by vertical distance from GroundLevel:
-                // - If the player's feet are 50 tiles or more above GroundLevel => Sky
-                // - If within 49 tiles above or below GroundLevel => Surface
-                // - If the player's feet are 50 tiles or more below GroundLevel => Caverns
+                // set layers
+                // Sky: > 50 blocks above GroundLevel (GridY is smaller than GroundLevel)
+                // Surface: +/- 50 blocks from GroundLevel
+                // Caverns: 50 to 150 blocks below GroundLevel
+                // Underground: 150 to 300 blocks below GroundLevel
+                // Underworld: > 300 blocks below GroundLevel
+
                 int heightDelta = player.GridY - Global.GroundLevel;
+
                 if (heightDelta <= -50)
                 {
                     player.Layer = Layer.Sky;
+                }
+                else if (heightDelta >= 300)
+                {
+                    player.Layer = Layer.Underworld;
+                }
+                else if (heightDelta >= 150)
+                {
+                    player.Layer = Layer.Underground;
                 }
                 else if (heightDelta >= 50)
                 {
@@ -253,16 +270,6 @@ namespace TileMaster.Entity
                 if (velocity.X > 0f) velocity.X = 0f;
             }
             else { velocity.X = 0; }
-
-            // NOTE:
-            // Ground detection that ran here previously caused a second, slightly different
-            // determination of "isOnSolidBlock" which conflicted with the Y-axis collision
-            // resolution performed later in Update(). That produced toggling of isOnSolidBlock
-            // and tiny positional adjustments every frame (the observed jitter).
-            //
-            // We now rely on the vertical collision resolution performed in Update() to set
-            // isOnSolidBlock and to clamp the player's Y position. Removing the duplicate
-            // ground-check avoids oscillation.
 
             // handle player jump (jump impulse is in px/s)
             // only allow a jump when we believe we are on solid ground

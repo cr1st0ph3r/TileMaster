@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using TileMaster.Entity;
@@ -16,11 +15,11 @@ namespace TileMaster.Manager
         private Map.Map map;
         //The map dictionary used for map generation
         public Dictionary<int, CollisionTile> MapDictionary { get; set; }
+        public Dictionary<int, CollisionTile> BackgroundMapDictionary { get; set; }
         public MapManager(Map.Map map)
         {
             this.map = map;          
         }
-   
 
         #region Map Loading
         /// <summary>
@@ -112,12 +111,17 @@ namespace TileMaster.Manager
         #region Map Generation
 
         public void GenerateMap()
-        {
-            var initialArrayMap = Util.MapGenerator.GenerateRandomMap();
-
+        {  
             var gameInstance = Game.GetInstance();
+            var initialArrayMap = Util.MapGenerator.GenerateRandomMap();
+            var backgroundArrayMap = Util.MapGenerator.GenerateInitialArrayMap(Global.MapWidth, Global.MapHeight);
+          
             gameInstance._mainPanel.InitializeLoadProgress("Generating map dictionary");
-            GenerateMapDictionary(initialArrayMap);
+            MapDictionary =  GenerateMapDictionary(initialArrayMap);
+            ImageHelper.SaveMapDictionaryAsImage(MapDictionary, "GeneratedMap.png");
+            BackgroundMapDictionary = GenerateMapDictionary(backgroundArrayMap);
+            ImageHelper.SaveMapDictionaryAsImage(BackgroundMapDictionary, "GeneratedBackgroundMap.png");
+
             gameInstance._mainPanel.InitializeLoadProgress("Generating chunks");
             ToChunks();
             gameInstance._mainPanel.InitializeLoadProgress("Saving map to file");
@@ -128,7 +132,7 @@ namespace TileMaster.Manager
         /// Generate a dictionary map from a 2d integer array using threads
         /// </summary>
         /// <param name="mapMatrice"></param>
-        public void GenerateMapDictionary(int[,] mapMatrice)
+        public Dictionary<int, CollisionTile> GenerateMapDictionary(int[,] mapMatrice)
         {
             int width = mapMatrice.GetLength(0);
             int height = mapMatrice.GetLength(1);
@@ -152,12 +156,8 @@ namespace TileMaster.Manager
                 }
             });
 
-            // 3. Convert the array to a dictionary in one pass
-            // This avoids the expensive repeated 'Concat' operations
-            MapDictionary = tileArray.ToDictionary(t => t.GlobalId, t => t);
-
-            // Save the map
-            ImageHelper.SaveMapDictionaryAsImage(MapDictionary, "GeneratedMap.png");
+            // 3. Convert the array to a dictionary
+            return tileArray.ToDictionary(t => t.GlobalId, t => t);           
         }
 
         private void ToChunks()
@@ -191,8 +191,9 @@ namespace TileMaster.Manager
                             // global index in row-major order (same as GenRow)
                             var globalId = globalY * Global.MapWidth + globalX;
 
-                            if (!MapDictionary.TryGetValue(globalId, out var tile))
-                                continue; // defensive: skip missing entries
+                            var tile = MapDictionary[globalId];
+                            //if (!MapDictionary.TryGetValue(globalId, out var tile))
+                            //    continue; // defensive: skip missing entries
 
                             bool isEdgeTile = localX == 0 || localX == Global.ChunkSize - 1 || localY == 0 || localY == Global.ChunkSize - 1;
 
@@ -204,7 +205,8 @@ namespace TileMaster.Manager
 
                             // store into chunk.Tiles using a local key/index
                             chunk.Tiles[globalId] = tile;
-                            chunk.BackgroundTiles[globalId] = GenerateEmptyBackgroundTile(tile);
+                            chunk.BackgroundTiles[globalId] = BackgroundMapDictionary[globalId].ToBackgroundTile();
+                            chunk.BackgroundTiles[globalId].Color = "Gray";
 
                             // also update the master map entry
                             MapDictionary[globalId].isEdgeTile = isEdgeTile;
@@ -216,7 +218,7 @@ namespace TileMaster.Manager
                     Chunks.Add(dictionaryCounter, chunk);
                     dictionaryCounter++;
                 }
-            }
+            }            
             map.ChunkDictionary = Chunks;
         }
         /// <summary>

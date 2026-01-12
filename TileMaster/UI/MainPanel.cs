@@ -125,6 +125,23 @@ namespace TileMaster.UI
             _progreessLabel.Visible = false;
         }
 
+        public void ToggleCommand()
+        {
+            if (!CommandBox.Visible)
+            {
+                CommandBox.Visible = true;
+                CommandBox.Text = string.Empty;
+            }
+
+            CommandBox.SetKeyboardFocus();
+
+        }
+        private void ProccessCommand(string command)
+        {
+            CommandBox.Text = "";
+            CommandBox.Visible = false;
+            Game.GetInstance().ProccessCommand(command);
+        }
         #region Debug
         public void UpdateFPS(int value)
         {
@@ -139,6 +156,8 @@ namespace TileMaster.UI
         #endregion
 
         #region Handlers
+
+
         private void _actionBarButtonPress(object sender, EventArgs e)
         {
             HandleActionBarPress(sender as ImageTextButton);

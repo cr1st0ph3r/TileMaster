@@ -58,5 +58,23 @@ namespace TileMaster.Entity
             }
             return Tiles;
         }
+
+        public BackgroundTile ToBackgroundTile()
+        {
+            var bgTile = new BackgroundTile();
+            bgTile.X = X;
+            bgTile.Y = Y;
+            bgTile.GlobalId = GlobalId;
+            bgTile.IsOccupied = IsOccupied;
+            bgTile.ColorArgb = ColorArgb;
+            bgTile.IsSolid = IsSolid;
+            bgTile.Name = Name;
+            bgTile.TileId = TileId;
+            bgTile.textureId = textureId;
+            bgTile.TextureName = TextureName;
+            bgTile.Rectangle = new Rectangle(X * Global.TileSize, Y * Global.TileSize, Global.TileSize, Global.TileSize);
+            bgTile.Color = Color;
+            return bgTile;
+        }
     }
 }

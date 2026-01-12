@@ -5,15 +5,18 @@ namespace TileMaster
 {
    public class Camera
     {
-        public Matrix transform;//<-draws the camera o the screen
+        public Matrix transform;//<-draws the camera on the screen
         private Viewport viewPort;//FOV
         private Vector2 center;//<-center of the camera
+        private Vector2 position;//<-position of the camera
 
         public Vector2 Center => center;
+        public Vector2 Position => position;
 
         public Camera(Viewport view)
         {
-            this.viewPort = view;
+            viewPort = view;
+            position = new Vector2(0,0);
         }
 
         public Matrix Transform
@@ -42,6 +45,7 @@ namespace TileMaster
             else
             {
                center.X = playerPosition.X;
+               position.X = center.X - (viewPort.Width / 2);
             }
 
             //=========== Y axis camera ============//
@@ -60,6 +64,7 @@ namespace TileMaster
             else
             {
                 center.Y = playerPosition.Y;
+                position.Y = center.Y - (viewPort.Height / 2);
             }
 
             transform = Matrix.CreateTranslation(

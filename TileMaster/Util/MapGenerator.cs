@@ -1,6 +1,4 @@
-﻿using SharpDX.Direct2D1;
-using System;
-using System.Drawing.Imaging;
+﻿using System;
 using TileMaster.Entity.Enums;
 using TileMaster.Helper;
 
@@ -38,7 +36,7 @@ namespace TileMaster.Util
             gameInstance._mainPanel.InitializeLoadProgress("Blending layers");
             matrice = randomizeLayer(matrice, (Global.RockLevel - 2), new int[4] { 1, 2, 1, 1 });
             matrice = randomizeLayer(matrice, (Global.RockLevel - 1), new int[3] { 1, 2, 1 });
-            matrice = randomizeLayer(matrice, Global.RockLevel, new int[2] { 1, 2 });
+            matrice = randomizeLayer(matrice, Global.RockLevel,       new int[2] { 1, 2 });
             matrice = randomizeLayer(matrice, (Global.RockLevel + 1), new int[3] { 1, 2, 2 });
             matrice = randomizeLayer(matrice, (Global.RockLevel + 2), new int[4] { 1, 2, 2, 2 });
             //plant gras on surface
@@ -190,7 +188,5 @@ namespace TileMaster.Util
 
             return matrice;
         }
-
-
     }
 }

@@ -4,67 +4,116 @@ using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 using TileMaster.Misc;
 using TileMaster.Entity;
+using TileMaster.Entity.Enums;
 
 namespace TileMaster.Manager
 {
     internal class BackgroundManager
     {
-        public List<ScrollingBackground> ScrollingBackgrounds;
-        public void Load(ContentManager Content,Player player)
+        public Dictionary<Layer, List<ScrollingBackground>> Backgrounds;
+        private Player _player;
+        private Layer _currentLayer;
+
+        public void Load(ContentManager Content, Player player)
         {
-            ScrollingBackgrounds = new List<ScrollingBackground>()
+            _player = player;
+            Backgrounds = new Dictionary<Layer, List<ScrollingBackground>>();
+
+            // 1. Sky Layer
+            // Assuming 0.0 parallax for "sky" (fixed to camera) or very low.
+            Backgrounds[Layer.Sky] = new List<ScrollingBackground>()
             {
-                new ScrollingBackground(Content.Load<Texture2D>("Levels/Sunny/Sky"), player, 0f)
+                new ScrollingBackground(Content.Load<Texture2D>("Layers/Sky/Background"), player, 0.0f) { Layer = 0.1f }
+            };
+
+            // 2. Surface Layer (Detailed)
+            Backgrounds[Layer.Surface] = new List<ScrollingBackground>()
+            {
+                // Far background (Sky) - Fixed
+                new ScrollingBackground(Content.Load<Texture2D>("Layers/Surface/Background"), player, 0.0f)
                 {
-                Layer = 0.1f,
+                    Layer = 0.1f,
                 },
-                new ScrollingBackground(Content.Load<Texture2D>("Levels/Sunny/Clouds_Slow"), player, 1f, true)
+                // Clouds Slow - Auto move, slight parallax
+                new ScrollingBackground(Content.Load<Texture2D>("Layers/Surface/Clouds_Slow"), player, 0.1f, true, 10f)
                 {
-                Layer = 0.7f,
+                    Layer = 0.2f,
                 },
-                new ScrollingBackground(Content.Load<Texture2D>("Levels/Sunny/Hills_Back"), player, 0f)
+                // Hills Back - Far away, moves slowly with camera
+                new ScrollingBackground(Content.Load<Texture2D>("Layers/Surface/Hills_Back"), player, 0.2f)
                 {
-                Layer = 0.77f,
+                    Layer = 0.3f,
                 },
-                new ScrollingBackground(Content.Load<Texture2D>("Levels/Sunny/Clouds_Fast"), player, 2.5f, true)
+                // Clouds Fast - Auto move, closer
+                 new ScrollingBackground(Content.Load<Texture2D>("Layers/Surface/Clouds_Fast"), player, 0.3f, true, 25f)
                 {
-                Layer = 0.78f,
+                    Layer = 0.4f,
                 },
-                new ScrollingBackground(Content.Load<Texture2D>("Levels/Sunny/Hills_Middle"), player, 3f)
+                // Hills Middle
+                 new ScrollingBackground(Content.Load<Texture2D>("Layers/Surface/Hills_Middle"), player, 0.5f)
                 {
-                Layer = 0.79f,
-                }, new ScrollingBackground(Content.Load<Texture2D>("Levels/Sunny/Hills_Front"), player, 4f)
+                    Layer = 0.5f,
+                }, 
+                // Hills Front - Closer
+                new ScrollingBackground(Content.Load<Texture2D>("Layers/Surface/Hills_Front"), player, 0.8f)
                 {
-                Layer = 0.8f,
+                    Layer = 0.6f,
                 },
-                new ScrollingBackground(Content.Load<Texture2D>("Levels/Sunny/Floor"), player, 6f)
+                // Floor/Ground - Should track world closely (1.0) or be near it
+                // Usually the graphical "floor" behind tiles is parallax 1.0 but drawn behind.
+                // If it's a distant floor, maybe 0.9.
+                new ScrollingBackground(Content.Load<Texture2D>("Layers/Surface/Floor"), player, 0.9f)
                 {
-                Layer = 0.9f,
+                    Layer = 0.7f,
                 },
-                new ScrollingBackground(Content.Load<Texture2D>("Levels/Sunny/Trees"), player, 6f)
+                // Trees - Foreground elements? Or far trees?
+                new ScrollingBackground(Content.Load<Texture2D>("Layers/Surface/Trees"), player, 0.95f)
                 {
-                Layer = 0.99f,
+                    Layer = 0.8f,
                 }
             };
 
+            // 3. Caverns
+            Backgrounds[Layer.Caverns] = new List<ScrollingBackground>()
+            {
+                 new ScrollingBackground(Content.Load<Texture2D>("Layers/Caverns/Background"), player, 0.1f) { Layer = 0.1f }
+            };
+
+            // 4. Underground
+            Backgrounds[Layer.Underground] = new List<ScrollingBackground>()
+            {
+                 new ScrollingBackground(Content.Load<Texture2D>("Layers/Underground/Background"), player, 0.1f) { Layer = 0.1f }
+            };
+
+            // 5. Underworld
+            Backgrounds[Layer.Underworld] = new List<ScrollingBackground>()
+            {
+                 new ScrollingBackground(Content.Load<Texture2D>("Layers/Underworld/Background"), player, 0.1f) { Layer = 0.1f }
+            };
         }
 
         public void Update(GameTime gameTime)
         {
-            foreach (var bg in ScrollingBackgrounds)
+            _currentLayer = _player.Layer;
+
+            if (Backgrounds.ContainsKey(_currentLayer))
             {
-                bg.Update(gameTime);
+                foreach (var bg in Backgrounds[_currentLayer])
+                {
+                    bg.Update(gameTime, Game.camera.Position);
+                }
             }
         }
+
         public void Draw(GameTime gameTime, SpriteBatch spriteBatch)
         {
-            foreach (var bg in ScrollingBackgrounds)
+            if (Backgrounds.ContainsKey(_currentLayer))
             {
-                bg.Draw(gameTime,spriteBatch);
+                foreach (var bg in Backgrounds[_currentLayer])
+                {
+                     bg.Draw(gameTime, spriteBatch);
+                }
             }
         }
     }
-
-  
-
 }
