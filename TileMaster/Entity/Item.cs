@@ -1,6 +1,11 @@
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
 
 namespace TileMaster.Entity
 {
@@ -10,8 +15,10 @@ namespace TileMaster.Entity
         public string Name { get; set; }
         public string Description { get; set; }
         public string TextureName { get; set; }
-        
-        // Runtime only, not serialized directly usually but we'll manage it
+        public string LightColorName { get; set; }
+        public int StackSize { get; set; } = 1000;        
+        public bool IsTile { get; set; }
+        public int TileId { get; set; }
         [NonSerialized]
         public Texture2D Texture;
 
@@ -19,7 +26,8 @@ namespace TileMaster.Entity
         
         // Lighting properties
         public bool IsLightSource { get; set; }
-        public Color LightColor { get; set; } = Color.White;
+        public bool IsFlickeringLight { get; set; }
+        public Color? LightColor { get; set; } = Color.White;
         public float LightIntensity { get; set; } = 0f;
         public float LightRadius { get; set; } = 0f; // Could be used for gradient logic later
         
@@ -27,30 +35,34 @@ namespace TileMaster.Entity
         {
         }
 
-        public void InitializeTexture()
+        public static List<Item> LoadItems(ContentManager content)
         {
-            if (!string.IsNullOrEmpty(TextureName))
+            var json = System.IO.File.ReadAllText(Global.ItemsDataLocation);
+            var items = JsonConvert.DeserializeObject<List<Item>>(json);
+            var tilePath = "Items";
+
+            //load the texture
+            foreach (var item in items.ToList())
             {
-                // Assuming Global or Tile.Content is available to load textures found in Tiles/Torch/ etc.
-                // We might need a robust way to load textures. For now, we'll try to load from the content manager.
-                // However, based on the codebase, textures often come from ReferenceTiles or are loaded via Content.
-                // The current pattern seems to be Global.Content or Tile.Content.
-                try
+                if (item.IsTile)
                 {
-                    if (Tile.Content != null)
+                    item.Texture = Global.ReferenceTiles[item.TileId].Texture;
+                }
+                else
+                {
+                    item.Texture = content.Load<Texture2D>($"{tilePath}/{item.Name}/{item.TextureName}");
+                }
+
+                if (!string.IsNullOrEmpty(item.LightColorName))
+                {
+                    var prop = typeof(Color).GetProperty(item.LightColorName);
+                    if (prop != null)
                     {
-                        // The user found Tiles/Torch/Torch1.png. 
-                        // If TextureName is "Torch1", we might need to search or specify path.
-                        // For this implementation, let's assume TextureName includes the relative path or we handle it.
-                        // Let's stick to a simple load for now.
-                        Texture = Tile.Content.Load<Texture2D>(TextureName);
+                        item.LightColor = (Color)prop.GetValue(null, null);
                     }
                 }
-                catch
-                {
-                    // Fallback or error logging
-                }
             }
+            return items;
         }
     }
 }

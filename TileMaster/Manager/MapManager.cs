@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using TileMaster.Entity;
 using TileMaster.Entity.Enums;
+using TileMaster.Entity.Tiles;
 using TileMaster.Helper;
 using TileMaster.Map;
 
@@ -32,7 +32,19 @@ namespace TileMaster.Manager
                 WorldHeight = Global.MapHeightMultiplier,
                 WorldWidth = Global.MapWidthMultiplier
             };
-            SaveDataManager.SaveGame(worldData, map.ChunkDictionary);
+            // Convert Chunks array to dictionary for save compatibility
+            var chunkDict = new Dictionary<int, Chunk>();
+            if (map.Chunks != null)
+            {
+                for (int i = 0; i < map.Chunks.Length; i++)
+                {
+                    if (map.Chunks[i] != null)
+                    {
+                        chunkDict[i + 1] = map.Chunks[i]; // 1-based key
+                    }
+                }
+            }
+            SaveDataManager.SaveGame(worldData, chunkDict);
         }
 
         private BackgroundTile GenerateEmptyBackgroundTile(Tile tile)
@@ -57,44 +69,64 @@ namespace TileMaster.Manager
         public void LoadMap()
         {
             var gameInstance = Game.GetInstance();
-            map.ChunkDictionary = new Dictionary<int, Chunk>();
             worldData = SaveDataManager.LoadGame();
             gameInstance._mainPanel.InitializeLoadProgress("Calculating chunk data");
-            var chunkId = 1;
 
+            // Calculate total chunks and initialize array
+            int totalChunks = worldData.RawMapData.Count;
+            map.Chunks = new Chunk[totalChunks];
+
+            int chunkIndex = 0;
             foreach (var rawChunk in worldData.RawMapData)
             {
                 var chunk = new Chunk();
 
-                gameInstance._mainPanel.UpdateLoadProgress(chunkId * 100 / worldData.RawMapData.Count);
+                gameInstance._mainPanel.UpdateLoadProgress((chunkIndex + 1) * 100 / totalChunks);
 
+                // Check for grass tiles
                 if (rawChunk.Value.Values.Any(x => x.TileId == (int)TileType.DirtWithGrass))
                 {
                     chunk.HasGrass = true;
                     chunk.NeedUpdate = true;
                 }
 
-                chunk.Tiles = rawChunk.Value;
-
-                // Attempt to load background tiles
-                // chunkId corresponds to 1-based index (1, 2, ...).
-                // SaveDataManager saves/loads files with 0-based index (chunk0, chunk1...) and sorts them.
-                // So we expect fileID = chunkId - 1.
-                // RawBackgroundData is keyed by fileID.
-                var backgroundKey = chunkId - 1;
-                if (worldData.RawBackgroundData.ContainsKey(backgroundKey))
+                // Convert dictionary to array - tiles are stored by globalId in save
+                // We need to populate the array by local index
+                var tilesByGlobalId = rawChunk.Value;
+                int localIndex = 0;
+                foreach (var kvp in tilesByGlobalId.OrderBy(x => x.Value.LocalId))
                 {
-                    var bgTiles = worldData.RawBackgroundData[backgroundKey];
-                    if (bgTiles != null)
+                    if (localIndex < chunk.Tiles.Length)
                     {
-                        chunk.BackgroundTiles = bgTiles;
+                        chunk.Tiles[localIndex] = kvp.Value;
+                        localIndex++;
                     }
                 }
+
+                // Attempt to load background tiles
+                // chunkIndex is 0-based, fileID in RawBackgroundData is also 0-based
+                if (worldData.RawBackgroundData.ContainsKey(chunkIndex))
+                {
+                    var bgTiles = worldData.RawBackgroundData[chunkIndex];
+                    if (bgTiles != null)
+                    {
+                        int bgLocalIndex = 0;
+                        foreach (var kvp in bgTiles.OrderBy(x => x.Value.LocalId))
+                        {
+                            if (bgLocalIndex < chunk.BackgroundTiles.Length)
+                            {
+                                chunk.BackgroundTiles[bgLocalIndex] = kvp.Value;
+                                bgLocalIndex++;
+                            }
+                        }
+                    }
+                }
+
                 chunk.SetRectangles();
                 chunk.InitializeTextures();
-                chunk.PositionOnscreen = chunkId;
-                map.ChunkDictionary.Add(chunkId, chunk);
-                chunkId++;
+                chunk.PositionOnscreen = chunkIndex + 1; // 1-based for display
+                map.Chunks[chunkIndex] = chunk;
+                chunkIndex++;
             }
 
             Global.MapHeightMultiplier = worldData.WorldHeight;
@@ -103,7 +135,14 @@ namespace TileMaster.Manager
             map.Height = worldData.WorldHeight * Global.ChunkSize * Global.TileSize;
 
             Global.IsMapLoaded = true;
-            ImageHelper.SaveChunkDictionaryAsImage(map.ChunkDictionary, "loaded_map.png");
+            // Convert to dictionary for image helper compatibility
+            var chunkDict = new Dictionary<int, Chunk>();
+            for (int i = 0; i < map.Chunks.Length; i++)
+            {
+                if (map.Chunks[i] != null)
+                    chunkDict[i + 1] = map.Chunks[i];
+            }
+            ImageHelper.SaveChunkDictionaryAsImage(chunkDict, "loaded_map.png");
             gameInstance._mainPanel.HideLoadProgress();
         }
         #endregion
@@ -161,21 +200,25 @@ namespace TileMaster.Manager
         }
 
         private void ToChunks()
-        {   // Use ceiling to include partial sectors if map size isn't an exact multiple of chunk size
+        {
+            // Use ceiling to include partial sectors if map size isn't an exact multiple of chunk size
             var SectorsInX = (Global.MapWidth + Global.ChunkSize - 1) / Global.ChunkSize;
             var SectorsInY = (Global.MapHeight + Global.ChunkSize - 1) / Global.ChunkSize;
-            var Chunks = new Dictionary<int, Chunk>();
+            int totalChunks = SectorsInX * SectorsInY;
+            var chunks = new Chunk[totalChunks];
+            
             var blockCount = 1;
-            var dictionaryCounter = 1;
+            var chunkIndex = 0;
             var pointOnscreenCounter = 0;
+            
             for (var gridY = 0; gridY < SectorsInY; gridY++)
             {
                 for (var gridX = 0; gridX < SectorsInX; gridX++)
                 {
-
                     var chunk = new Chunk();
                     chunk.PositionOnscreen = pointOnscreenCounter++;
                     var localChunkCounter = 0;
+                    
                     for (var localY = 0; localY < Global.ChunkSize; localY++)
                     {
                         // iterate local coords inside the chunk
@@ -183,7 +226,6 @@ namespace TileMaster.Manager
                         {
                             var globalX = gridX * Global.ChunkSize + localX;
                             if (globalX >= Global.MapWidth) break; // outside map columns
-
 
                             var globalY = gridY * Global.ChunkSize + localY;
                             if (globalY >= Global.MapHeight) break; // outside map rows
@@ -197,16 +239,21 @@ namespace TileMaster.Manager
 
                             bool isEdgeTile = localX == 0 || localX == Global.ChunkSize - 1 || localY == 0 || localY == Global.ChunkSize - 1;
 
-                            // Update tile metadata
-                            tile.ChunkId = dictionaryCounter;
+                            // Update tile metadata (1-based chunkId for compatibility)
+                            tile.ChunkId = chunkIndex + 1;
                             tile.isEdgeTile = isEdgeTile;
                             tile.LocalId = localChunkCounter;
                             tile.GlobalId = globalId;
 
-                            // store into chunk.Tiles using a local key/index
-                            chunk.Tiles[globalId] = tile;
-                            chunk.BackgroundTiles[globalId] = BackgroundMapDictionary[globalId].ToBackgroundTile();
-                            chunk.BackgroundTiles[globalId].Color = "Gray";
+                            // store into chunk.Tiles using local index
+                            chunk.Tiles[localChunkCounter] = tile;
+                            
+                            // Create background tile
+                            var bgTile = BackgroundMapDictionary[globalId].ToBackgroundTile();
+                            bgTile.Color = "Gray";
+                            bgTile.LocalId = localChunkCounter;
+                            bgTile.ChunkId = chunkIndex + 1;
+                            chunk.BackgroundTiles[localChunkCounter] = bgTile;
 
                             // also update the master map entry
                             MapDictionary[globalId].isEdgeTile = isEdgeTile;
@@ -215,11 +262,11 @@ namespace TileMaster.Manager
                             localChunkCounter++;
                         }
                     }
-                    Chunks.Add(dictionaryCounter, chunk);
-                    dictionaryCounter++;
+                    chunks[chunkIndex] = chunk;
+                    chunkIndex++;
                 }
             }            
-            map.ChunkDictionary = Chunks;
+            map.Chunks = chunks;
         }
         /// <summary>
         /// generates a column of blocks (one x across all y)

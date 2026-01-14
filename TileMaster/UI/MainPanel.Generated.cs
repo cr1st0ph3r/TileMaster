@@ -16,17 +16,7 @@ namespace TileMaster.UI
             _debugButton = new TextButton();
             _debugButton.Text = "Debug";
             _debugButton.Toggleable = true;
-            _debugButton.Id = "_button1";
-
-            _button2 = new TextButton();
-            _button2.Text = "Window 2";
-            _button2.Toggleable = true;
-            _button2.Id = "_button2";
-
-            _button3 = new TextButton();
-            _button3.Text = "Window 3";
-            _button3.Toggleable = true;
-            _button3.Id = "_button3";
+            _debugButton.Id = "_button1";       
 
             _loadMapButton = new TextButton();
             _loadMapButton.Text = "Load Map";
@@ -86,8 +76,6 @@ namespace TileMaster.UI
             var horizontalStackPanel1 = new HorizontalStackPanel();
             horizontalStackPanel1.Spacing = 8;
             horizontalStackPanel1.Widgets.Add(_debugButton);
-            horizontalStackPanel1.Widgets.Add(_button2);
-            horizontalStackPanel1.Widgets.Add(_button3);
             horizontalStackPanel1.Widgets.Add(_loadMapButton);
             horizontalStackPanel1.Widgets.Add(_saveMapButton);
             horizontalStackPanel1.Widgets.Add(_openInventoryButton);
@@ -117,7 +105,7 @@ namespace TileMaster.UI
             int buttonWidth = 40;
             for (int i = 0; i < 10; i++)
             {
-                var butt = new ImageTextButton();
+                var butt = new ImageTextButton();             
                 butt.Id = "ActionBarButton" + i;
                 butt.Text = "99";
                 butt.TextPosition = ImageTextButton.TextPositionEnum.OverlapsImage;
@@ -125,16 +113,18 @@ namespace TileMaster.UI
                 butt.Padding = new Thickness(5, 5);
                 butt.PressedChanged += _actionBarButtonPress;
                 butt.Background = new SolidBrush(CommonComponents.ActionBarButtonColor);
-                if (i % 2 == 0) { 
+                if (i % 2 == 0)
+                {
                     butt.Image = MyraEnvironment.DefaultAssetManager.LoadTextureRegion("content/UI/UIStone.png");
                     butt.MinHeight = 2;
                 }
-                   
-                else {
+
+                else
+                {
                     butt.Image = MyraEnvironment.DefaultAssetManager.LoadTextureRegion("content/UI/UIDirt.png");
                     butt.MinHeight = 1;
                 }
-                    
+
 
                 butt.Height = 40;
                 butt.Top = 10;
@@ -145,9 +135,7 @@ namespace TileMaster.UI
             Widgets.Add(ActionBarPanel);
         }
 
-        public TextButton _debugButton;
-        public TextButton _button2;
-        public TextButton _button3;
+        public TextButton _debugButton;  
         public TextButton _loadMapButton;
         public TextButton _saveMapButton;
         public static ToggleButton _openInventoryButton;

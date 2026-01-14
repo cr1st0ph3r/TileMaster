@@ -12,8 +12,6 @@ namespace TileMaster.UI
     {
         private readonly DebugWindow _debugWindow = new DebugWindow();
         InventoryWindow inventoryWindow;
-        private readonly Window2 _window2 = new Window2();
-        private readonly Window3 _window3 = new Window3();
         public Panel ActionBarPanel;
         public static CommonComponents CommonComponents = new CommonComponents();
         private int selectedIndex = 0;
@@ -22,9 +20,7 @@ namespace TileMaster.UI
         {
             BuildUI();
 
-            _debugButton.PressedChanged += _button1_PressedChanged;
-            _button2.PressedChanged += _button2_PressedChanged;
-            _button3.PressedChanged += _button3_PressedChanged;
+            _debugButton.PressedChanged += _button1_PressedChanged;      
             _loadMapButton.PressedChanged += _loadMapButton_PressedChanged;
             _saveMapButton.PressedChanged += _saveMapButton_PressedChanged;
             _openInventoryButton.PressedChanged += _openInventoryButton_PressedChanged;
@@ -34,16 +30,6 @@ namespace TileMaster.UI
             _debugWindow.Closed += (s, a) =>
             {
                 _debugButton.IsPressed = false;
-            };
-
-            _window2.Closed += (s, a) =>
-            {
-                _button2.IsPressed = false;
-            };
-
-            _window3.Closed += (s, a) =>
-            {
-                _button3.IsPressed = false;
             };
 
             inventoryWindow = new InventoryWindow();
@@ -220,30 +206,6 @@ namespace TileMaster.UI
 
             //quit
             Environment.Exit(0);
-        }
-
-        private void _button2_PressedChanged(object sender, EventArgs e)
-        {
-            if (_button2.IsPressed)
-            {
-                _window2.Show(Desktop, new Point(Global.WindowWidth - 800, 100));
-            }
-            else
-            {
-                _window2.Close();
-            }
-        }
-
-        private void _button3_PressedChanged(object sender, EventArgs e)
-        {
-            if (_button3.IsPressed)
-            {
-                _window3.Show(Desktop, new Point(Global.WindowWidth - 500, 400));
-            }
-            else
-            {
-                _window3.Close();
-            }
         }
         #endregion
     }

@@ -1,10 +1,11 @@
 ﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace TileMaster.Entity
+namespace TileMaster.Entity.Tiles
 {
     public class CollisionTile : Tile
     {
@@ -35,7 +36,7 @@ namespace TileMaster.Entity
             Y = y;
         }
 
-        public static List<ReferenceTile> LoadTilesTypes()
+        public static List<ReferenceTile> LoadTilesTypes(ContentManager content)
         {
             var json = System.IO.File.ReadAllText(Global.TileDataLocation);
             var Tiles = JsonConvert.DeserializeObject<List<ReferenceTile>>(json);
@@ -44,16 +45,16 @@ namespace TileMaster.Entity
             //load the texture
             foreach (var tile in Tiles.ToList())
             {
-                tile.Texture = Content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{tile.TextureName}");
+                tile.Texture = content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{tile.TextureName}");
                 tile.Textures = new List<Texture2D>();
                 tile.AltTextures = new List<Texture2D>();
                 foreach (var subTiles in tile.TileSet)
                 {
-                    tile.Textures.Add(Content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{subTiles}"));
+                    tile.Textures.Add(content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{subTiles}"));
                 }
                 foreach (var alt in tile.AlternateTextures)
                 {
-                    tile.AltTextures.Add(Content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{alt}"));
+                    tile.AltTextures.Add(content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{alt}"));
                 }
             }
             return Tiles;

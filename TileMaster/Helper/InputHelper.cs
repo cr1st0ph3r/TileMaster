@@ -34,7 +34,7 @@ namespace TileMaster.Helper
             return false;
         }
 
-        public static bool HandleMovingDown(Player player, Map.Map map)
+        public static bool HandleMovingDown(Entity.Entity player, Map.Map map)
         {
             // Update chunk info first (keeps existing behavior)
             UpdatePlayerChunk(player, map);
@@ -98,7 +98,7 @@ namespace TileMaster.Helper
             return true;
         }
 
-        public static bool HandleJump(Player player, Map.Map map)
+        public static bool HandleJump(Entity.Entity player, Map.Map map)
         {
             var tileAt = map.GetTileAt(player.onBlock - (Global.MapWidth * player.Height), player.onChunk, "up");
             var game = Game.GetInstance();
@@ -116,7 +116,7 @@ namespace TileMaster.Helper
             return false;
         }
 
-        public static void UpdatePlayerChunk(Player player, Map.Map map)
+        public static void UpdatePlayerChunk(Entity.Entity player, Map.Map map)
         {
             // Use player's bottom-center point to decide which chunk they belong to.
             // This is robust against slight overlaps and works regardless of current
@@ -152,7 +152,7 @@ namespace TileMaster.Helper
             int newChunk = 1 + (chunkY * chunksPerRow) + chunkX;
 
             // prefer assigning the exact chunk when present, otherwise search nearby loaded neighbors
-            if (map.ChunkDictionary.ContainsKey(newChunk))
+            if (map.GetChunk(newChunk) != null)
             {
                 player.onChunk = newChunk;
             }
@@ -168,7 +168,7 @@ namespace TileMaster.Helper
                         int cy = chunkY + dy;
                         if (cx < 0 || cx >= chunksPerRow || cy < 0 || cy >= chunksPerCol) continue;
                         int cid = 1 + (cy * chunksPerRow) + cx;
-                        if (map.ChunkDictionary.ContainsKey(cid))
+                        if (map.GetChunk(cid) != null)
                         {
                             player.onChunk = cid;
                             found = true;

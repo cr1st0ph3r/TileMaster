@@ -4,8 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using TileMaster.Entity;
 using TileMaster.Entity.Enums;
+using TileMaster.Entity.Tiles;
 using TileMaster.Manager;
 
 namespace TileMaster.Map
@@ -17,17 +17,17 @@ namespace TileMaster.Map
         public TileShadeManager tileShadeMgr;
         public MapManager mapManager;
 
-        //The chunk dictionary used for chunk storage
-        public Dictionary<int, Chunk> ChunkDictionary { get; set; } 
+        // The chunk array used for chunk storage (0-indexed, row-major order)
+        public Chunk[] Chunks { get; set; }
         public List<CollisionTile> ModifiedTiles { get; set; }
         public TileManager TileMgr { get; set; }
 
-        //shoudnt be public
+        //shouldn't be public
         public int Width, Height;
 
         public Map()
         {
-            ChunkDictionary = new Dictionary<int, Chunk>();
+            Chunks = null; // Will be initialized by MapManager
             TileMgr = new TileManager();
             grass = new GrassManager(this);
             tileInspector = new TileInspector(this);
@@ -35,6 +35,67 @@ namespace TileMaster.Map
             tileShadeMgr = new TileShadeManager(this);
             ModifiedTiles = new List<CollisionTile>();
         }
+
+        /// <summary>
+        /// Returns the number of chunks per row
+        /// </summary>
+        public int ChunksPerRow => Global.MapWidth / Global.ChunkSize;
+
+        /// <summary>
+        /// Returns the total number of chunks
+        /// </summary>
+        public int TotalChunks => (Global.MapWidth / Global.ChunkSize) * (Global.MapHeight / Global.ChunkSize);
+
+        /// <summary>
+        /// Gets a chunk by its 1-based ID (for backward compatibility)
+        /// </summary>
+        public Chunk GetChunk(int chunkId)
+        {
+            int index = chunkId - 1; // Convert 1-based to 0-based
+            if (index < 0 || Chunks == null || index >= Chunks.Length)
+                return null;
+            return Chunks[index];
+        }
+
+        /// <summary>
+        /// Gets a chunk by its 0-based index
+        /// </summary>
+        public Chunk GetChunkByIndex(int index)
+        {
+            if (index < 0 || Chunks == null || index >= Chunks.Length)
+                return null;
+            return Chunks[index];
+        }
+
+        /// <summary>
+        /// Converts global tile coordinates to local chunk index (0-based within the chunk's Tiles array)
+        /// </summary>
+        public static int GlobalToLocalIndex(int globalX, int globalY)
+        {
+            int localX = globalX % Global.ChunkSize;
+            int localY = globalY % Global.ChunkSize;
+            return localY * Global.ChunkSize + localX;
+        }
+
+        /// <summary>
+        /// Converts global tile coordinates to chunk index (0-based)
+        /// </summary>
+        public int GlobalToChunkIndex(int globalX, int globalY)
+        {
+            int chunkX = globalX / Global.ChunkSize;
+            int chunkY = globalY / Global.ChunkSize;
+            return chunkY * ChunksPerRow + chunkX;
+        }
+
+        /// <summary>
+        /// Converts a 1-based chunk ID to a 0-based index
+        /// </summary>
+        public static int ChunkIdToIndex(int chunkId) => chunkId - 1;
+
+        /// <summary>
+        /// Converts a 0-based chunk index to a 1-based chunk ID
+        /// </summary>
+        public static int ChunkIndexToId(int index) => index + 1;
 
         /// <summary>
         /// retrieves a tile at a given location. Accounts for cross chunk tiles
@@ -46,9 +107,16 @@ namespace TileMaster.Map
         /// <returns></returns>
         public CollisionTile GetTileAt(int blockId, int chunkId, string direction, bool retrial = false)
         {
-            if (IsBlockOnChunk(chunkId, blockId))
+            var chunk = GetChunk(chunkId);
+            if (chunk != null)
             {
-                return ChunkDictionary[chunkId].Tiles[blockId];
+                // blockId is a globalId, we need to find it in the chunk
+                // Search in the chunk's tiles for the matching globalId
+                foreach (var tile in chunk.Tiles)
+                {
+                    if (tile != null && tile.GlobalId == blockId)
+                        return tile;
+                }
             }
             if (retrial == false)
             {
@@ -76,22 +144,20 @@ namespace TileMaster.Map
                 return null;
             }
 
-            // global id: row-major order (row = y)
-            var globalId = globalY * Global.MapWidth + globalX;
-
-            // determine chunk coordinates and 1-based chunk id
-            var chunkX = globalX / Global.ChunkSize;
-            var chunkY = globalY / Global.ChunkSize;
-            var chunksPerRow = Global.MapWidth / Global.ChunkSize;
-            var chunkId = 1 + (chunkY * chunksPerRow + chunkX);
+            // determine chunk index (0-based)
+            int chunkIndex = GlobalToChunkIndex(globalX, globalY);
 
             // Prefer the loaded chunk tile (has textures and runtime state) if available
-            if (ChunkDictionary != null && ChunkDictionary.ContainsKey(chunkId))
+            if (Chunks != null && chunkIndex >= 0 && chunkIndex < Chunks.Length)
             {
-                var chunk = ChunkDictionary[chunkId];
-                if (chunk != null && chunk.Tiles != null && chunk.Tiles.ContainsKey(globalId))
+                var chunk = Chunks[chunkIndex];
+                if (chunk != null && chunk.Tiles != null)
                 {
-                    return chunk.Tiles[globalId];
+                    int localIndex = GlobalToLocalIndex(globalX, globalY);
+                    if (localIndex >= 0 && localIndex < chunk.Tiles.Length)
+                    {
+                        return chunk.Tiles[localIndex];
+                    }
                 }
             }
             return null;
@@ -105,22 +171,20 @@ namespace TileMaster.Map
                 return null;
             }
 
-            // global id: row-major order (row = y)
-            var globalId = globalY * Global.MapWidth + globalX;
-
-            // determine chunk coordinates and 1-based chunk id
-            var chunkX = globalX / Global.ChunkSize;
-            var chunkY = globalY / Global.ChunkSize;
-            var chunksPerRow = Global.MapWidth / Global.ChunkSize;
-            var chunkId = 1 + (chunkY * chunksPerRow + chunkX);
+            // determine chunk index (0-based)
+            int chunkIndex = GlobalToChunkIndex(globalX, globalY);
 
             // Prefer the loaded chunk tile (has textures and runtime state) if available
-            if (ChunkDictionary != null && ChunkDictionary.ContainsKey(chunkId))
+            if (Chunks != null && chunkIndex >= 0 && chunkIndex < Chunks.Length)
             {
-                var chunk = ChunkDictionary[chunkId];
-                if (chunk != null && chunk.BackgroundTiles != null && chunk.BackgroundTiles.ContainsKey(globalId))
+                var chunk = Chunks[chunkIndex];
+                if (chunk != null && chunk.BackgroundTiles != null)
                 {
-                    return chunk.BackgroundTiles[globalId];
+                    int localIndex = GlobalToLocalIndex(globalX, globalY);
+                    if (localIndex >= 0 && localIndex < chunk.BackgroundTiles.Length)
+                    {
+                        return chunk.BackgroundTiles[localIndex];
+                    }
                 }
             }
             return null;
@@ -134,8 +198,18 @@ namespace TileMaster.Map
         #region Modify Tiles
         public void SetTile(int chunkId, int blockId, int referenceTileId)
         {
-            var targetTile = ChunkDictionary[chunkId].Tiles[blockId];
-            SetTile(targetTile, referenceTileId);
+            var chunk = GetChunk(chunkId);
+            if (chunk == null) return;
+
+            // Find tile by globalId
+            for (int i = 0; i < chunk.Tiles.Length; i++)
+            {
+                if (chunk.Tiles[i] != null && chunk.Tiles[i].GlobalId == blockId)
+                {
+                    SetTile(chunk.Tiles[i], referenceTileId);
+                    return;
+                }
+            }
         }
         public void SetTile(Tile targetTile, int referenceTileId, float rotation = 0f)
         {
@@ -156,7 +230,8 @@ namespace TileMaster.Map
             targetTile.IsOccupied = referenceTile.IsOccupied;
             targetTile.IsSolid = referenceTile.IsSolid;
             targetTile.Rotation = rotation;
-            ChunkDictionary[targetTile.ChunkId].NeedUpdate = true;
+            var chunk = GetChunk(targetTile.ChunkId);
+            if (chunk != null) chunk.NeedUpdate = true;
             AddTileToModificationTracker(targetTile);
 
             UpdateTile(targetTile);
@@ -165,19 +240,41 @@ namespace TileMaster.Map
         {
             targetTile.Texture = texture;
             targetTile.TextureName = targetTile.Texture.Name;
-            targetTile.Rotation = rotation;       
-            ChunkDictionary[targetTile.ChunkId].NeedUpdate = true;
+            targetTile.Rotation = rotation;
+            var chunk = GetChunk(targetTile.ChunkId);
+            if (chunk != null) chunk.NeedUpdate = true;
 
             UpdateTile(targetTile);
         }
         public void UpdateTile(Tile updated)
         {
-            ChunkDictionary[updated.ChunkId].Tiles[updated.GlobalId] = (CollisionTile)updated;
+            var chunk = GetChunk(updated.ChunkId);
+            if (chunk == null) return;
+
+            // Find and update by globalId
+            for (int i = 0; i < chunk.Tiles.Length; i++)
+            {
+                if (chunk.Tiles[i] != null && chunk.Tiles[i].GlobalId == updated.GlobalId)
+                {
+                    chunk.Tiles[i] = (CollisionTile)updated;
+                    return;
+                }
+            }
         }
         public void SetBackgroundTile(int chunkId, int blockId, int referenceTileId)
         {
-            var targetTile = ChunkDictionary[chunkId].BackgroundTiles[blockId];
-            SetBackgroundTile(targetTile, referenceTileId);
+            var chunk = GetChunk(chunkId);
+            if (chunk == null) return;
+
+            // Find tile by globalId
+            for (int i = 0; i < chunk.BackgroundTiles.Length; i++)
+            {
+                if (chunk.BackgroundTiles[i] != null && chunk.BackgroundTiles[i].GlobalId == blockId)
+                {
+                    SetBackgroundTile(chunk.BackgroundTiles[i], referenceTileId);
+                    return;
+                }
+            }
         }
 
         public void SetBackgroundTile(BackgroundTile targetTile, int referenceTileId, float rotation = 0f)
@@ -199,7 +296,8 @@ namespace TileMaster.Map
             targetTile.Rotation = rotation;
             targetTile.Color = "Gray"; // Ensure background tiles stay dark/dimmed
             
-            ChunkDictionary[targetTile.ChunkId].NeedUpdate = true;
+            var chunk = GetChunk(targetTile.ChunkId);
+            if (chunk != null) chunk.NeedUpdate = true;
             // AddTileToModificationTracker(targetTile); // TODO: Add tracker for background tiles if needed
 
             UpdateBackgroundTile(targetTile);
@@ -207,7 +305,18 @@ namespace TileMaster.Map
 
         public void UpdateBackgroundTile(BackgroundTile updated)
         {
-            ChunkDictionary[updated.ChunkId].BackgroundTiles[updated.GlobalId] = updated;
+            var chunk = GetChunk(updated.ChunkId);
+            if (chunk == null) return;
+
+            // Find and update by globalId
+            for (int i = 0; i < chunk.BackgroundTiles.Length; i++)
+            {
+                if (chunk.BackgroundTiles[i] != null && chunk.BackgroundTiles[i].GlobalId == updated.GlobalId)
+                {
+                    chunk.BackgroundTiles[i] = updated;
+                    return;
+                }
+            }
         }
 
         private void AddTileToModificationTracker(Tile tile)
@@ -220,41 +329,39 @@ namespace TileMaster.Map
         #endregion
 
         /// <summary>
-        /// Checks whether a chunk is present on the chunk dictionary
+        /// Checks whether a chunk is present in the array
         /// </summary>
-        /// <param name="chunkId"></param>
+        /// <param name="chunkId">1-based chunk ID</param>
         /// <returns></returns>
         private bool IsChunkPresent(int chunkId)
         {
-            if (ChunkDictionary.ContainsKey(chunkId))
-            {
-                return true;
-            }
-            return false;
+            int index = chunkId - 1;
+            return Chunks != null && index >= 0 && index < Chunks.Length && Chunks[index] != null;
         }
         /// <summary>
-        /// Checks whether a block is at the specified chunk
+        /// Checks whether a block is at the specified chunk (by globalId)
         /// </summary>
-        /// <param name="chunkId"></param>
-        /// <param name="blockId"></param>
+        /// <param name="chunkId">1-based chunk ID</param>
+        /// <param name="blockId">Global tile ID</param>
         /// <returns></returns>
         public bool IsBlockOnChunk(int chunkId, int blockId)
         {
-            if (ChunkDictionary.ContainsKey(chunkId))
+            var chunk = GetChunk(chunkId);
+            if (chunk != null && chunk.Tiles != null)
             {
-                if (ChunkDictionary[chunkId].Tiles.ContainsKey(blockId))
+                foreach (var tile in chunk.Tiles)
                 {
-                    return true;
+                    if (tile != null && tile.GlobalId == blockId)
+                        return true;
                 }
             }
-
             return false;
         }
 
         /// <summary>
         /// returns a list containing all the tiles near the player so they can be drawn
         /// </summary>
-        /// <param name="referenceChunk"></param>
+        /// <param name="referenceChunk">1-based chunk ID</param>
         /// <returns></returns>
         private List<Tile> GetTilesToDraw(int referenceChunk)
         {
@@ -293,7 +400,11 @@ namespace TileMaster.Map
                 //because of player being on very edge map
                 if (IsChunkPresent(c))
                 {
-                    tiles.AddRange(ChunkDictionary[c].Tiles.Values);
+                    var chunk = GetChunk(c);
+                    if (chunk != null && chunk.Tiles != null)
+                    {
+                        tiles.AddRange(chunk.Tiles.Where(t => t != null));
+                    }
                 }
             }
             return tiles;
@@ -315,8 +426,22 @@ namespace TileMaster.Map
         {
             try
             {
-                // base tile (ground) used by original implementation
-                var treeBase = ChunkDictionary[chunkId].Tiles[blockId + 3].GlobalId;
+                var chunk = GetChunk(chunkId);
+                if (chunk == null) return;
+
+                // Find the tile with globalId = blockId + 3
+                CollisionTile baseTile = null;
+                foreach (var tile in chunk.Tiles)
+                {
+                    if (tile != null && tile.GlobalId == blockId + 3)
+                    {
+                        baseTile = tile;
+                        break;
+                    }
+                }
+                if (baseTile == null) return;
+
+                var treeBase = baseTile.GlobalId;
 
                 // convert to (x,y)
                 var mapWidth = Global.MapWidth;
@@ -333,10 +458,23 @@ namespace TileMaster.Map
                     var globalId = y * mapWidth + x;
                     var chunkX = x / Global.ChunkSize;
                     var chunkY = y / Global.ChunkSize;
-                    var targetChunkId = 1 + (chunkY * chunksPerRow + chunkX);
-                    if (!ChunkDictionary.ContainsKey(targetChunkId)) return false;
-                    if (!ChunkDictionary[targetChunkId].Tiles.ContainsKey(globalId)) return false;
-                    SetTile(targetChunkId, globalId, tileType);
+                    var targetChunkIndex = chunkY * chunksPerRow + chunkX;
+                    if (Chunks == null || targetChunkIndex < 0 || targetChunkIndex >= Chunks.Length) return false;
+                    var targetChunk = Chunks[targetChunkIndex];
+                    if (targetChunk == null) return false;
+
+                    // Find tile by globalId
+                    bool found = false;
+                    for (int i = 0; i < targetChunk.Tiles.Length; i++)
+                    {
+                        if (targetChunk.Tiles[i] != null && targetChunk.Tiles[i].GlobalId == globalId)
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) return false;
+                    SetTile(targetChunkIndex + 1, globalId, tileType); // +1 for 1-based chunkId
                     return true;
                 }
 
@@ -460,18 +598,24 @@ namespace TileMaster.Map
             // Draw background tiles first
             foreach (var tile in tiles)
             {
-                if (ChunkDictionary.ContainsKey(tile.ChunkId))
+                var chunk = GetChunk(tile.ChunkId);
+                if (chunk != null && chunk.BackgroundTiles != null)
                 {
-                    if (ChunkDictionary[tile.ChunkId].BackgroundTiles.ContainsKey(tile.GlobalId))
+                    // Find background tile by matching local index
+                    int localIndex = GlobalToLocalIndex(tile.X, tile.Y);
+                    if (localIndex >= 0 && localIndex < chunk.BackgroundTiles.Length)
                     {
-                        var bgTile = ChunkDictionary[tile.ChunkId].BackgroundTiles[tile.GlobalId];
-                         // Ensure background tiles are always drawn with a specific color filter to distinguish them
-                        if(bgTile.Color == "Gray" && !bgTile.ColorArgb.HasValue && !bgTile.ColorFilter.HasValue) 
+                        var bgTile = chunk.BackgroundTiles[localIndex];
+                        if (bgTile != null)
                         {
-                             // Force a visual dimming if using default
-                             bgTile.ColorFilter = Microsoft.Xna.Framework.Color.Gray;
+                            // Ensure background tiles are always drawn with a specific color filter to distinguish them
+                            if(bgTile.Color == "Gray" && !bgTile.ColorArgb.HasValue && !bgTile.ColorFilter.HasValue) 
+                            {
+                                // Force a visual dimming if using default
+                                bgTile.ColorFilter = Microsoft.Xna.Framework.Color.Gray;
+                            }
+                            bgTile.Draw(spriteBatch);
                         }
-                        bgTile.Draw(spriteBatch);
                     }
                 }
             }

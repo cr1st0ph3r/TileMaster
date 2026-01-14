@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Text.Json.Serialization;
-using TileMaster.Entity;
+using TileMaster.Entity.Tiles;
 
 namespace TileMaster.Map
 {

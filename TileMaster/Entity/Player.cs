@@ -13,56 +13,46 @@ namespace TileMaster.Entity
         public Layer Layer { get; set; } = Layer.Surface;
         public bool InterruptInput { get; set; }
         public Player()
-        {
-            this.Height = 3;//the height of the player in blocks
-        }
-
-        public Vector2 GetPosition()
-        {
-            return position;
-        }
-
-        public Rectangle GetRectangle()
-        {
-            return rectangle;
+        {   //the height of the player in blocks
+            this.Height = 3;
         }
 
         public void Load(ContentManager content)
         {
-            texture = content.Load<Texture2D>("Player");
+            texture = content.Load<Texture2D>("Entities/Player/Player");
         }
 
-        public override void Update(GameTime gameTime, Player player, Map.Map map)
+        public override void Update(GameTime gameTime, Map.Map map)
         {
             if (Game._state == GameState.Running && Global.IsMapLoaded)
             {
                 // compute current grid indices from current position (needed by InputHelper)
-                int playerOnGridX = (int)((player.GetPosition().X + (player.GetRectangle().Width / 2)) / Global.TileSize);
-                int playerOnGridY = (int)((player.GetPosition().Y + player.GetRectangle().Height - 1) / Global.TileSize); // bottom tile index
+                int playerOnGridX = (int)((GetPosition().X + (GetRectangle().Width / 2)) / Global.TileSize);
+                int playerOnGridY = (int)((GetPosition().Y + GetRectangle().Height - 1) / Global.TileSize); // bottom tile index
 
-                player.onBlock = (playerOnGridY * Global.MapWidth) + (playerOnGridX);
-                player.SteppingOn = (player.onBlock + Global.MapWidth);
-                player.GridX = playerOnGridX;
+                onBlock = (playerOnGridY * Global.MapWidth) + (playerOnGridX);
+                SteppingOn = (onBlock + Global.MapWidth);
+                GridX = playerOnGridX;
                 // GridY should refer to the tile row at the player's feet (bottom-most pixel)
-                player.GridY = playerOnGridY;
+                GridY = playerOnGridY;
 
-                int playerChunkX = (player.GridX / Global.ChunkSize);
-                int playerChunkY = (player.GridY / Global.ChunkSize);
-                player.onChunk = (1/*chunks are 1 based*/+ ((playerChunkY * (Global.MapWidth / Global.ChunkSize)) + playerChunkX));
+                int playerChunkX = (GridX / Global.ChunkSize);
+                int playerChunkY = (GridY / Global.ChunkSize);
+                onChunk = (1/*chunks are 1 based*/+ ((playerChunkY * (Global.MapWidth / Global.ChunkSize)) + playerChunkX));
 
                 float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
                 // process input first (decides velocity / intent)
                 if (!InterruptInput)
                 {
-                    Input(gameTime, player, map);
+                    Input(gameTime, this, map);
                 }
 
 
                 // Ground detection: use the same helper used elsewhere but keep it
                 // out of Input() to avoid duplicate snapping logic. HandleMovingDown
                 // returns true if the player should fall (no support under feet).
-                bool shouldFall = InputHelper.HandleMovingDown(player, map);
+                bool shouldFall = InputHelper.HandleMovingDown(this, map);
                 isOnSolidBlock = !shouldFall;
 
                 // gravity (time-based) - applied to velocity before integration
@@ -131,7 +121,7 @@ namespace TileMaster.Entity
                 if (isOnSolidBlock)
                 {
                     // Snap only when the player's bottom is very near the tile top.
-                    // Avoid using player.GridY (which may be stale or computed differently); compute from rectangle instead.
+                    // Avoid using GridY (which may be stale or computed differently); compute from rectangle instead.
                     var bottom = position.Y + rectangle.Height;
                     int tileBelow = (int)(bottom / Global.TileSize);
                     float tileTop = tileBelow * Global.TileSize;
@@ -148,15 +138,15 @@ namespace TileMaster.Entity
                 }
 
                 // update grid indices to reflect new position
-                player.GridX = (int)((player.GetPosition().X + (player.GetRectangle().Width / 2)) / Global.TileSize);
+                GridX = (int)((GetPosition().X + (GetRectangle().Width / 2)) / Global.TileSize);
                 // make GridY reflect the tile row containing the player's feet (bottom-most pixel)
-                player.GridY = (int)((player.GetPosition().Y + player.GetRectangle().Height - 1) / Global.TileSize);
+                GridY = (int)((GetPosition().Y + GetRectangle().Height - 1) / Global.TileSize);
 
-                int newChunkX = player.GridX / Global.ChunkSize;
-                int newChunkY = player.GridY / Global.ChunkSize;
-                player.onChunk = (1 + ((newChunkY * (Global.MapWidth / Global.ChunkSize)) + newChunkX));
-                player.onBlock = (player.GridY * Global.MapWidth) + player.GridX;
-                player.SteppingOn = player.onBlock + Global.MapWidth;
+                int newChunkX = GridX / Global.ChunkSize;
+                int newChunkY = GridY / Global.ChunkSize;
+                onChunk = (1 + ((newChunkY * (Global.MapWidth / Global.ChunkSize)) + newChunkX));
+                onBlock = (GridY * Global.MapWidth) + GridX;
+                SteppingOn = onBlock + Global.MapWidth;
 
                 // set layers
                 // Sky: > 50 blocks above GroundLevel (GridY is smaller than GroundLevel)
@@ -165,27 +155,27 @@ namespace TileMaster.Entity
                 // Underground: 150 to 300 blocks below GroundLevel
                 // Underworld: > 300 blocks below GroundLevel
 
-                int heightDelta = player.GridY - Global.GroundLevel;
+                int heightDelta = GridY - Global.GroundLevel;
 
                 if (heightDelta <= -50)
                 {
-                    player.Layer = Layer.Sky;
+                    Layer = Layer.Sky;
                 }
                 else if (heightDelta >= 300)
                 {
-                    player.Layer = Layer.Underworld;
+                    Layer = Layer.Underworld;
                 }
                 else if (heightDelta >= 150)
                 {
-                    player.Layer = Layer.Underground;
+                    Layer = Layer.Underground;
                 }
                 else if (heightDelta >= 50)
                 {
-                    player.Layer = Layer.Caverns;
+                    Layer = Layer.Caverns;
                 }
                 else
                 {
-                    player.Layer = Layer.Surface;
+                    Layer = Layer.Surface;
                 }
 
                 // set if the player is in motion or not
@@ -195,51 +185,6 @@ namespace TileMaster.Entity
                 }
                 else isMoving = false;
             }
-        }
-
-        // checks whether 'rect' overlaps any occupied tile in the map.
-        // If a collision is found, returns true and outputs the tile coordinates (tileX, tileY) of the first colliding tile.
-        private bool IsRectCollidingWithMap(Rectangle rect, Map.Map map, out int tileX, out int tileY)
-        {
-            tileX = -1;
-            tileY = -1;
-
-            int leftTile = rect.Left / Global.TileSize;
-            int rightTile = (rect.Right - 1) / Global.TileSize;
-            int topTile = rect.Top / Global.TileSize;
-            int bottomTile = (rect.Bottom - 1) / Global.TileSize;
-
-            // clamp tile coordinates to map bounds
-            leftTile = MathHelper.Clamp(leftTile, 0, Global.MapWidth - 1);
-            rightTile = MathHelper.Clamp(rightTile, 0, Global.MapWidth - 1);
-            topTile = MathHelper.Clamp(topTile, 0, Global.MapHeight - 1);
-            bottomTile = MathHelper.Clamp(bottomTile, 0, Global.MapHeight - 1);
-
-            for (int y = topTile; y <= bottomTile; y++)
-            {
-                for (int x = leftTile; x <= rightTile; x++)
-                {
-                    // compute global tile index
-                    int idx = (y * Global.MapWidth) + x;
-                    // compute chunk id (1-based, same formula used elsewhere)
-                    int chunkX = x / Global.ChunkSize;
-                    int chunkY = y / Global.ChunkSize;
-                    int chunkId = 1 + (chunkY * (Global.MapWidth / Global.ChunkSize)) + chunkX;
-
-                    // ensure the chunk contains the block index and that it's occupied
-                    if (map.IsBlockOnChunk(chunkId, idx))
-                    {
-                        if (map.ChunkDictionary[chunkId].Tiles[idx].IsOccupied)
-                        {
-                            tileX = x;
-                            tileY = y;
-                            return true;
-                        }
-                    }
-                }
-            }
-
-            return false;
         }
 
         public void Input(GameTime gameTime, Player player, Map.Map map)

@@ -2,7 +2,7 @@ using System;
 using Microsoft.Xna.Framework;
 using System.Linq;
 
-namespace TileMaster.Entity
+namespace TileMaster.Entity.Tiles
 {
     [Serializable]
     public class BackgroundTile : Tile

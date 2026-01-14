@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace TileMaster.Entity
+namespace TileMaster.Entity.Tiles
 {
     public class BaseTile
     {

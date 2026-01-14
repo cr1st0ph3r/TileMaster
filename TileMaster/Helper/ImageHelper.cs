@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using TileMaster.Entity;
 using TileMaster.Entity.Enums;
+using TileMaster.Entity.Tiles;
+using TileMaster.Map;
 
 namespace TileMaster.Helper
 {
@@ -114,10 +115,13 @@ namespace TileMaster.Helper
                 var mapLookup = new Dictionary<int, CollisionTile>(width * height);
                 foreach (var chunk in chunkDict.Values)
                 {
-                    foreach (var kv in chunk.Tiles)
+                    foreach (var tile in chunk.Tiles)
                     {
-                        // kv.Key is expected to be the globalId (consistent with other code)
-                        mapLookup[kv.Key] = kv.Value;
+                        if (tile != null)
+                        {
+                            // Use globalId as key
+                            mapLookup[tile.GlobalId] = tile;
+                        }
                     }
                 }
 

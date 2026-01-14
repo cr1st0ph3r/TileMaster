@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using System.Collections.Generic;
-using TileMaster.Entity;
 using TileMaster.Entity.Enums;
+using TileMaster.Entity.Tiles;
 
 namespace TileMaster.Manager
 {
@@ -17,20 +17,22 @@ namespace TileMaster.Manager
         /// <summary>
         /// Gets all surrounding tiles and check whether they can have grass grown onto them
         /// </summary>
-        /// <param name="chunkId"></param>
+        /// <param name="chunkId">1-based chunk ID</param>
         public void GrowGrass(int chunkId)
         {
             var hasChanged = false;
+            var chunk = map.GetChunk(chunkId);
+            if (chunk == null || chunk.Tiles == null) return;
 
             // First phase: collect unique candidate tiles (don't mutate the map while collecting).
             var candidates = new Dictionary<int, Tile>(); // key = GlobalId to avoid duplicates across neighbors
 
-            foreach (var tile in map.ChunkDictionary[chunkId].Tiles.Where(x => x.Value.TileId == (int)TileType.DirtWithGrass).ToList())
+            foreach (var tile in chunk.Tiles.Where(x => x != null && x.TileId == (int)TileType.DirtWithGrass).ToList())
             {
-                var neighbors = map.tileInspector.GetNeighboringTiles(tile.Value);
+                var neighbors = map.tileInspector.GetNeighboringTiles(tile);
                 foreach (var neighbor in neighbors)
                 {
-                    if (neighbor == tile.Value)
+                    if (neighbor == tile)
                     {
                         //update the tile itself as well
                         UpdateSorceGrassTile(neighbor);
@@ -58,7 +60,7 @@ namespace TileMaster.Manager
             }
 
             // mark chunk if any change occurred           
-            map.ChunkDictionary[chunkId].NeedUpdate = hasChanged;
+            chunk.NeedUpdate = hasChanged;
         }
 
 

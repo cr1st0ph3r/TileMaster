@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
-using TileMaster.Entity;
 using TileMaster.Entity.Enums;
+using TileMaster.Entity.Tiles;
 
 namespace TileMaster.Map
 {

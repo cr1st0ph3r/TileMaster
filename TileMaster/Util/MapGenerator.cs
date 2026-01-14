@@ -26,7 +26,7 @@ namespace TileMaster.Util
 
             //create caves
             gameInstance._mainPanel.InitializeLoadProgress("Generating caves");
-            matrice = Noise.Noise.GenerateCaves(matrice, Global.RockLevel - 5, r.Next(100000000), 15, true, 10);
+            matrice = Noise.Noise.GenerateCaves(matrice, Global.RockLevel - 5, r.Next(100000000));
 
             //set layer to rock after certain depth
             matrice = setTilesAfterLayer(matrice, Global.RockLevel, 2);

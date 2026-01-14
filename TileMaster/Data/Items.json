@@ -1,0 +1,30 @@
+[
+  {
+    "Id": 0,
+    "Name": "Torch",
+    "TextureName": "Torch1",
+    "Description": "A basic torch that provides light.",
+    "IsPlaceable": true,
+    "IsLightSource": true,
+    "IsFlickeringLight": true,
+    "LightColorName": "Orange",
+    "LightIntensity": 1.0,
+    "LightRadius": 0
+  },
+  {
+    "Id": 1,
+    "Name": "Dirt",
+    "TextureName": "UIDirt",
+    "IsPlaceable": true,
+    "IsTile": true,
+    "TileId": 1
+  },
+  {
+    "Id": 2,
+    "Name": "Stone",
+    "TextureName": "UIStone",
+    "IsPlaceable": true,
+    "IsTile": true,
+    "TileId": 2
+  }
+]

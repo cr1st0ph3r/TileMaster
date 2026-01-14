@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Myra;
@@ -6,9 +7,12 @@ using Myra.Graphics2D.UI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using TileMaster.Entity;
 using TileMaster.Entity.Enums;
+using TileMaster.Entity.MobMovement;
+using TileMaster.Entity.Tiles;
 using TileMaster.Manager;
 using TileMaster.UI;
 using ButtonState = Microsoft.Xna.Framework.Input.ButtonState;
@@ -19,25 +23,24 @@ namespace TileMaster
     {
         public MainPanel _mainPanel;
         public static GameState _state;
-        private Desktop _desktop;
-        #region Variables
-        private static Game _game;
-        readonly GraphicsDeviceManager graphics;
-        SpriteBatch spriteBatch;
-        private Map.Map map;
-        private Player player;
         public static Camera camera;
-        private Point _lastFocusPoint;
-        private bool placedBlock = false;
-        private SpriteFont _debugFont;
         public int mouseIsOverBlock;
         public static readonly Random rnd = new(DateTime.Now.GetHashCode());
+        public event Action<int> ScrollWheelChanged;
+        #region Variables
+        private static Game _game;
+        private readonly GraphicsDeviceManager graphics;
+        private SpriteBatch spriteBatch;
+        private Map.Map map;
+        private Player player;
+        private SpriteFont _debugFont;
+        private Desktop _desktop;
         private MouseState current_mouse;
         private MouseState previous_mouse;
         private KeyboardState _lastKeyboardState;
-        public event Action<int> ScrollWheelChanged;
         private int cursorOnChunk = 0;
-        List<int> ChunksToUpdate;
+        private List<int> ChunksToUpdate;
+        private List<Mob> mobs;
 
         //TODO remover
         private int cursorGridX = 0;
@@ -48,6 +51,9 @@ namespace TileMaster
         const float TIMER5S = 5000;
         float timer2s = 1500;
         const float TIMER2S = 2500;
+        float timerLighting = 0;
+        const float TIMER_LIGHTING = 100; // 100ms periodic lighting update
+        bool lightingDirty = false; // Set to true when tiles are modified
 
 
         /// <summary>
@@ -77,8 +83,7 @@ namespace TileMaster
             //show or hide title bar
             Window.IsBorderless = true;
             Window.Position = new Point(50, 50);
-           
-
+            mobs = new List<Mob>();
         }
         public static void LogMessage(string message, Color? color, int timeout = 300)
         {
@@ -104,30 +109,13 @@ namespace TileMaster
             }
             map.mapManager.LoadMap();
 
-
-
             // INTEGRATION TEST: Place a torch
             try
             {
                 var testTile = map.GetTileAt(767, 120);
                 if (testTile != null)
-                {
-                    var torch = new Item
-                    {
-                        Name = "Torch",
-                        TextureName = "Items/Torch/Torch1",
-                        IsLightSource = true,
-                        LightIntensity = 1.0f,
-                        LightRadius = 5.0f,
-                        IsPlaceable = true
-                    };
-                    // Manually load texture for now as Item.InitializeTexture relies on TextureName
-                    // verifying content manager is available
-                    if (Content != null)
-                    {
-                        torch.Texture = Content.Load<Texture2D>(torch.TextureName);
-                    }
-
+                {                  
+                    var torch = Global.Items[(int)Items.Torch];
                     testTile.PlacedItem = torch;
                     Game.LogMessage("TEST: Placed Torch at (25,30)", Color.Yellow, 500);
                 }
@@ -159,7 +147,6 @@ namespace TileMaster
             camera = new Camera(GraphicsDevice.Viewport);
             _debugFont = Content.Load<SpriteFont>("Fonts/Font");
             Messages = new List<Misc.Message>();
-            Tile.Content = Content;
             ChunksToUpdate = new List<int>();
 
             backgroundManager = new BackgroundManager();
@@ -168,7 +155,7 @@ namespace TileMaster
 
             _desktop = new Desktop
             {
-               // HasExternalTextInput = true
+                // HasExternalTextInput = true
             };
             _mainPanel = new MainPanel();
 
@@ -179,7 +166,9 @@ namespace TileMaster
             player.Load(Content);
 
             //load tile data
-            Global.ReferenceTiles = CollisionTile.LoadTilesTypes();
+            Global.ReferenceTiles = CollisionTile.LoadTilesTypes(Content);
+            //load item data
+            Global.Items = Entity.Item.LoadItems(Content);
         }
 
         protected override void UnloadContent()
@@ -224,9 +213,15 @@ namespace TileMaster
                 cursorOnChunk = (1/*chunks are 1 based*/+ ((cursorChunkY * (Global.MapWidth / Global.ChunkSize)) + cursorChunkX));
 
                 //these actions should only be checked if the game windows is active
-                HandleMouseEvents();            
+                HandleMouseEvents();
                 //updates player
-                player.Update(gameTime, player, map);
+                player.Update(gameTime, map);
+                //update mobs
+                foreach (var mob in mobs)
+                {
+                    mob.Target = player; // Simple AI test: chase player
+                    mob.Update(gameTime, map);
+                }
                 // Update focus point for lighting optimization
                 map.FocusPoint = new Point((int)player.GetPosition().X / Global.TileSize, (int)player.GetPosition().Y / Global.TileSize);
 
@@ -243,9 +238,16 @@ namespace TileMaster
 
                     if (ChunksToUpdate.Any() == false)
                     {
-                        foreach (var chunk in map.ChunkDictionary.Where(x => x.Value.HasGrass && x.Value.NeedUpdate))
+                        if (map.Chunks != null)
                         {
-                            ChunksToUpdate.Add(chunk.Key);
+                            for (int i = 0; i < map.Chunks.Length; i++)
+                            {
+                                var chunk = map.Chunks[i];
+                                if (chunk != null && chunk.HasGrass && chunk.NeedUpdate)
+                                {
+                                    ChunksToUpdate.Add(i + 1); // 1-based chunkId
+                                }
+                            }
                         }
                         LogMessage("checking tiles for grass grow", Color.Red);
                     }
@@ -256,12 +258,15 @@ namespace TileMaster
                     CheckChunkForUpdates();
                 }
 
-                // Check if focus point changed to avoid redundant lighting updates
-                if (map.FocusPoint != _lastFocusPoint || placedBlock)
+                // Lighting update logic: 
+                // - Immediate update when a block is placed/removed (lightingDirty)
+                // - Periodic background update every 100ms to catch edge cases
+                timerLighting -= elapsed;
+                if (lightingDirty || timerLighting < 0)
                 {
-                    map.tileShadeMgr.UpdateLighting(map.FocusPoint);
-                    _lastFocusPoint = map.FocusPoint.Value;
-                    placedBlock = false;
+                    map.tileShadeMgr.UpdateLighting(gameTime, map.FocusPoint);
+                    timerLighting = TIMER_LIGHTING;
+                    lightingDirty = false;
                 }
 
                 map.UpdateModifiedTiles();
@@ -283,6 +288,10 @@ namespace TileMaster
                 map.Draw(spriteBatch, player.onChunk);
 
                 player.Draw(spriteBatch);
+            }
+            foreach (var mob in mobs)
+            {
+                mob.Draw(spriteBatch);
             }
 
             //Cursor info (mouse state is captured in Update)
@@ -367,7 +376,7 @@ namespace TileMaster
                         try
                         {
                             map.SetTile(cursorOnChunk, mouseIsOverBlock, _mainPanel.SelectedItem);
-                            placedBlock = true;
+                            lightingDirty = true;
                         }
                         catch
                         {
@@ -395,7 +404,7 @@ namespace TileMaster
                         if (map.IsBlockOnChunk(cursorOnChunk, mouseIsOverBlock))
                         {
                             map.SetTile(cursorOnChunk, mouseIsOverBlock, (int)TileType.Air);
-                            placedBlock = true;
+                            lightingDirty = true;
                         }
                         else
                         {
@@ -422,7 +431,7 @@ namespace TileMaster
 
             _lastKeyboardState = currentKeyboardState;
 
-        
+
         }
         public void GenericAction()
         {
@@ -473,10 +482,10 @@ namespace TileMaster
 
             if (IsActive)
             {
-                if (map.IsBlockOnChunk(cursorOnChunk, mouseIsOverBlock))
+                var block = map.GetTileAt(cursorGridX, cursorGridY);
+                if (block != null)
                 {
                     int referenceStart = 300;
-                    var block = map.ChunkDictionary[cursorOnChunk].Tiles[mouseIsOverBlock];
 
                     if (block.GlobalId == 20545)
                     {
@@ -544,11 +553,9 @@ namespace TileMaster
             {
                 // Run on main thread to avoid race conditions and crashes
                 map.grass.GrowGrass(player.onChunk);
-                // Lighting is handled in main loop on movement, but if grass grows/changes blocks, 
-                // we might need a lighting update. 
-                // However, GrowGrass usually just changes tiles. 
-                // Let's force a lighting update here just in case grass affects light (unlikely but safe).
-                map.tileShadeMgr.UpdateLighting(map.FocusPoint);
+                // Lighting is handled via dirty flag, but grass growth may affect light.
+                // Mark lighting dirty to update on next cycle.
+                lightingDirty = true;
                 ChunksToUpdate.Remove(player.onChunk);
                 LogMessage("Checking Chunk " + player.onChunk + " for grass growth", Color.Green, 180);
             }
@@ -572,9 +579,14 @@ namespace TileMaster
             {
                 ProcessAdd(commandParts.Skip(1).ToArray());
             }
-        }private void ProcessAdd(string[] commandParts)
+            if (commandParts[0] == "set")
+            {
+                ProcessSet(commandParts.Skip(1).ToArray());
+            }
+        }
+        private void ProcessAdd(string[] commandParts)
         {
-            if(commandParts.Length < 2)
+            if (commandParts.Length < 2)
             {
                 LogMessage("Usage: add <entity>", Color.Red);
                 return;
@@ -584,9 +596,57 @@ namespace TileMaster
             {
                 AddTile(commandParts.Skip(1).ToArray());
             }
-            if (commandParts[0] == "item")
+            else if (commandParts[0] == "item")
             {
                 AddItem(commandParts.Skip(1).ToArray());
+            }
+            else if (commandParts[0] == "mob")
+            {
+                AddMob(commandParts.Skip(1).ToArray());
+            }
+        }
+        private void ProcessSet(string[] commandParts)
+        {
+            if (commandParts.Length < 2)
+            {
+                LogMessage("Usage: set <entity>", Color.Red);
+                return;
+            }
+
+            if (commandParts[0] == "tile")
+            {
+                AddTile(commandParts.Skip(1).ToArray());
+            }
+        }
+        private void SetTile(string[] commandParts)
+        {
+            if (commandParts.Length < 4)
+            {
+                LogMessage("Usage: set tile <property> <tileId> <chunkId> <blockId>", Color.Red);
+                return;
+            }
+            if (commandParts[0] == "rotation")
+            {
+                RotateTlle(commandParts.Skip(1).ToArray());
+            }
+        }
+        private void RotateTlle(string[] commandParts)
+        {
+            if (commandParts.Length < 3)
+            {
+                LogMessage("Usage: set tile rotation <value> (<x>,<y>)", Color.Red);
+                return;
+            }
+            try
+            {
+                var coordinates = GetCoordinatesFromString(commandParts[1]);
+                var tile = map.GetTileAt(coordinates.Item1, coordinates.Item2);
+                var value = float.Parse(commandParts[0]);
+                tile.Rotation = MathHelper.ToRadians(value);
+            }
+            catch (Exception ex)
+            {
+                LogMessage("Error adding tile: " + ex.Message, Color.Red);
             }
         }
         private void AddTile(string[] commandParts)
@@ -601,7 +661,7 @@ namespace TileMaster
                 int tileId = int.Parse(commandParts[0]);
                 int chunkId = int.Parse(commandParts[1]);
                 int blockId = int.Parse(commandParts[2]);
-                
+
                 map.SetTile(chunkId, blockId, tileId);
                 LogMessage($"Added tile {tileId} at block {blockId} on chunk {chunkId}", Color.Green);
             }
@@ -621,46 +681,52 @@ namespace TileMaster
             try
             {
                 var item = commandParts[0];
+                var coordinates = GetCoordinatesFromString(commandParts[1]);
 
-                //extract x, y from string (format: x,y)
-                Match match = Regex.Match(commandParts[1], @"\((\d+),(\d+)\)");
-
-                if (match.Success)
+                var testTile = map.GetTileAt(coordinates.Item1, coordinates.Item2);
+                if (testTile != null)
                 {
-                    int x = int.Parse(match.Groups[1].Value);
-                    int y = int.Parse(match.Groups[2].Value);
-
-                    var testTile = map.GetTileAt(x,y);
-                    if (testTile != null)
-                    {
-                        var torch = new Item
-                        {
-                            Name = "Torch",
-                            TextureName = "Items/Torch/Torch1",
-                            IsLightSource = true,
-                            LightIntensity = 1.0f,
-                            LightRadius = 5.0f,
-                            IsPlaceable = true
-                        };
-                        // Manually load texture for now as Item.InitializeTexture relies on TextureName
-                        // verifying content manager is available
-                        if (Content != null)
-                        {
-                            torch.Texture = Content.Load<Texture2D>(torch.TextureName);
-                        }
-
-                        testTile.PlacedItem = torch;
-                        Game.LogMessage("TEST: Placed Torch at (25,30)", Color.Yellow, 500);
-                    }
+                    var torch = Global.Items[(int)Items.Torch];
+                    testTile.PlacedItem = torch;
+                    Game.LogMessage("TEST: Placed Torch at (25,30)", Color.Yellow, 500);
                 }
 
-              
+
+
             }
             catch (Exception ex)
             {
                 Game.LogMessage("TEST FAILED: " + ex.Message, Color.Red, 500);
             }
         }
-        #endregion
+
+        private void AddMob(string[] commandParts)
+        {
+            var mob = new Mob();
+            var coordinates = GetCoordinatesFromString(commandParts[1]);
+            Vector2 position = new Vector2(coordinates.Item1 * Global.TileSize, coordinates.Item2 * Global.TileSize);
+            mob.Load(Content, position, "Entities/Slime/Slime", 100, new Hop());
+            mobs.Add(mob);
+        }
+
+        (int, int) GetCoordinatesFromString(string coordinates)
+        {
+            if (coordinates == "cursor")
+            {
+                return (cursorGridX, cursorGridY);
+            }
+            //extract x, y from string (format: x,y)
+            Match match = Regex.Match(coordinates, @"\((\d+),(\d+)\)");
+
+            if (match.Success)
+            {
+                int x = int.Parse(match.Groups[1].Value);
+                int y = int.Parse(match.Groups[2].Value);
+                return (x, y);
+            }
+            return (0, 0);
+
+        }
     }
+    #endregion
 }

@@ -12,18 +12,24 @@ namespace TileMaster.Manager
         {
             this.map = map;
         }
-        // Global light map: [x, y] -> light level (0.0 to 1.0)
-        private float[,] lightMap;
+        // Global light map: [x, y] -> light level (Vector3 for RGB)
+        private Vector3[,] lightMap;
+        // Background light map: [x, y] -> light level (Vector3 for RGB) - only from artificial sources, with extended range
+        private Vector3[,] backgroundLightMap;
 
-        public void UpdateLighting(Point? center = null, int chunkRadius = 4)
+        public void UpdateLighting(GameTime gameTime, Point? center = null, int chunkRadius = 4)
         {
             int width = Global.MapWidth;
             int height = Global.MapHeight;
 
-            // Initialize light map if needed or resize
+            // Initialize light maps if needed or resize
             if (lightMap == null || lightMap.GetLength(0) != width || lightMap.GetLength(1) != height)
             {
-                lightMap = new float[width, height];
+                lightMap = new Vector3[width, height];
+            }
+            if (backgroundLightMap == null || backgroundLightMap.GetLength(0) != width || backgroundLightMap.GetLength(1) != height)
+            {
+                backgroundLightMap = new Vector3[width, height];
             }
 
             // Determine bounds
@@ -33,24 +39,17 @@ namespace TileMaster.Manager
             if (center.HasValue)
             {
                 // Calculate bounds based on chunk radius
-                // each chunk is Global.ChunkSize wide
                 int radiusInTiles = chunkRadius * Global.ChunkSize;
                 startX = Math.Max(0, center.Value.X - radiusInTiles);
                 endX = Math.Min(width, center.Value.X + radiusInTiles);
             }
             else
             {
-                // If no center is provided, we clear everything.
-                // If a center IS provided, we generally assume the existing lightMap has valid data elsewhere,
-                // so we only clear/update the affected strip.
-                // However, 'Array.Clear' is fast, but if we want to preserve other areas, we must iterate.
+                // If no center is provided, clear everything.
                 Array.Clear(lightMap, 0, lightMap.Length);
+                Array.Clear(backgroundLightMap, 0, backgroundLightMap.Length);
             }
 
-            // Correction: If we are doing a partial update, we should only clear the region we are updating.
-            // But 'Array.Clear' clears the whole thing.
-            // If we want to support 'partial updates' while keeping the rest of the world lit, 
-            // we should NOT clear the entire map if a center is provided.
             if (center.HasValue)
             {
                 // Clear only the affected vertical strip
@@ -58,7 +57,8 @@ namespace TileMaster.Manager
                 {
                     for (int y = 0; y < height; y++)
                     {
-                        lightMap[x, y] = 0f;
+                        lightMap[x, y] = Vector3.Zero;
+                        backgroundLightMap[x, y] = Vector3.Zero;
                     }
                 }
             }
@@ -67,7 +67,6 @@ namespace TileMaster.Manager
             var lightQueue = new Queue<Point>();
 
             // 1. Sunlight Pass (Vertical Rays)
-            // Iterate over restricted column range
             for (int x = startX; x < endX; x++)
             {
                 // Sunlight comes from top (y=0) down
@@ -75,67 +74,79 @@ namespace TileMaster.Manager
                 {
                     var tile = map.GetTileAt(x, y);
 
-                    // If tile is solid, sunlight stops here (but the tile itself gets lit if it's the first hit)
+                    // Sunlight is white
+                    lightMap[x, y] = Vector3.One;
+                    lightQueue.Enqueue(new Point(x, y));
+
+                    // If tile is solid, sunlight stops here
                     if (tile != null && tile.IsSolid)
                     {
-                        // Solid blocks exposed to sun get full light
-                        lightMap[x, y] = 1.0f;
-                        lightQueue.Enqueue(new Point(x, y));
                         break; // Stop vertical ray
                     }
-
-                    // Otherwise, it's air (or transparent), gets full sunlight
-                    lightMap[x, y] = 1.0f;
-                    lightQueue.Enqueue(new Point(x, y));
                 }
             }
 
             // 1.5. Item Light Sources Pass
-            // Iterate through valid chunks in the range
-            if (map.ChunkDictionary != null)
+            var backgroundLightQueue = new Queue<Point>();
+            if (map.Chunks != null)
             {
-                // Calculate chunk range based on startX and endX
                 int startChunkX = startX / Global.ChunkSize;
                 int endChunkX = (endX - 1) / Global.ChunkSize;
                 int chunksHeight = Global.MapHeight / Global.ChunkSize;
 
-                // We need to iterate over all relevant chunks that overlap the horizontal strip
-                // Chunks are 1-based in the dictionary according to Game.cs logic:
-                // cursorOnChunk = (1 + ((cursorChunkY * (Global.MapWidth / Global.ChunkSize)) + cursorChunkX));
-                
-                // Let's iterate vertically as well since the light calculation covers the full height
                 for (int cx = startChunkX; cx <= endChunkX; cx++)
                 {
                     for (int cy = 0; cy < chunksHeight; cy++)
                     {
-                         // Reconstruct chunk ID
-                         // NOTE: Game.cs formula was: 
-                         // cursorOnChunk = (1 + ((cursorChunkY * (MapWidth/ChunkSize)) + cursorChunkX));
-                         // We assume map width in chunks is (Global.MapWidth / Global.ChunkSize)
-                         int widthInChunks = Global.MapWidth / Global.ChunkSize;
-                         int chunkId = 1 + (cy * widthInChunks) + cx;
+                        int widthInChunks = Global.MapWidth / Global.ChunkSize;
+                        int chunkIndex = (cy * widthInChunks) + cx;
 
-                         if (map.ChunkDictionary.TryGetValue(chunkId, out var chunk))
-                         {
-                             if (chunk.Tiles != null)
-                             {
-                                 foreach (var tile in chunk.Tiles.Values)
-                                 {
-                                     // Double check X range just in case
-                                     if (tile.X < startX || tile.X >= endX) continue;
+                        if (chunkIndex >= 0 && chunkIndex < map.Chunks.Length)
+                        {
+                            var chunk = map.Chunks[chunkIndex];
+                            if (chunk != null && chunk.Tiles != null)
+                            {
+                                foreach (var tile in chunk.Tiles)
+                                {
+                                    if (tile == null) continue;
+                                    if (tile.X < startX || tile.X >= endX) continue;
 
-                                     if (tile.PlacedItem != null && tile.PlacedItem.IsLightSource)
-                                     {
-                                         float intensity = tile.PlacedItem.LightIntensity;
-                                         if (intensity > lightMap[tile.X, tile.Y])
-                                         {
-                                             lightMap[tile.X, tile.Y] = intensity;
-                                             lightQueue.Enqueue(new Point(tile.X, tile.Y));
-                                         }
-                                     }
-                                 }
-                             }
-                         }
+                                    if (tile.PlacedItem != null && tile.PlacedItem.IsLightSource)
+                                    {
+                                        Vector3 color = tile.PlacedItem.LightColor?.ToVector3() ?? Vector3.One;
+                                        float lightIntensity = tile.PlacedItem.LightIntensity;
+
+                                        if (tile.PlacedItem.IsFlickeringLight)
+                                        {
+                                            lightIntensity *= GetFlickerFactor(tile.X, tile.Y, gameTime.TotalGameTime.TotalSeconds);
+                                        }
+
+                                        Vector3 intensity = color * lightIntensity;
+
+                                        bool updated = false;
+                                        if (intensity.X > lightMap[tile.X, tile.Y].X) { lightMap[tile.X, tile.Y].X = intensity.X; updated = true; }
+                                        if (intensity.Y > lightMap[tile.X, tile.Y].Y) { lightMap[tile.X, tile.Y].Y = intensity.Y; updated = true; }
+                                        if (intensity.Z > lightMap[tile.X, tile.Y].Z) { lightMap[tile.X, tile.Y].Z = intensity.Z; updated = true; }
+
+                                        if (updated)
+                                        {
+                                            lightQueue.Enqueue(new Point(tile.X, tile.Y));
+                                        }
+
+                                        // Also seed background light map for artificial sources
+                                        bool bgUpdated = false;
+                                        if (intensity.X > backgroundLightMap[tile.X, tile.Y].X) { backgroundLightMap[tile.X, tile.Y].X = intensity.X; bgUpdated = true; }
+                                        if (intensity.Y > backgroundLightMap[tile.X, tile.Y].Y) { backgroundLightMap[tile.X, tile.Y].Y = intensity.Y; bgUpdated = true; }
+                                        if (intensity.Z > backgroundLightMap[tile.X, tile.Y].Z) { backgroundLightMap[tile.X, tile.Y].Z = intensity.Z; bgUpdated = true; }
+
+                                        if (bgUpdated)
+                                        {
+                                            backgroundLightQueue.Enqueue(new Point(tile.X, tile.Y));
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -144,9 +155,9 @@ namespace TileMaster.Manager
             while (lightQueue.Count > 0)
             {
                 var p = lightQueue.Dequeue();
-                float currentLight = lightMap[p.X, p.Y];
+                Vector3 currentLight = lightMap[p.X, p.Y];
 
-                if (currentLight <= 0.05f) continue;
+                if (currentLight.X <= 0.05f && currentLight.Y <= 0.05f && currentLight.Z <= 0.05f) continue;
 
                 var neighbors = new Point[]
                 {
@@ -158,36 +169,65 @@ namespace TileMaster.Manager
 
                 foreach (var n in neighbors)
                 {
-                    // Check bounds - constrain strictly to the update strip?
-                    // If we constrain strictly, light won't bleed out of the strip.
-                    // If we allow it to go out, we might be writing to areas we didn't clear/init logic for.
-                    // Ideally, we clamp 'n' to [startX, endX).
                     if (n.X < startX || n.X >= endX || n.Y < 0 || n.Y >= height) continue;
 
                     var neighborTile = map.GetTileAt(n.X, n.Y);
                     bool isSolid = (neighborTile != null && neighborTile.IsSolid);
 
-                    float decay = 0.1f;
-                    if (isSolid) decay = 0.4f;
+                    float decay = isSolid ? Global.LightDecayTiles : 0.1f;
+                    Vector3 potentialLight = currentLight - new Vector3(decay);
 
-                    float potentialLight = currentLight - decay;
+                    bool updated = false;
+                    if (potentialLight.X > lightMap[n.X, n.Y].X) { lightMap[n.X, n.Y].X = potentialLight.X; updated = true; }
+                    if (potentialLight.Y > lightMap[n.X, n.Y].Y) { lightMap[n.X, n.Y].Y = potentialLight.Y; updated = true; }
+                    if (potentialLight.Z > lightMap[n.X, n.Y].Z) { lightMap[n.X, n.Y].Z = potentialLight.Z; updated = true; }
 
-                    if (potentialLight > lightMap[n.X, n.Y])
+                    if (updated && !isSolid)
                     {
-                        lightMap[n.X, n.Y] = potentialLight;
+                        lightQueue.Enqueue(n);
+                    }
+                }
+            }
 
-                        if (!isSolid)
-                        {
-                            lightQueue.Enqueue(n);
-                        }
+            // 2.5. Background Light Propagation (Extended Range - 3x)
+            while (backgroundLightQueue.Count > 0)
+            {
+                var p = backgroundLightQueue.Dequeue();
+                Vector3 currentLight = backgroundLightMap[p.X, p.Y];
+
+                if (currentLight.X <= 0.02f && currentLight.Y <= 0.02f && currentLight.Z <= 0.02f) continue;
+
+                var neighbors = new Point[]
+                {
+                    new Point(p.X + 1, p.Y),
+                    new Point(p.X - 1, p.Y),
+                    new Point(p.X, p.Y + 1),
+                    new Point(p.X, p.Y - 1)
+                };
+
+                foreach (var n in neighbors)
+                {
+                    if (n.X < startX || n.X >= endX || n.Y < 0 || n.Y >= height) continue;
+
+                    var neighborTile = map.GetTileAt(n.X, n.Y);
+                    bool isSolid = (neighborTile != null && neighborTile.IsSolid);
+
+                    float decay = isSolid ? Global.LightDecayOnBackground : 0.033f;
+                    Vector3 potentialLight = currentLight - new Vector3(decay);
+
+                    bool updated = false;
+                    if (potentialLight.X > backgroundLightMap[n.X, n.Y].X) { backgroundLightMap[n.X, n.Y].X = potentialLight.X; updated = true; }
+                    if (potentialLight.Y > backgroundLightMap[n.X, n.Y].Y) { backgroundLightMap[n.X, n.Y].Y = potentialLight.Y; updated = true; }
+                    if (potentialLight.Z > backgroundLightMap[n.X, n.Y].Z) { backgroundLightMap[n.X, n.Y].Z = potentialLight.Z; updated = true; }
+
+                    if (updated)
+                    {
+                        backgroundLightQueue.Enqueue(n);
                     }
                 }
             }
 
             // 3. Apply Light to Tiles
-            // Only update tiles in the affected range
-            
-            // Calculate chunk range based on startX and endX (reusing logic if possible, or recalculating)
             int startCX = startX / Global.ChunkSize;
             int endCX = (endX - 1) / Global.ChunkSize;
             int hChunks = Global.MapHeight / Global.ChunkSize;
@@ -197,25 +237,65 @@ namespace TileMaster.Manager
             {
                 for (int cy = 0; cy < hChunks; cy++)
                 {
-                    int chunkId = 1 + (cy * wChunks) + cx;
+                    int chunkIndex = (cy * wChunks) + cx;
 
-                    if (map.ChunkDictionary.TryGetValue(chunkId, out var chunk))
+                    if (chunkIndex >= 0 && chunkIndex < map.Chunks.Length)
                     {
-                        if (chunk.Tiles != null)
+                        var chunk = map.Chunks[chunkIndex];
+                        if (chunk != null && chunk.Tiles != null)
                         {
-                            foreach (var tile in chunk.Tiles.Values)
+                            foreach (var tile in chunk.Tiles)
                             {
+                                if (tile == null) continue;
                                 if (tile.X < startX || tile.X >= endX) continue;
 
-                                float l = lightMap[tile.X, tile.Y];
-                                byte val = (byte)(l * 255);
-                                tile.SetColor(val, val, val, 255);
+                                Vector3 l = lightMap[tile.X, tile.Y];
+                                // Clamp to [0, 1]
+                                l.X = MathHelper.Clamp(l.X, 0, 1);
+                                l.Y = MathHelper.Clamp(l.Y, 0, 1);
+                                l.Z = MathHelper.Clamp(l.Z, 0, 1);
+
+                                tile.SetColor((byte)(l.X * 255), (byte)(l.Y * 255), (byte)(l.Z * 255), 255);
                             }
+
+                            if (chunk.BackgroundTiles != null)
+                            {
+                                foreach (var bgTile in chunk.BackgroundTiles)
+                                {
+                                    if (bgTile == null) continue;
+                                    if (bgTile.X < startX || bgTile.X >= endX) continue;
+
+                                    Vector3 bgLight = backgroundLightMap[bgTile.X, bgTile.Y];
+                                    // Dimmed version for background
+                                    bgLight *= 0.7f;
+
+                                    bgLight.X = MathHelper.Clamp(bgLight.X, 0, 1);
+                                    bgLight.Y = MathHelper.Clamp(bgLight.Y, 0, 1);
+                                    bgLight.Z = MathHelper.Clamp(bgLight.Z, 0, 1);
+
+                                    bgTile.SetColor((byte)(bgLight.X * 255), (byte)(bgLight.Y * 255), (byte)(bgLight.Z * 255), 255);
+                                }
+                            }
+
+                            chunk.NeedUpdate = false;
                         }
-                        chunk.NeedUpdate = false;
                     }
                 }
             }
-        }        
+        }
+
+        /// <summary>
+        /// Calculates a pseudo-random flicker factor based on position and time.
+        /// </summary>
+        private float GetFlickerFactor(int x, int y, double time)
+        {
+            // Use sin waves with different frequencies and offsets based on position
+            // to create a desynchronized natural flicker.
+            float baseFlicker = (float)(Math.Sin(time * 15.0 + (x * 0.5) + (y * 0.3)) * 0.05);
+            float noise = (float)(Math.Sin(time * 35.0 + (x * 12.3) + (y * 7.1)) * 0.02);
+            
+            // Result is roughly between 0.93 and 1.07
+            return 1.0f + baseFlicker + noise;
+        }
     }
 }

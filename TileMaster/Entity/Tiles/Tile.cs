@@ -1,11 +1,9 @@
-﻿
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Content;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 
-namespace TileMaster.Entity
+namespace TileMaster.Entity.Tiles
 {
     [Serializable]
     public abstract class Tile : BaseTile
@@ -34,8 +32,6 @@ namespace TileMaster.Entity
         /// </summary>
         public Color? ColorFilter { get; set; } = null;
      
-        public static ContentManager Content { get; set; }
-          
         public void Draw(SpriteBatch spriteBatch)
         {
             if (Texture != null)

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
 using TileMaster.Entity;
+using TileMaster.Entity.Tiles;
 
 namespace TileMaster
 {
@@ -9,7 +10,7 @@ namespace TileMaster
         /// <summary>
         /// Defines the size of each tile
         /// </summary>
-        public static readonly int TileSize = 16;
+        public static readonly int TileSize = 16;    
 
         /// <summary>
         /// Defines the size of each chunk
@@ -97,12 +98,24 @@ namespace TileMaster
         /// </summary>
         public static bool MarkTilesOnTheEdge = false;
 
+        /// <summary>
+        /// The light decay factor applied to tiles that are on background
+        /// </summary>
+        public static readonly float LightDecayOnBackground = 0.075f;
+
+        /// <summary>
+        /// The light decay factor applied to tiles that are on foreground
+        /// </summary>
+        public static readonly float LightDecayTiles = 0.02f;
+
         public static List<ReferenceTile> ReferenceTiles { get; set; } = new List<ReferenceTile>();
+        public static List<Item> Items { get; set; } = new List<Item>();
           
         public static bool UseAlternateTiles = true;
 
         //Files and folders locations
         public static readonly string ChunkFolderLocation = "Chunks";
         public static readonly string TileDataLocation = @"Data\Tiles.json";
+        public static readonly string ItemsDataLocation = @"Data\Items.json";
     }
 }

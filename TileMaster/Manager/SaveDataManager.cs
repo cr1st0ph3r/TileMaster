@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Text.Json;
-using TileMaster.Entity;
+using TileMaster.Entity.Tiles;
 using TileMaster.Map;
 
 namespace TileMaster.Manager
@@ -57,7 +57,7 @@ namespace TileMaster.Manager
                     }
 
                     // Save Background Tiles
-                    if (item.BackgroundTiles != null && item.BackgroundTiles.Count > 0)
+                    if (item.BackgroundTiles != null && item.BackgroundTiles.Length > 0)
                     {
                         var entryBg = archive.CreateEntry($"chunk{iii}_bg.json", CompressionLevel.SmallestSize);
                         using (var entryStreamBg = entryBg.Open())
