@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
+using TileMaster.Entity.Enums;
 
 namespace TileMaster.Manager
 {
@@ -17,7 +19,33 @@ namespace TileMaster.Manager
         // Background light map: [x, y] -> light level (Vector3 for RGB) - only from artificial sources, with extended range
         private Vector3[,] backgroundLightMap;
 
-        public void UpdateLighting(GameTime gameTime, Point? center = null, int chunkRadius = 4)
+        // Flag to indicate if a lighting update is currently in progress
+        public bool IsUpdating { get; private set; }
+
+        public void UpdateLightingAsync(GameTime gameTime, Layer currentLayer, Point? center = null, int chunkRadius = 4)
+        {
+            if (IsUpdating) return;
+
+            IsUpdating = true;
+            
+            // We capture necessary state to avoid thread issues if properties change
+            // gameTime.TotalGameTime is safe to read as it's a struct copy
+            double totalSeconds = gameTime.TotalGameTime.TotalSeconds;
+
+            Task.Run(() =>
+            {
+                try
+                {
+                    UpdateLightingInternal(totalSeconds, currentLayer, center, chunkRadius);
+                }
+                finally
+                {
+                    IsUpdating = false;
+                }
+            });
+        }
+
+        private void UpdateLightingInternal(double totalSeconds, Layer currentLayer, Point? center = null, int chunkRadius = 4)
         {
             int width = Global.MapWidth;
             int height = Global.MapHeight;
@@ -63,31 +91,77 @@ namespace TileMaster.Manager
                 }
             }
 
-            // Queue for light propagation
+            // Queues for light propagation
             var lightQueue = new Queue<Point>();
+            var backgroundLightQueue = new Queue<Point>();
 
             // 1. Sunlight Pass (Vertical Rays)
             for (int x = startX; x < endX; x++)
             {
+                float currentIntensity = 1.0f;
                 // Sunlight comes from top (y=0) down
                 for (int y = 0; y < height; y++)
                 {
                     var tile = map.GetTileAt(x, y);
 
-                    // Sunlight is white
-                    lightMap[x, y] = Vector3.One;
+                    // Sunlight is white, intensity reduces when passing through solid tiles
+                    lightMap[x, y] = new Vector3(currentIntensity);
                     lightQueue.Enqueue(new Point(x, y));
 
-                    // If tile is solid, sunlight stops here
+                    // Background light is also affected by sunlight
+                    backgroundLightMap[x, y] = new Vector3(currentIntensity);
+                    backgroundLightQueue.Enqueue(new Point(x, y));
+
+                    // If tile is solid, sunlight starts to fade
                     if (tile != null && tile.IsSolid)
                     {
-                        break; // Stop vertical ray
+                        currentIntensity -= 0.25f; 
+                    }
+
+                    // Stop when light is completely gone
+                    if (currentIntensity <= 0f)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            // 1.2. Background Holes Pass (Only in Surface Layer)
+            // RESTORED: This pass identifies "holes" in the background which let sky light through 
+            // as radial light sources when the player is on the surface.
+            if (currentLayer == Layer.Surface)
+            {
+                for (int x = startX; x < endX; x++)
+                {
+                    for (int y = 0; y < height; y++)
+                    {
+                        // A "hole" is where there is NO background tile
+                        var bgTile = map.GetBackgroundTileAt(x, y);
+
+                        // If there's no background tile, it's a hole to the sky
+                        if (bgTile == null || bgTile.TileId == 0)
+                        {
+                            // Background holes act as white light sources
+                            Vector3 holeIntensity = Vector3.One;
+
+                            // Seed light maps if this is brighter than current light
+                            if (holeIntensity.X > lightMap[x, y].X)
+                            {
+                                lightMap[x, y] = holeIntensity;
+                                lightQueue.Enqueue(new Point(x, y));
+                            }
+
+                            if (holeIntensity.X > backgroundLightMap[x, y].X)
+                            {
+                                backgroundLightMap[x, y] = holeIntensity;
+                                backgroundLightQueue.Enqueue(new Point(x, y));
+                            }
+                        }
                     }
                 }
             }
 
             // 1.5. Item Light Sources Pass
-            var backgroundLightQueue = new Queue<Point>();
             if (map.Chunks != null)
             {
                 int startChunkX = startX / Global.ChunkSize;
@@ -118,7 +192,7 @@ namespace TileMaster.Manager
 
                                         if (tile.PlacedItem.IsFlickeringLight)
                                         {
-                                            lightIntensity *= GetFlickerFactor(tile.X, tile.Y, gameTime.TotalGameTime.TotalSeconds);
+                                            lightIntensity *= GetFlickerFactor(tile.X, tile.Y, totalSeconds);
                                         }
 
                                         Vector3 intensity = color * lightIntensity;
@@ -291,9 +365,9 @@ namespace TileMaster.Manager
         {
             // Use sin waves with different frequencies and offsets based on position
             // to create a desynchronized natural flicker.
-            float baseFlicker = (float)(Math.Sin(time * 15.0 + (x * 0.5) + (y * 0.3)) * 0.05);
-            float noise = (float)(Math.Sin(time * 35.0 + (x * 12.3) + (y * 7.1)) * 0.02);
-            
+            float baseFlicker = (float)(Math.Sin(time * 7.5 + (x * 0.25) + (y * 0.15)) * 0.05);
+            float noise = (float)(Math.Sin(time * 17.5 + (x * 6.15) + (y * 3.55)) * 0.02);
+
             // Result is roughly between 0.93 and 1.07
             return 1.0f + baseFlicker + noise;
         }

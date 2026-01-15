@@ -24,7 +24,11 @@ namespace TileMaster.UI
             _loadMapButton.PressedChanged += _loadMapButton_PressedChanged;
             _saveMapButton.PressedChanged += _saveMapButton_PressedChanged;
             _openInventoryButton.PressedChanged += _openInventoryButton_PressedChanged;
-            _quitButton.PressedChanged += _quitButton_PressedChanged;
+            _quitButtonGameplay.PressedChanged += _quitButton_PressedChanged;
+
+            _startButton.Click += (s, e) => StartGame();
+            _quitButtonMenu.Click += (s, e) => _quitButton_PressedChanged(s, e);
+            _optionsButton.Click += (s, e) => Game.LogMessage("Options not implemented yet", Color.Yellow);
 
 
             _debugWindow.Closed += (s, a) =>
@@ -34,8 +38,30 @@ namespace TileMaster.UI
 
             inventoryWindow = new InventoryWindow();
 
-            //set the first action bar button as selected
-            ActionBarPanel.Widgets.First(x => x.Id == "ActionBarButton0").Background = new SolidBrush(CommonComponents.ButtonPressedColor);
+            BuildActionBar();
+
+  
+        }
+
+        public void UpdateState(Entity.Enums.GameState state)
+        {
+            if (state == Entity.Enums.GameState.Menu)
+            {
+                _menuContainer.Visible = true;
+                _gameUIContainer.Visible = false;
+                ActionBarPanel.Visible = false;
+            }
+            else if (state == Entity.Enums.GameState.Running)
+            {
+                _menuContainer.Visible = false;
+                _gameUIContainer.Visible = true;
+                ActionBarPanel.Visible = true;
+            }
+        }
+
+        private void StartGame()
+        {
+            LoadMap();
         }
         public void ShowWindows()
         {
@@ -56,7 +82,7 @@ namespace TileMaster.UI
             {
                 selectedIndex = 9;
             }
-            var button = ActionBarPanel.Widgets.FirstOrDefault(x => x.Id == "ActionBarButton" + selectedIndex) as ImageTextButton;
+            var button = ActionBarPanel.Widgets.FirstOrDefault(x => x.Id == "ActionBarButton" + selectedIndex) as Button;
             if (button != null)
             {
                 HandleActionBarPress(button);
@@ -70,6 +96,7 @@ namespace TileMaster.UI
             //run this heavy process on a task as not to block the UI
             var task = Task.Run(() => game.LoadMap());
             Game._state = GameState.Running;
+            UpdateState(GameState.Running);
             //when the task of loading the map is over, hide the progress bar
             task.ContinueWith(t => { game._mainPanel._loadMapProgressBar.Visible = false; });
         }
@@ -84,7 +111,7 @@ namespace TileMaster.UI
             //when the task of loading the map is over, hide the progress bar
             task.ContinueWith(t => { game._mainPanel._loadMapProgressBar.Visible = false; });
         }
-        public void HandleActionBarPress(ImageTextButton pressedButton)
+        public void HandleActionBarPress(Button pressedButton)
         {
             pressedButton.Background = new SolidBrush(CommonComponents.ButtonPressedColor);
             SelectedItem = pressedButton.MinHeight.Value;
@@ -146,7 +173,7 @@ namespace TileMaster.UI
 
         private void _actionBarButtonPress(object sender, EventArgs e)
         {
-            HandleActionBarPress(sender as ImageTextButton);
+            HandleActionBarPress(sender as Button);
         }
 
         private void _button1_PressedChanged(object sender, EventArgs e)

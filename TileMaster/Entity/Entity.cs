@@ -50,7 +50,7 @@ namespace TileMaster.Entity
 
         // checks whether 'rect' overlaps any occupied tile in the map.
         // If a collision is found, returns true and outputs the tile coordinates (tileX, tileY) of the first colliding tile.
-        internal bool IsRectCollidingWithMap(Rectangle rect, Map.Map map, out int tileX, out int tileY)
+        internal bool IsRectCollidingWithMap(Rectangle rect, Map.Map map, out int tileX, out int tileY, bool findRightmost = false, bool findBottommost = false)
         {
             tileX = -1;
             tileY = -1;
@@ -66,6 +66,15 @@ namespace TileMaster.Entity
             topTile = MathHelper.Clamp(topTile, 0, Global.MapHeight - 1);
             bottomTile = MathHelper.Clamp(bottomTile, 0, Global.MapHeight - 1);
 
+            bool found = false;
+
+            // If we need to find the rightmost or bottommost, we should iterate in reverse order
+            // or just keep updating tileX/tileY if a later one is found.
+            // Iterating in standard order (top to bottom, left to right) means the FIRST found
+            // is the topmost/leftmost. 
+            // If findRightmost is true, we want the largest X.
+            // If findBottommost is true, we want the largest Y.
+
             for (int y = topTile; y <= bottomTile; y++)
             {
                 for (int x = leftTile; x <= rightTile; x++)
@@ -74,14 +83,34 @@ namespace TileMaster.Entity
                     var tile = map.GetTileAt(x, y);
                     if (tile != null && tile.IsOccupied)
                     {
-                        tileX = x;
-                        tileY = y;
-                        return true;
+                        if (!found)
+                        {
+                            tileX = x;
+                            tileY = y;
+                            found = true;
+                        }
+                        else
+                        {
+                            // if we already found one, update if these match the search criteria
+                            if (findRightmost && x > tileX)
+                            {
+                                tileX = x;
+                                tileY = y;
+                            }
+                            if (findBottommost && y > tileY)
+                            {
+                                tileY = y;
+                                tileX = x;
+                            }
+                        }
+                        
+                        // if we aren't looking for specific ones, we can exit early
+                        if (!findRightmost && !findBottommost) return true;
                     }
                 }
             }
 
-            return false;
+            return found;
         }
 
         public void UpdateGridPosition()

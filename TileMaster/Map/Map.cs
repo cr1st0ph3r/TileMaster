@@ -192,7 +192,7 @@ namespace TileMaster.Map
 
         public bool CheckIfMapDataExists()
         {
-            return File.Exists($"{Global.ChunkFolderLocation}/map.tlm");
+            return File.Exists($"{Global.SaveDataFolderName}/map.tlm");
         }
 
         #region Modify Tiles

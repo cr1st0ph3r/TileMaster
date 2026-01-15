@@ -17,13 +17,13 @@ namespace TileMaster.Manager
         /// </summary>
         public static void SaveGame(WorldData worldData, Dictionary<int, Chunk> chunks)
         {
-            if (Directory.Exists(Global.ChunkFolderLocation) == false)
+            if (Directory.Exists(Global.SaveDataFolderName) == false)
             {
-                Directory.CreateDirectory(Global.ChunkFolderLocation);
+                Directory.CreateDirectory(Global.SaveDataFolderName);
             }
 
             // remove existing single-archive if present
-            var archivePath = Path.Combine(Global.ChunkFolderLocation, "map.tlm");
+            var archivePath = Path.Combine(Global.SaveDataFolderName, "map.tlm");
             if (File.Exists(archivePath))
             {
                 File.Delete(archivePath);
@@ -81,7 +81,7 @@ namespace TileMaster.Manager
             var gameInstance = Game.GetInstance();
             var data = new WorldData();
             var options = new JsonSerializerOptions { IncludeFields = true };
-            var archivePath = Path.Combine(Global.ChunkFolderLocation, "map.tlm");
+            var archivePath = Path.Combine(Global.SaveDataFolderName, "map.tlm");
 
             gameInstance._mainPanel.InitializeLoadProgress("Reading save file");
             if (File.Exists(archivePath)) 

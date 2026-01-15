@@ -1,9 +1,10 @@
-using Myra.Graphics2D;
-using Myra;
-using Myra.Graphics2D.UI;
-using TileMaster.Entity;
-using Myra.Graphics2D.Brushes;
 using AssetManagementBase;
+using Myra;
+using Myra.Graphics2D;
+using Myra.Graphics2D.Brushes;
+using Myra.Graphics2D.UI;
+using System.Linq;
+using TileMaster.Entity;
 
 namespace TileMaster.UI
 {
@@ -11,21 +12,19 @@ namespace TileMaster.UI
     {
         private void BuildUI()
         {
-            BuildActionBar();
+            _gameUIContainer = new Panel();
+            _gameUIContainer.Visible = false;
 
-            _debugButton = new TextButton();
-            _debugButton.Text = "Debug";
-            _debugButton.Toggleable = true;
-            _debugButton.Id = "_button1";       
+            _debugButton = new ToggleButton();
+            _debugButton.Content = new Label { Text = "Debug" };
+            _debugButton.Id = "_button1";
 
-            _loadMapButton = new TextButton();
-            _loadMapButton.Text = "Load Map";
-            _loadMapButton.Toggleable = true;
+            _loadMapButton = new ToggleButton();
+            _loadMapButton.Content = new Label { Text = "Load Map" };
             _loadMapButton.Id = "_button4";
 
-            _saveMapButton = new TextButton();
-            _saveMapButton.Text = "Save Map";
-            _saveMapButton.Toggleable = true;
+            _saveMapButton = new ToggleButton();
+            _saveMapButton.Content = new Label { Text = "Save Map" };
             _saveMapButton.Id = "_button5";
 
             _openInventoryButton = new ToggleButton();
@@ -34,10 +33,9 @@ namespace TileMaster.UI
             _openInventoryButton.Content = _openInventoryButtonLabel;
             _openInventoryButton.Id = "_openInventoryButton";
 
-            _quitButton = new TextButton();
-            _quitButton.Text = "Quit";
-            _quitButton.Toggleable = true;
-            _quitButton.Id = "_button1";
+            _quitButtonGameplay = new ToggleButton();
+            _quitButtonGameplay.Content = new Label { Text = "Quit" };
+            _quitButtonGameplay.Id = "_buttonQuitGameplay";
 
             CommandBox = new TextBox();
             CommandBox.Visible = false;
@@ -53,12 +51,11 @@ namespace TileMaster.UI
                     {
                         ProccessCommand(input);
                     }
-
                 }
             };
 
             //progres bar
-            _loadMapProgressBar = new HorizontalProgressBar();   
+            _loadMapProgressBar = new HorizontalProgressBar();
             Grid.SetColumn(_loadMapProgressBar, 2);
             _loadMapProgressBar.Visible = false;
             _loadMapProgressBar.Id = "_horizontalProgressBar";
@@ -79,18 +76,62 @@ namespace TileMaster.UI
             horizontalStackPanel1.Widgets.Add(_loadMapButton);
             horizontalStackPanel1.Widgets.Add(_saveMapButton);
             horizontalStackPanel1.Widgets.Add(_openInventoryButton);
-            horizontalStackPanel1.Widgets.Add(_quitButton);
+            horizontalStackPanel1.Widgets.Add(_quitButtonGameplay);
 
             _labelOverGui = new Label();
             _labelOverGui.Text = "Is mouse over GUI: true";
             _labelOverGui.VerticalAlignment = Myra.Graphics2D.UI.VerticalAlignment.Bottom;
             _labelOverGui.Id = "_labelOverGui";
 
-            Widgets.Add(horizontalStackPanel1);
-            Widgets.Add(_loadMapProgressBar);
-            Widgets.Add(_progreessLabel);
-            Widgets.Add(_labelOverGui);
-            Widgets.Add(CommandBox);
+            _gameUIContainer.Widgets.Add(horizontalStackPanel1);
+            _gameUIContainer.Widgets.Add(_loadMapProgressBar);
+            _gameUIContainer.Widgets.Add(_progreessLabel);
+            _gameUIContainer.Widgets.Add(_labelOverGui);
+            _gameUIContainer.Widgets.Add(CommandBox);
+
+            // Menu UI
+            _menuContainer = new VerticalStackPanel();
+            _menuContainer.Spacing = 15;
+            _menuContainer.HorizontalAlignment = HorizontalAlignment.Center;
+            _menuContainer.VerticalAlignment = VerticalAlignment.Center;
+            _menuContainer.Width = 300;
+
+            _startButton = new Button
+            {
+                Id = "StartButton",
+                Content = new Label { Text = "START" },
+                Padding = new Thickness(10, 20),
+                Background = new SolidBrush("#3a3a3a"),
+                OverBackground = new SolidBrush("#4a4a4a"),
+                PressedBackground = new SolidBrush("#cf5c15")
+            };
+
+            _optionsButton = new Button
+            {
+                Id = "OptionsButton",
+                Content = new Label { Text = "OPTIONS"},
+                Padding = new Thickness(10, 20),
+                Background = new SolidBrush("#3a3a3a"),
+                OverBackground = new SolidBrush("#4a4a4a"),
+                PressedBackground = new SolidBrush("#cf5c15")
+            };
+
+            _quitButtonMenu = new Button
+            {
+                Id = "QuitButton",
+                Content = new Label { Text = "QUIT" },
+                Padding = new Thickness(10, 20),
+                Background = new SolidBrush("#3a3a3a"),
+                OverBackground = new SolidBrush("#4a4a4a"),
+                PressedBackground = new SolidBrush("#cf5c15")
+            };
+
+            _menuContainer.Widgets.Add(_startButton);
+            _menuContainer.Widgets.Add(_optionsButton);
+            _menuContainer.Widgets.Add(_quitButtonMenu);
+
+            Widgets.Add(_gameUIContainer);
+            Widgets.Add(_menuContainer);
         }
 
         void BuildActionBar()
@@ -105,23 +146,36 @@ namespace TileMaster.UI
             int buttonWidth = 40;
             for (int i = 0; i < 10; i++)
             {
-                var butt = new ImageTextButton();             
+                var butt = new Button();             
                 butt.Id = "ActionBarButton" + i;
-                butt.Text = "99";
-                butt.TextPosition = ImageTextButton.TextPositionEnum.OverlapsImage;
+                
+                var panel = new Panel();
+                var image = new Image();
+                image.Id = "Image";
+                panel.Widgets.Add(image);
+                
+                var label = new Label();
+                label.Text = "99";
+                label.TextAlign = FontStashSharp.RichText.TextHorizontalAlignment.Center;
+                label.VerticalAlignment = VerticalAlignment.Center;
+                label.HorizontalAlignment = HorizontalAlignment.Center;
+                label.Id = "Label";
+                panel.Widgets.Add(label);
+
+                butt.Content = panel;
                 butt.Width = buttonWidth;
                 butt.Padding = new Thickness(5, 5);
                 butt.PressedChanged += _actionBarButtonPress;
                 butt.Background = new SolidBrush(CommonComponents.ActionBarButtonColor);
                 if (i % 2 == 0)
                 {
-                    butt.Image = MyraEnvironment.DefaultAssetManager.LoadTextureRegion("content/UI/UIStone.png");
+                    image.Renderable = MyraEnvironment.DefaultAssetManager.LoadTextureRegion("content/UI/UIStone.png");
                     butt.MinHeight = 2;
                 }
 
                 else
                 {
-                    butt.Image = MyraEnvironment.DefaultAssetManager.LoadTextureRegion("content/UI/UIDirt.png");
+                    image.Renderable = MyraEnvironment.DefaultAssetManager.LoadTextureRegion("content/UI/UIDirt.png");
                     butt.MinHeight = 1;
                 }
 
@@ -133,13 +187,23 @@ namespace TileMaster.UI
                 ActionBarPanel.Widgets.Add(butt);
             }
             Widgets.Add(ActionBarPanel);
+
+            //set the first action bar button as selected
+            ActionBarPanel.Widgets.First(x => x.Id == "ActionBarButton0").Background = new SolidBrush(CommonComponents.ButtonPressedColor);
+            
+            ActionBarPanel.Visible = false;
         }
 
-        public TextButton _debugButton;  
-        public TextButton _loadMapButton;
-        public TextButton _saveMapButton;
+        public ToggleButton _debugButton;  
+        public ToggleButton _loadMapButton;
+        public ToggleButton _saveMapButton;
         public static ToggleButton _openInventoryButton;
-        public TextButton _quitButton;
+        public ToggleButton _quitButtonGameplay;
+        public Button _startButton;
+        public Button _optionsButton;
+        public Button _quitButtonMenu;
+        public Panel _gameUIContainer;
+        public VerticalStackPanel _menuContainer;
         public Label _progreessLabel;
         public Label _labelOverGui;
         public HorizontalProgressBar _loadMapProgressBar;

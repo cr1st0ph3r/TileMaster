@@ -41,6 +41,9 @@ namespace TileMaster
         private int cursorOnChunk = 0;
         private List<int> ChunksToUpdate;
         private List<Mob> mobs;
+        private Texture2D mainMenuBackground;
+        private float _mainMenuScrollOffset = 0f;
+        private const float MainMenuScrollSpeed = 20f; // Pixels per second
 
         //TODO remover
         private int cursorGridX = 0;
@@ -165,6 +168,8 @@ namespace TileMaster
 
             player.Load(Content);
 
+            mainMenuBackground = Content.Load<Texture2D>("UI/MainMenuBackground");
+
             //load tile data
             Global.ReferenceTiles = CollisionTile.LoadTilesTypes(Content);
             //load item data
@@ -183,6 +188,15 @@ namespace TileMaster
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
+            if (_state == GameState.Menu)
+            {
+                _mainMenuScrollOffset += MainMenuScrollSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds;
+                if (mainMenuBackground != null)
+                {
+                    _mainMenuScrollOffset %= mainMenuBackground.Width;
+                }
+            }
+
             // Capture mouse state at start of Update so input handling is consistent
             previous_mouse = current_mouse;
             current_mouse = Mouse.GetState();
@@ -264,9 +278,12 @@ namespace TileMaster
                 timerLighting -= elapsed;
                 if (lightingDirty || timerLighting < 0)
                 {
-                    map.tileShadeMgr.UpdateLighting(gameTime, map.FocusPoint);
-                    timerLighting = TIMER_LIGHTING;
-                    lightingDirty = false;
+                    if (!map.tileShadeMgr.IsUpdating)
+                    {
+                        map.tileShadeMgr.UpdateLightingAsync(gameTime, player.Layer, map.FocusPoint);
+                        timerLighting = TIMER_LIGHTING;
+                        lightingDirty = false;
+                    }
                 }
 
                 map.UpdateModifiedTiles();
@@ -279,47 +296,65 @@ namespace TileMaster
         {
             GraphicsDevice.Clear(Color.Black);
 
-            spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, null, null, null, null, camera.Transform);
-
-            backgroundManager.Draw(gameTime, spriteBatch);
-
-            if (_state == GameState.Running && Global.IsMapLoaded)
+            if (_state == GameState.Menu)
             {
-                map.Draw(spriteBatch, player.onChunk);
-
-                player.Draw(spriteBatch);
+                spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearWrap, null, null);
+                
+                // Draw the background using a source rectangle that is offset by _mainMenuScrollOffset.
+                // SamplerState.LinearWrap will handle the tiling.
+                Rectangle destinationRectangle = new Rectangle(0, 0, graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight);
+                Rectangle sourceRectangle = new Rectangle((int)_mainMenuScrollOffset, 0, mainMenuBackground.Width, mainMenuBackground.Height);
+                
+                // If the destination is larger than the source, we might want to scale it or tile it.
+                // Given the original code used a destination rectangle of screen size, I'll keep that.
+                spriteBatch.Draw(mainMenuBackground, destinationRectangle, sourceRectangle, Color.White);
+                
+                spriteBatch.End();
             }
-            foreach (var mob in mobs)
+            else
             {
-                mob.Draw(spriteBatch);
-            }
+                spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, null, null, null, null, camera.Transform);
 
-            //Cursor info (mouse state is captured in Update)
-            Global.CursorX = current_mouse.Position.X;
-            Global.CursorY = current_mouse.Position.Y;
+                backgroundManager.Draw(gameTime, spriteBatch);
 
-            if (Global.isDebugging)
-            {
-                WriteDebugInformation();
-            }
-
-            //messages
-            foreach (var mess in Messages.ToList())
-            {
-                if (mess.Timeout > 0)
+                if (_state == GameState.Running && Global.IsMapLoaded)
                 {
-                    DrawWithShadow(mess.Text, new Vector2(camera.Center.X - (((Global.WindowWidth / 2) - 20)), camera.Center.Y + ((Global.WindowHeight / 2) - 40) - (mess.Id * 20)), mess.Color);
-                    mess.Timeout--;
-                }
-                else
-                {
-                    Messages.Remove(mess);
-                }
-            }
+                    map.Draw(spriteBatch, player.onChunk);
 
-            Global.FrameRate = (Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)).ToString();
-            _mainPanel.UpdateFPS((int)(Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)));
-            spriteBatch.End();
+                    player.Draw(spriteBatch);
+                }
+                foreach (var mob in mobs)
+                {
+                    mob.Draw(spriteBatch);
+                }
+
+                //Cursor info (mouse state is captured in Update)
+                Global.CursorX = current_mouse.Position.X;
+                Global.CursorY = current_mouse.Position.Y;
+
+                if (Global.isDebugging)
+                {
+                    WriteDebugInformation();
+                }
+
+                //messages
+                foreach (var mess in Messages.ToList())
+                {
+                    if (mess.Timeout > 0)
+                    {
+                        DrawWithShadow(mess.Text, new Vector2(camera.Center.X - (((Global.WindowWidth / 2) - 20)), camera.Center.Y + ((Global.WindowHeight / 2) - 40) - (mess.Id * 20)), mess.Color);
+                        mess.Timeout--;
+                    }
+                    else
+                    {
+                        Messages.Remove(mess);
+                    }
+                }
+
+                Global.FrameRate = (Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)).ToString();
+                _mainPanel.UpdateFPS((int)(Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)));
+                spriteBatch.End();
+            }
             base.Draw(gameTime);
             _desktop.Render();
         }

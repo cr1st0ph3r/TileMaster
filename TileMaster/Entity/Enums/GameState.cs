@@ -3,6 +3,7 @@
     public enum GameState
     {
         Menu,
-        Running
+        Running,
+        Paused
     }
 }

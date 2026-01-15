@@ -28,17 +28,12 @@ namespace TileMaster.Util
             gameInstance._mainPanel.InitializeLoadProgress("Generating caves");
             matrice = Noise.Noise.GenerateCaves(matrice, Global.RockLevel - 5, r.Next(100000000));
 
-            //set layer to rock after certain depth
-            matrice = setTilesAfterLayer(matrice, Global.RockLevel, 2);
+            // Generate rock layer with natural transition
+            gameInstance._mainPanel.InitializeLoadProgress("Generating rock layer");
+            matrice = GenerateRockLayer(matrice, Global.RockLevel);
+
             //adds granite
             matrice = SpreadTile(matrice, Global.RockLevel + 5, 0.01F, 4, 1, 10);
-            //layer blending
-            gameInstance._mainPanel.InitializeLoadProgress("Blending layers");
-            matrice = randomizeLayer(matrice, (Global.RockLevel - 2), new int[4] { 1, 2, 1, 1 });
-            matrice = randomizeLayer(matrice, (Global.RockLevel - 1), new int[3] { 1, 2, 1 });
-            matrice = randomizeLayer(matrice, Global.RockLevel,       new int[2] { 1, 2 });
-            matrice = randomizeLayer(matrice, (Global.RockLevel + 1), new int[3] { 1, 2, 2 });
-            matrice = randomizeLayer(matrice, (Global.RockLevel + 2), new int[4] { 1, 2, 2, 2 });
             //plant gras on surface
             gameInstance._mainPanel.InitializeLoadProgress("Planting grass");
             matrice = plantGrass(matrice);
@@ -51,7 +46,7 @@ namespace TileMaster.Util
         private static int[,] plantGrass(int[,] matrice)
         {
             int grassRange = 5;
-            for (int x = 0; x < matrice.GetLength(1); x++)
+            for (int x = 0; x < matrice.GetLength(0); x++)
             {
                 for (int y = Global.GroundLevel - grassRange; y < Global.GroundLevel + grassRange; y++)
                 {
@@ -71,27 +66,57 @@ namespace TileMaster.Util
 
             return matrice;
         }
-        private static int[,] randomizeLayer(int[,] matrice, int layer, int[] values)
+
+        private static int[,] GenerateRockLayer(int[,] matrice, int baseLevel)
         {
+            int width = matrice.GetLength(0);
+            int height = matrice.GetLength(1);
             Random r = new Random();
-            for (int x = 0; x < matrice.GetLength(1); x++)
+
+            // Generate a noise profile for the rock boundary
+            // We use a simple 1D value noise approach
+            int sampleRate = 16; // Sample noise every 16 blocks
+            float[] noiseSamples = new float[(width / sampleRate) + 2];
+            
+            for (int i = 0; i < noiseSamples.Length; i++)
             {
-                if (matrice[x, layer] > 0)
-                {
-                    matrice[x, layer] = values[r.Next(0, values.Length)];
-                }
+                noiseSamples[i] = (float)(r.NextDouble() * 2.0 - 1.0); // Range -1 to 1
             }
-            return matrice;
-        }
-        private static int[,] setTilesAfterLayer(int[,] matrice, int layer, int material)
-        {
-            for (int xx = 0; xx < matrice.GetLength(0); xx++)
+
+            for (int x = 0; x < width; x++)
             {
-                for (int yy = layer; yy < matrice.GetLength(1); yy++)
+                // Interpolate noise
+                int sampleIndex = x / sampleRate;
+                float t = (float)(x % sampleRate) / sampleRate;
+                
+                // Smoothstep interpolation: t * t * (3 - 2 * t)
+                float smoothT = t * t * (3 - 2 * t);
+                float noiseVal = noiseSamples[sampleIndex] * (1 - smoothT) + noiseSamples[sampleIndex + 1] * smoothT;
+
+                // Calculate the transition height for this column (Amplitude of 6 blocks)
+                int transitionY = baseLevel + (int)(noiseVal * 6);
+
+                for (int y = 0; y < height; y++)
                 {
-                    if (matrice[xx, yy] > 0)
+                    // Skip air (caves, surface)
+                    if (matrice[x, y] == (int)TileType.Air) continue;
+
+                    // Determine if this should be stone based on depth relative to transitionY
+                    // We create a dithering zone of +/- 3 blocks around the transitionY
+                    if (y > transitionY + 3)
                     {
-                        matrice[xx, yy] = material;
+                        matrice[x, y] = (int)TileType.Stone;
+                    }
+                    else if (y >= transitionY - 3)
+                    {
+                        // In the transition zone, blend based on probability
+                        float depthInZone = y - (transitionY - 3);
+                        float probability = depthInZone / 6.0f; // 0.0 to 1.0
+                        
+                        if (r.NextDouble() < probability)
+                        {
+                            matrice[x, y] = (int)TileType.Stone;
+                        }
                     }
                 }
             }

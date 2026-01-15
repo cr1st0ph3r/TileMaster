@@ -73,7 +73,7 @@ namespace TileMaster.Entity.MobMovement
             float newX = position.X + mob.velocity.X * dt;
             Rectangle testRectX = new Rectangle((int)newX, (int)position.Y, rectangle.Width, rectangle.Height);
 
-            if (mob.IsRectCollidingWithMap(testRectX, map, out int hitTileX, out int hitTileY))
+            if (mob.IsRectCollidingWithMap(testRectX, map, out int hitTileX, out int hitTileY, findRightmost: mob.velocity.X < 0))
             {
                 // collided on X axis: clamp/stop
                 if (mob.velocity.X > 0)
@@ -107,7 +107,7 @@ namespace TileMaster.Entity.MobMovement
             float newY = position.Y + mob.velocity.Y * dt;
             Rectangle testRectY = new Rectangle((int)position.X, (int)newY, rectangle.Width, rectangle.Height);
 
-            if (mob.IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY))
+            if (mob.IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBottommost: mob.velocity.Y < 0))
             {
                 if (mob.velocity.Y > 0)
                 {

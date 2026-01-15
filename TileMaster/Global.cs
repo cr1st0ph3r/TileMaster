@@ -106,7 +106,7 @@ namespace TileMaster
         /// <summary>
         /// The light decay factor applied to tiles that are on foreground
         /// </summary>
-        public static readonly float LightDecayTiles = 0.02f;
+        public static readonly float LightDecayTiles = 0.25f;
 
         public static List<ReferenceTile> ReferenceTiles { get; set; } = new List<ReferenceTile>();
         public static List<Item> Items { get; set; } = new List<Item>();
@@ -114,7 +114,7 @@ namespace TileMaster
         public static bool UseAlternateTiles = true;
 
         //Files and folders locations
-        public static readonly string ChunkFolderLocation = "Chunks";
+        public static readonly string SaveDataFolderName = "SaveData";
         public static readonly string TileDataLocation = @"Data\Tiles.json";
         public static readonly string ItemsDataLocation = @"Data\Items.json";
     }

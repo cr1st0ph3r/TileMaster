@@ -66,7 +66,7 @@ namespace TileMaster.Entity
                 float newX = position.X + velocity.X * dt;
                 Rectangle testRectX = new Rectangle((int)newX, (int)position.Y, texture.Width, texture.Height);
 
-                if (IsRectCollidingWithMap(testRectX, map, out int hitTileX, out int hitTileY))
+                if (IsRectCollidingWithMap(testRectX, map, out int hitTileX, out int hitTileY, findRightmost: velocity.X < 0))
                 {
                     // collided on X axis: clamp to tile edge and stop horizontal velocity
                     if (velocity.X > 0)
@@ -90,7 +90,7 @@ namespace TileMaster.Entity
                 float newY = position.Y + velocity.Y * dt;
                 Rectangle testRectY = new Rectangle((int)position.X, (int)newY, texture.Width, texture.Height);
 
-                if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY))
+                if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBottommost: velocity.Y < 0))
                 {
                     // collided on Y axis: clamp and stop vertical velocity
                     if (velocity.Y > 0)
