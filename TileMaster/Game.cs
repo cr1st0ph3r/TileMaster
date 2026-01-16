@@ -141,7 +141,17 @@ namespace TileMaster
             map = new Map.Map();
             player = new Player();
             IsMouseVisible = true;
+            this.Exiting += OnGameExiting;
             base.Initialize();
+        }
+
+        private void OnGameExiting(object sender, EventArgs e)
+        {
+             if (map != null && map.mapManager != null)
+            {
+                System.Diagnostics.Debug.WriteLine("Saving map before exit...");
+                map.mapManager.SaveMap();
+            }
         }
 
         protected override void LoadContent()
@@ -182,6 +192,8 @@ namespace TileMaster
         {
             // TODO: Unload any non ContentManager content here
         }
+
+
 
         /// <summary>
         /// Allows the game to run logic such as updating the world,

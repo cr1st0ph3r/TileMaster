@@ -207,6 +207,7 @@ namespace TileMaster.Map
                 if (chunk.Tiles[i] != null && chunk.Tiles[i].GlobalId == blockId)
                 {
                     SetTile(chunk.Tiles[i], referenceTileId);
+                    chunk.HasBeenModified = true;
                     return;
                 }
             }
@@ -231,7 +232,11 @@ namespace TileMaster.Map
             targetTile.IsSolid = referenceTile.IsSolid;
             targetTile.Rotation = rotation;
             var chunk = GetChunk(targetTile.ChunkId);
-            if (chunk != null) chunk.NeedUpdate = true;
+            if (chunk != null) 
+            {
+                chunk.NeedUpdate = true;
+                chunk.HasBeenModified = true;
+            }
             AddTileToModificationTracker(targetTile);
 
             UpdateTile(targetTile);
@@ -242,7 +247,11 @@ namespace TileMaster.Map
             targetTile.TextureName = targetTile.Texture.Name;
             targetTile.Rotation = rotation;
             var chunk = GetChunk(targetTile.ChunkId);
-            if (chunk != null) chunk.NeedUpdate = true;
+            if (chunk != null) 
+            {
+                chunk.NeedUpdate = true;
+                chunk.HasBeenModified = true;
+            }
 
             UpdateTile(targetTile);
         }
@@ -272,6 +281,7 @@ namespace TileMaster.Map
                 if (chunk.BackgroundTiles[i] != null && chunk.BackgroundTiles[i].GlobalId == blockId)
                 {
                     SetBackgroundTile(chunk.BackgroundTiles[i], referenceTileId);
+                    chunk.HasBeenModified = true;
                     return;
                 }
             }
@@ -297,7 +307,11 @@ namespace TileMaster.Map
             targetTile.Color = "Gray"; // Ensure background tiles stay dark/dimmed
             
             var chunk = GetChunk(targetTile.ChunkId);
-            if (chunk != null) chunk.NeedUpdate = true;
+            if (chunk != null) 
+            {
+                chunk.NeedUpdate = true;
+                chunk.HasBeenModified = true;
+            }
             // AddTileToModificationTracker(targetTile); // TODO: Add tracker for background tiles if needed
 
             UpdateBackgroundTile(targetTile);
