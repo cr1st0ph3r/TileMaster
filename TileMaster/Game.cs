@@ -112,23 +112,7 @@ namespace TileMaster
             }
             map.mapManager.LoadMap();
             // Initial chunk update to load area around player
-            map.mapManager.UpdateChunks(player.GetPosition());
-
-            // INTEGRATION TEST: Place a torch
-            try
-            {
-                var testTile = map.GetTileAt(767, 120);
-                if (testTile != null)
-                {                  
-                    var torch = Global.Items[(int)Items.Torch];
-                    testTile.PlacedItem = torch;
-                    Game.LogMessage("TEST: Placed Torch at (25,30)", Color.Yellow, 500);
-                }
-            }
-            catch (Exception ex)
-            {
-                Game.LogMessage("TEST FAILED: " + ex.Message, Color.Red, 500);
-            }
+            map.mapManager.UpdateChunks(player.GetPosition());          
         }
 
         public void SaveMap()
@@ -279,9 +263,7 @@ namespace TileMaster
                     timer5s = TIMER5S;
 
                     if (ChunksToUpdate.Any() == false)
-                    {
-                        if (map.Chunks != null)
-                        {
+                    {                      
                             for (int i = 0; i < map.Chunks.Length; i++)
                             {
                                 var chunk = map.Chunks[i];
@@ -290,7 +272,7 @@ namespace TileMaster
                                     ChunksToUpdate.Add(i + 1); // 1-based chunkId
                                 }
                             }
-                        }
+                        
                         LogMessage("checking tiles for grass grow", Color.Red);
                     }
                 }
@@ -576,6 +558,9 @@ namespace TileMaster
                 ChunksToUpdate.Remove(chunkId);
                 LogMessage("Checking Chunk " + chunkId + " for grass growth", Color.Green, 180);
             }
+
+            //test remove
+            map.grass.GrowGrass(player.onChunk);
         }
         #endregion
 

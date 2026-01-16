@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
-using TileMaster.Entity.Enums;
 using TileMaster.Entity.Tiles;
-using TileMaster.Helper;
 using TileMaster.Map;
 using Microsoft.Xna.Framework;
+using TileMaster.Helper;
 
 namespace TileMaster.Manager
 {
@@ -232,9 +231,8 @@ namespace TileMaster.Manager
           
             gameInstance._mainPanel.InitializeLoadProgress("Generating map dictionary");
             MapDictionary =  GenerateMapDictionary(initialArrayMap);
-            // ImageHelper.SaveMapDictionaryAsImage(MapDictionary, "GeneratedMap.png"); // Optional: disable for performance/memory
+            ImageHelper.SaveMapDictionaryAsImage(MapDictionary, "GeneratedMap.png");
             BackgroundMapDictionary = GenerateMapDictionary(backgroundArrayMap);
-            // ImageHelper.SaveMapDictionaryAsImage(BackgroundMapDictionary, "GeneratedBackgroundMap.png");
 
             gameInstance._mainPanel.InitializeLoadProgress("Generating chunks");
             ToChunks();

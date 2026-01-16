@@ -22,7 +22,6 @@ namespace TileMaster.Util
 
             //Create surface terrain discrepancies in height for a more natural look
             gameInstance._mainPanel.InitializeLoadProgress("Generating surface topology");
-            //matrice = Noise.Noise.RandomWalkTopSmoothed(matrice, r.Next(100000000), 3, 7, Global.GroundLevel);
             matrice = GenerateSurfaceTopography(matrice, seed, Global.GroundLevel);
 
             //create caves
@@ -160,7 +159,7 @@ namespace TileMaster.Util
 
         private static int[,] plantGrass(int[,] matrice)
         {
-            int grassRange = 5;
+            int grassRange = 25;
             for (int x = 0; x < matrice.GetLength(0); x++)
             {
                 for (int y = Global.GroundLevel - grassRange; y < Global.GroundLevel + grassRange; y++)

@@ -34,8 +34,8 @@ namespace TileMaster.Manager
                 {
                     if (neighbor == tile)
                     {
-                        //update the tile itself as well
-                        UpdateSorceGrassTile(neighbor);
+                        if (!candidates.ContainsKey(neighbor.GlobalId))
+                            candidates[neighbor.GlobalId] = neighbor;
                         continue;
                     }
 
@@ -72,31 +72,14 @@ namespace TileMaster.Manager
         /// <returns></returns>
         private bool CheckTileEligibilityForGrass(Tile destTile)
         {
-            if (destTile.TileId == (int)TileType.Dirt)
+            if (destTile.TileId == (int)TileType.Dirt || destTile.TileId == (int)TileType.DirtWithGrass)
             {
                 return SetGrassTile(destTile);
-            }
-            else if (destTile.TileId == (int)TileType.DirtWithGrass)
-            {
-
             }
             return false;
         }
 
-        private void UpdateSorceGrassTile(Tile refTile)
-        {
-            int mask = GetGrassMask(refTile);
-            if (mask != 0)
-            {
-                if (!refTile.TextureName.EndsWith(mask.ToString()))
-                {
-                    string textureName = $"Grass{mask}";
-                    var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
-                    var grassTexture = grassDef?.Textures.FirstOrDefault(x => x.Name.EndsWith(textureName));
-                    map.SetTile(refTile, grassTexture);
-                }
-            }
-        }
+
         private bool SetGrassTile(Tile destinationTile)
         {
             int mask = GetGrassMask(destinationTile);
@@ -107,72 +90,78 @@ namespace TileMaster.Manager
             // 0 means it's surrounded by solid blocks (no air contact)
             if (mask == 0)
             {
+                // check for inner corners (diagonal air)
+                var res = GetInnerCornerDecorations(destinationTile);
+                if (res > 0)
+                {
+                    // determine rotation (radians) for single-corner cases (values from GetInnerCornerDecorations)
+                    float rotation = 0f;
+                    var textureToUse = "DirtWithGrassCorner4";
+                    var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
+                    if (res == 1)
+                    {
+                        textureToUse = "DirtWithGrassCorner1";
+                    }
+                    if (res == 2)
+                    {
+                        rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(90f);
+                        textureToUse = "DirtWithGrassCorner1";
+                    }
+                    if (res == 4)
+                    {
+                        rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(180f);
+                        textureToUse = "DirtWithGrassCorner1";
+                    }
+                    if (res == 8)
+                    {
+                        rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(270f);
+                        textureToUse = "DirtWithGrassCorner1";
+                    }
+                    else if (res == 5)
+                    {
+                        textureToUse = "DirtWithGrassCorner2";
+                    }
+                    else if (res == 10)
+                    {
+                        rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(90f);
+                        textureToUse = "DirtWithGrassCorner2";
+                    }
+                    else if (res == 7)
+                    {
+                        textureToUse = "DirtWithGrassCorner3";
+                    }
+                    else if (res == 11)
+                    {
+                        textureToUse = "DirtWithGrassCorner3";
+                        rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(90f);
+                    }
+                    else if (res == 13)
+                    {
+                        textureToUse = "DirtWithGrassCorner3";
+                        rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(1800f);
+                    }
+                    else if (res == 14)
+                    {
+                        textureToUse = "DirtWithGrassCorner3";
+                        rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(270f);
+                    }
+                    var grassTexture = grassDef?.Textures.FirstOrDefault(x => x.Name.EndsWith(textureToUse));
+                    
+                    // Optimization: Check if already set
+                    if (destinationTile.TextureName == grassTexture.Name && System.Math.Abs(destinationTile.Rotation - rotation) < 0.01f)
+                        return false;
+
+                    map.SetTile(destinationTile, grassTexture, rotation);
+                    return true;
+                }
+                
+                // If it was grass but now has no air contact and handles no corners, revert to Dirt
                 if (destinationTile.TileId == (int)TileType.DirtWithGrass)
                 {
                     map.SetTile(destinationTile, (int)TileType.Dirt);
                     return true;
                 }
-                else if (destinationTile.TileId == (int)TileType.Dirt)
-                {
-                    //check corner
-                    var res = GetInnerCornerDecorations(destinationTile);
-                    if (res > 0)
-                    {
-                        // determine rotation (radians) for single-corner cases (values from GetInnerCornerDecorations)
-                        float rotation = 0f;
-                        var textureToUse = "DirtWithGrassCorner4";
-                        var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
-                        if (res == 1)
-                        {
-                            textureToUse = "DirtWithGrassCorner1";
-                        }
-                        if (res == 2)
-                        {
-                            rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(90f);
-                            textureToUse = "DirtWithGrassCorner1";
-                        }
-                        if (res == 4)
-                        {
-                            rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(180f);
-                            textureToUse = "DirtWithGrassCorner1";
-                        }
-                        if (res == 8)
-                        {
-                            rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(270f);
-                            textureToUse = "DirtWithGrassCorner1";
-                        }
-                        else if (res == 5)
-                        {
-                            textureToUse = "DirtWithGrassCorner2";
-                        }
-                        else if (res == 10)
-                        {
-                            rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(90f);
-                            textureToUse = "DirtWithGrassCorner2";
-                        }
-                        else if (res == 7)
-                        {
-                            textureToUse = "DirtWithGrassCorner3";
-                        }
-                        else if (res == 11)
-                        {
-                            textureToUse = "DirtWithGrassCorner3";
-                            rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(90f);
-                        }
-                        else if (res == 13)
-                        {
-                            textureToUse = "DirtWithGrassCorner3";
-                            rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(1800f);
-                        }
-                        else if (res == 14)
-                        {
-                            textureToUse = "DirtWithGrassCorner3";
-                            rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(270f);
-                        }
-                        var grassTexture = grassDef?.Textures.FirstOrDefault(x => x.Name.EndsWith(textureToUse));
-                        map.SetTile(destinationTile, grassTexture, rotation);
-                    }
-                }
+
                 return false;
             }
             else
