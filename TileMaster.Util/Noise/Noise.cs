@@ -298,5 +298,58 @@
             return tileCount;
         }
         #endregion
+
+        #region Noise Generation
+
+        public static float PerlinNoise1D(float x, float seed, int octaves, float persistence = 0.5f, float lacunarity = 2.0f)
+        {
+            float total = 0;
+            float frequency = 1;
+            float amplitude = 1;
+            float maxValue = 0;  // Used for normalizing result to 0.0 - 1.0
+
+            for (int i = 0; i < octaves; i++)
+            {
+                total += InterpolatedNoise(x * frequency + seed) * amplitude;
+                
+                maxValue += amplitude;
+                
+                amplitude *= persistence;
+                frequency *= lacunarity;
+            }
+
+            return total / maxValue;
+        }
+
+        private static float InterpolatedNoise(float x)
+        {
+            int intX = (int)x;
+            float fracX = x - intX;
+
+            float v1 = SmoothNoise(intX);
+            float v2 = SmoothNoise(intX + 1);
+
+            return Interpolate(v1, v2, fracX);
+        }
+
+        private static float SmoothNoise(int x)
+        {
+            return Noise1D(x) / 2.0f + Noise1D(x - 1) / 4.0f + Noise1D(x + 1) / 4.0f;
+        }
+
+        private static float Noise1D(int x)
+        {
+            x = (x << 13) ^ x;
+            return (1.0f - ((x * (x * x * 15731 + 789221) + 1376312589) & 0x7fffffff) / 1073741824.0f);
+        }
+
+        private static float Interpolate(float a, float b, float x)
+        {
+            float ft = x * 3.1415927f;
+            float f = (1 - (float)Math.Cos(ft)) * 0.5f;
+            return a * (1 - f) + b * f;
+        }
+
+        #endregion
     }
 }

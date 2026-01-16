@@ -224,8 +224,11 @@ namespace TileMaster.Manager
         public void GenerateMap()
         {  
             var gameInstance = Game.GetInstance();
-            var initialArrayMap = Util.MapGenerator.GenerateRandomMap();
-            var backgroundArrayMap = Util.MapGenerator.GenerateInitialArrayMap(Global.MapWidth, Global.MapHeight);
+            int seed = Game.rnd.Next(100000000); // Master seed for the world
+            var initialArrayMap = Util.MapGenerator.GenerateRandomMap(seed);
+            
+            // Generate background with the SAME seed to ensure topography matches
+            var backgroundArrayMap = Util.MapGenerator.GenerateBackgroundMap(seed);
           
             gameInstance._mainPanel.InitializeLoadProgress("Generating map dictionary");
             MapDictionary =  GenerateMapDictionary(initialArrayMap);
