@@ -4,6 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
+using System.Threading.Tasks;
 using TileMaster.Entity.Enums;
 using TileMaster.Entity.Tiles;
 using TileMaster.Map;
@@ -124,6 +125,14 @@ namespace TileMaster.Manager
                 }
             }
             return null;
+        }
+
+        /// <summary>
+        /// Loads a specific chunk asynchronously.
+        /// </summary>
+        public static Task<Chunk> LoadChunkAsync(int chunkId)
+        {
+            return Task.Run(() => LoadChunk(chunkId));
         }
 
         /// <summary>

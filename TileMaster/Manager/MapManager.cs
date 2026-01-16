@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 using TileMaster.Entity.Enums;
 using TileMaster.Entity.Tiles;
 using TileMaster.Helper;
@@ -18,6 +19,10 @@ namespace TileMaster.Manager
         //The map dictionary used for map generation
         public Dictionary<int, CollisionTile> MapDictionary { get; set; }
         public Dictionary<int, CollisionTile> BackgroundMapDictionary { get; set; }
+
+        private ConcurrentQueue<(int index, Chunk chunk)> _loadedChunksQueue = new ConcurrentQueue<(int index, Chunk chunk)>();
+        private HashSet<int> _loadingChunks = new HashSet<int>();
+
         public MapManager(Map.Map map)
         {
             this.map = map;          
@@ -81,6 +86,26 @@ namespace TileMaster.Manager
 
             Global.IsMapLoaded = true;
             gameInstance._mainPanel.HideLoadProgress();
+        }
+
+        public void ProcessPendingChunks()
+        {
+            while (_loadedChunksQueue.TryDequeue(out var result))
+            {
+                if (map.Chunks != null && result.index >= 0 && result.index < map.Chunks.Length)
+                {
+                    map.Chunks[result.index] = result.chunk;
+                }
+                
+                // Remove from loading set based on chunk ID (1-based)
+                if (result.chunk != null)
+                {
+                     // We could track by ID here, but removing by index logic is tricky since we only have index here easily
+                     // Actually we can reconstruct ID
+                     int id = result.index + 1;
+                     lock (_loadingChunks) { _loadingChunks.Remove(id); }
+                }
+            }
         }
 
         /// <summary>
@@ -149,16 +174,45 @@ namespace TileMaster.Manager
                 }
             }
 
-            // 2. Load missing chunks
+            // 2. Load missing chunks asynchronously
             foreach (var chunkIndex in chunksToKeep)
             {
+                // If chunk is not loaded AND not currently loading
                 if (map.Chunks[chunkIndex] == null)
                 {
-                    // Load chunk (1-based ID)
-                    var chunk = SaveDataManager.LoadChunk(chunkIndex + 1);
-                    if (chunk != null)
+                    int chunkId = chunkIndex + 1;
+                    bool startLoad = false;
+                    lock(_loadingChunks)
                     {
-                        map.Chunks[chunkIndex] = chunk;
+                        if (!_loadingChunks.Contains(chunkId))
+                        {
+                            _loadingChunks.Add(chunkId);
+                            startLoad = true;
+                        }
+                    }
+
+                    if (startLoad)
+                    {
+                        Task.Run(async () => 
+                        {
+                            try
+                            {
+                                var chunk = await SaveDataManager.LoadChunkAsync(chunkId);
+                                if (chunk != null)
+                                {
+                                    _loadedChunksQueue.Enqueue((chunkIndex, chunk));
+                                }
+                                else
+                                {
+                                    // Failed to load or doesn't exist? Remove from loading so we can retry or handle it
+                                     lock(_loadingChunks) { _loadingChunks.Remove(chunkId); }
+                                }
+                            }
+                            catch
+                            {
+                                 lock(_loadingChunks) { _loadingChunks.Remove(chunkId); }
+                            }
+                        });
                     }
                 }
             }
@@ -214,7 +268,7 @@ namespace TileMaster.Manager
                     int tileId = mapMatrice[col, row];
                     var tType = Global.ReferenceTiles[tileId];
 
-                    // Use your row-major indexing
+                    // Use row-major indexing
                     int globalId = row * width + col;
 
                     tileArray[globalId] = new CollisionTile(tType, col, row, 0, globalId);

@@ -177,7 +177,7 @@ namespace TileMaster.Manager
             }
             else
             {
-                // Mapping the mask value to your "TileX" naming convention
+                // Mapping the mask value to "TileX" naming convention
                 string textureName = $"DirtWithGrass{mask}";
 
                 var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
@@ -204,8 +204,6 @@ namespace TileMaster.Manager
             var neighbors = map.tileInspector.GetNeighboringTiles(tile);
             int mask = 0;
 
-            // We use the same indices your TileInspector currently provides:
-            // 1: Up, 3: Left, 5: Right, 7: Down
             if (neighbors[1].TileId == (int)TileType.Air) mask |= 1;  // Top
             if (neighbors[5].TileId == (int)TileType.Air) mask |= 2;  // Right
             if (neighbors[7].TileId == (int)TileType.Air) mask |= 4;  // Bottom

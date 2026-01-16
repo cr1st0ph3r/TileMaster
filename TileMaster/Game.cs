@@ -199,6 +199,11 @@ namespace TileMaster
                 }
             }
 
+            if (map != null && map.mapManager != null)
+            {
+                map.mapManager.ProcessPendingChunks();
+            }
+
             // Capture mouse state at start of Update so input handling is consistent
             previous_mouse = current_mouse;
             current_mouse = Mouse.GetState();

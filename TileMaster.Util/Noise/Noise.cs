@@ -253,7 +253,6 @@
 
         static int[,] SmoothMooreCellularAutomata(int[,] map, int startingDepth, bool edgesAreWalls, int smoothCount)
         {
-            // (This method remains exactly the same as in your original provided code)
             for (int i = 0; i < smoothCount; i++)
             {
                 for (int x = 0; x < map.GetUpperBound(0); x++)
