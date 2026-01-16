@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using TileMaster.Manager;
 
 namespace TileMaster.Entity
 {
@@ -26,6 +27,7 @@ namespace TileMaster.Entity
         public float MoveSpeed = 600f;      // px/s (horizontal)
         protected const float Friction = 400f;       // px/s^2 (deceleration)
 
+        protected AnimationManager _animationManager;
 
         public Rectangle GetRectangle()
         {
@@ -129,7 +131,9 @@ namespace TileMaster.Entity
 
         public void Draw(SpriteBatch spriteBatch)
         {
-            spriteBatch.Draw(texture, rectangle, Color.White);
+            //spriteBatch.Draw(texture, rectangle, Color.White);
+            var flip = velocity.X < 0 ? SpriteEffects.FlipHorizontally : SpriteEffects.None;
+            _animationManager.Draw(spriteBatch, flip);
         }
 
         public void CheckBoundaries()

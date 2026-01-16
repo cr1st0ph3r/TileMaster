@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text.Json;
+using TileMaster.Entity.Enums;
 using TileMaster.Entity.Tiles;
 using TileMaster.Map;
 
@@ -13,174 +15,343 @@ namespace TileMaster.Manager
         public static int Progress;
 
         /// <summary>
-        /// Saves the map data into their respective files
+        /// Saves the map data. Updates the existing archive with active chunks.
         /// </summary>
-        public static void SaveGame(WorldData worldData, Dictionary<int, Chunk> chunks)
+        public static void SaveGame(WorldData worldData, Dictionary<int, Chunk> activeChunks)
         {
             if (Directory.Exists(Global.SaveDataFolderName) == false)
             {
                 Directory.CreateDirectory(Global.SaveDataFolderName);
             }
 
-            // remove existing single-archive if present
             var archivePath = Path.Combine(Global.SaveDataFolderName, "map.tlm");
-            if (File.Exists(archivePath))
+            
+            // Open in Update mode to preserve unloaded chunks that are already on disk
+            using (var fs = File.Open(archivePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
+            using (var archive = new ZipArchive(fs, ZipArchiveMode.Update))
             {
-                File.Delete(archivePath);
-            }
-
-            var options = new JsonSerializerOptions
-            {
-                IncludeFields = true,
-                WriteIndented = false
-            };
-
-            using (var fs = File.Open(archivePath, FileMode.Create, FileAccess.Write, FileShare.None))
-            using (var archive = new ZipArchive(fs, ZipArchiveMode.Create, leaveOpen: false))
-            {
-                var worldEntry = archive.CreateEntry("worlddata.json", CompressionLevel.Optimal);
+                // 1. Save World Data
+                var worldEntry = archive.GetEntry("worlddata.json");
+                if (worldEntry != null) worldEntry.Delete();
+                
+                worldEntry = archive.CreateEntry("worlddata.json", CompressionLevel.Optimal);
                 using (var entryStream = worldEntry.Open())
                 {
+                    var options = new JsonSerializerOptions { IncludeFields = true };
                     var worldBytes = JsonSerializer.SerializeToUtf8Bytes(worldData, options);
                     entryStream.Write(worldBytes, 0, worldBytes.Length);
                 }
 
-                var iii = 0;
-                foreach (var item in chunks.Values)
+                // 2. Save Active Chunks
+                foreach (var kvp in activeChunks)
                 {
-                    // Save Foreground Tiles
-                    var entry = archive.CreateEntry($"chunk{iii}.json", CompressionLevel.SmallestSize);
-                    using (var entryStream = entry.Open())
-                    {
-                        var bytes = JsonSerializer.SerializeToUtf8Bytes(item.ToBaseTiles(), options);
-                        entryStream.Write(bytes, 0, bytes.Length);
-                    }
+                    if (kvp.Value == null) continue;
 
-                    // Save Background Tiles
-                    if (item.BackgroundTiles != null && item.BackgroundTiles.Length > 0)
-                    {
-                        var entryBg = archive.CreateEntry($"chunk{iii}_bg.json", CompressionLevel.SmallestSize);
-                        using (var entryStreamBg = entryBg.Open())
-                        {
-                            var bytesBg = JsonSerializer.SerializeToUtf8Bytes(item.ToBaseBGTiles(), options);
-                            entryStreamBg.Write(bytesBg, 0, bytesBg.Length);
-                        }
-                    }
+                    string entryName = $"chunks/{kvp.Key}.bin";
+                    var chunkEntry = archive.GetEntry(entryName);
+                    if (chunkEntry != null) chunkEntry.Delete();
 
-                    iii++;
+                    chunkEntry = archive.CreateEntry(entryName, CompressionLevel.Fastest);
+                    using (var stream = chunkEntry.Open())
+                    using (var writer = new BinaryWriter(stream))
+                    {
+                        WriteChunkEntry(writer, kvp.Value);
+                    }
+                }
+            }
+        }
+
+        private static void WriteChunkEntry(BinaryWriter writer, Chunk chunk)
+        {
+            // Chunk Metadata
+            writer.Write(chunk.HasGrass);
+            
+            // Foreground
+            WriteTileArray(writer, (BaseTile[])chunk.Tiles, true);
+            
+            // Background
+            WriteTileArray(writer, (BaseTile[])chunk.BackgroundTiles, false);
+        }
+
+        private static void WriteTileArray(BinaryWriter writer, BaseTile[] tiles, bool isForeground)
+        {
+            writer.Write(tiles.Length);
+            for (int i = 0; i < tiles.Length; i++)
+            {
+                var tile = tiles[i];
+                if (tile == null || !tile.IsOccupied)
+                {
+                    writer.Write(false); // IsOccupied
+                    continue;
+                }
+
+                writer.Write(true); // IsOccupied
+                writer.Write((ushort)tile.TileId);
+                writer.Write(tile.ColorArgb ?? -1);
+                writer.Write(tile.Rotation);
+
+                if (isForeground && tile is CollisionTile ct && ct.PlacedItem != null)
+                {
+                    writer.Write(true); // HasItem
+                    writer.Write(ct.PlacedItem.TileId);
+                }
+                else
+                {
+                    writer.Write(false); // HasItem
                 }
             }
         }
 
         /// <summary>
-        /// Loads a map from a binary source
+        /// Loads WorldData metadata only. Does NOT load chunks.
         /// </summary>
-        /// <param name="content"></param>
         public static WorldData LoadGame()
         {
-            var gameInstance = Game.GetInstance();
-            var data = new WorldData();
-            var options = new JsonSerializerOptions { IncludeFields = true };
             var archivePath = Path.Combine(Global.SaveDataFolderName, "map.tlm");
+            if (!File.Exists(archivePath)) return null;
 
-            gameInstance._mainPanel.InitializeLoadProgress("Reading save file");
-            if (File.Exists(archivePath)) 
+            using (var fs = File.OpenRead(archivePath))
+            using (var archive = new ZipArchive(fs, ZipArchiveMode.Read, leaveOpen: false))
             {
-                var chunks = new List<Tuple<int, string>>();
-                var bgChunks = new List<Tuple<int, string>>();
-
-                using (var fs = File.OpenRead(archivePath))
-                using (var archive = new ZipArchive(fs, ZipArchiveMode.Read, leaveOpen: false))
+                var worldEntry = archive.GetEntry("worlddata.json");
+                if (worldEntry != null)
                 {
-                    // 1. Load World Data first
-                    var worldEntry = archive.GetEntry("worlddata.json");
-                    if (worldEntry != null)
+                    using (var stream = worldEntry.Open())
                     {
-                        using (var stream = worldEntry.Open())
-                        {
-                            data = JsonSerializer.Deserialize<WorldData>(stream, options);
-                            data.RawMapData = new Dictionary<int, Dictionary<int, CollisionTile>>();
-                            data.RawBackgroundData = new Dictionary<int, Dictionary<int, BackgroundTile>>();
-                        }
+                        var options = new JsonSerializerOptions { IncludeFields = true };
+                        return JsonSerializer.Deserialize<WorldData>(stream, options);
                     }
-                    var count = 0;
-                    foreach (var entry in archive.Entries)
-                    {
-                        gameInstance._mainPanel.UpdateLoadProgress(count * 100 / archive.Entries.Count);
-                        // Expect entry names like "chunk{n}.json" or similar
-                        if (entry.Name.StartsWith("chunk", StringComparison.OrdinalIgnoreCase))
-                        {
-                            var name = entry.Name;
-                            // Check for background file
-                            if (name.Contains("_bg"))
-                            {
-                                var numPart = name.Replace("chunk", "").Replace("_bg.json", "");
-                                if (int.TryParse(numPart, out var id))
-                                {
-                                    bgChunks.Add(new Tuple<int, string>(id, name));
-                                }
-                            }
-                            else
-                            {
-                                // Foreground file
-                                var numPart = name.Replace("chunk", "").Replace(".json", "").Replace(".bin", "");
-                                if (int.TryParse(numPart, out var id))
-                                {
-                                    chunks.Add(new Tuple<int, string>(id, name));
-                                }
-                            }
-                        }
-                        // Sort chunks to ensure deterministic order and matching between foreground/background
-                        chunks.Sort((a, b) => a.Item1.CompareTo(b.Item1));
-                        bgChunks.Sort((a, b) => a.Item1.CompareTo(b.Item1));
-                        count++;
-                    }
-
-
-
-
-                    // Load Foreground
-                    gameInstance._mainPanel.InitializeLoadProgress("Loading foreground chunks");
-                    count = 0;
-                    var chunkId = 1;
-                    foreach (var file in chunks)
-                    {
-                        gameInstance._mainPanel.UpdateLoadProgress(count * 100 / chunks.Count);
-                        var fgEntry = archive.GetEntry(file.Item2);
-                        if (fgEntry == null) continue;                         
-                        Dictionary<int, CollisionTile> dict = null;
-                        using (var entryStream = fgEntry.Open())
-                        {
-                            dict = JsonSerializer.Deserialize<Dictionary<int, CollisionTile>>(entryStream, options);
-                        }
-
-                        data.RawMapData.Add(chunkId, dict);
-                        chunkId++;
-                        count++;
-                    }
-
-                    // Load Background
-                    gameInstance._mainPanel.InitializeLoadProgress("Loading background chunks");
-                    count = 0;
-                    foreach (var file in bgChunks)
-                    {
-                        gameInstance._mainPanel.UpdateLoadProgress(count * 100 / bgChunks.Count);
-                        var bgEntry = archive.GetEntry(file.Item2);
-                        if (bgEntry == null) continue;                         
-                        Dictionary<int, BackgroundTile> dict = null;
-                        using (var entryStream = bgEntry.Open())
-                        {
-                            dict = JsonSerializer.Deserialize<Dictionary<int, BackgroundTile>>(entryStream, options);
-                        }     
-                        data.RawBackgroundData.Add(file.Item1, dict);
-                        count++;
-                    }
-
-                    return data;
                 }
-
             }
             return null;
+        }
+
+        /// <summary>
+        /// Loads a specific chunk from the save file.
+        /// </summary>
+        public static Chunk LoadChunk(int chunkId)
+        {
+            var archivePath = Path.Combine(Global.SaveDataFolderName, "map.tlm");
+            if (!File.Exists(archivePath)) return null;
+
+            using (var fs = File.OpenRead(archivePath))
+            using (var archive = new ZipArchive(fs, ZipArchiveMode.Read, leaveOpen: false))
+            {
+                var entryName = $"chunks/{chunkId}.bin";
+                var entry = archive.GetEntry(entryName);
+                if (entry == null) return null;
+
+                using (var stream = entry.Open())
+                using (var reader = new BinaryReader(stream))
+                {
+                    return ReadChunkEntry(reader, chunkId);
+                }
+            }
+        }
+
+        private static Chunk ReadChunkEntry(BinaryReader reader, int chunkId)
+        {
+            var chunk = new Chunk();
+            chunk.PositionOnscreen = chunkId;
+            
+            // Metadata
+            chunk.HasGrass = reader.ReadBoolean();
+            chunk.NeedUpdate = true; // Force update when loaded
+
+            // Foreground
+            var fgTiles = ReadTileArray(reader, true, chunkId);
+            for(int i=0; i<fgTiles.Length; i++)
+            {
+                if (fgTiles[i] != null) 
+                    chunk.Tiles[i] = (CollisionTile)fgTiles[i];
+            }
+
+            // Background
+            var bgTiles = ReadTileArray(reader, false, chunkId);
+            for (int i = 0; i < bgTiles.Length; i++)
+            {
+                if (bgTiles[i] != null)
+                    chunk.BackgroundTiles[i] = (BackgroundTile)bgTiles[i];
+            }
+
+            chunk.SetRectangles();
+            chunk.InitializeTextures();
+            
+            return chunk;
+        }
+
+        private static BaseTile[] ReadTileArray(BinaryReader reader, bool isForeground, int chunkId)
+        {
+            int count = reader.ReadInt32();
+            var result = new BaseTile[count];
+
+            // Calculate chunk position
+            int worldWidthMultiplier = Global.MapWidthMultiplier; // Accessing global as we don't pass it down
+            int chunksPerRow = worldWidthMultiplier;
+            int chunkX = (chunkId - 1) % chunksPerRow;
+            int chunkY = (chunkId - 1) / chunksPerRow;
+            int totalMapWidth = worldWidthMultiplier * Global.ChunkSize;
+
+            for (int i = 0; i < count; i++)
+            {
+                int localX = i % Global.ChunkSize;
+                int localY = i / Global.ChunkSize;
+                int globalX = chunkX * Global.ChunkSize + localX;
+                int globalY = chunkY * Global.ChunkSize + localY;
+                int globalId = globalY * totalMapWidth + globalX;
+
+                bool isOccupied = reader.ReadBoolean();
+                if (!isOccupied)
+                {
+                    var airRefTile = Global.ReferenceTiles[(int)TileType.Air];
+                    if (isForeground)
+                    {
+                        result[i] = new CollisionTile
+                        {
+                            TileId = (int)TileType.Air,
+                            textureId = airRefTile.textureId,
+                            Name = airRefTile.Name,
+                            TextureName = airRefTile.TextureName,
+                            IsSolid = airRefTile.IsSolid,
+                            IsOccupied = false,
+                            ColorArgb = null,
+                            Rotation = 0,
+                            LocalId = i,
+                            GlobalId = globalId,
+                            X = globalX,
+                            Y = globalY,
+                            ChunkId = chunkId,
+                            Width = Global.TileSize,
+                            Height = Global.TileSize
+                        };
+                    }
+                    else
+                    {
+                        result[i] = new BackgroundTile
+                        {
+                            TileId = (int)TileType.Air,
+                            textureId = airRefTile.textureId,
+                            Name = airRefTile.Name,
+                            TextureName = airRefTile.TextureName,
+                            IsOccupied = false,
+                            ColorArgb = null,
+                            Rotation = 0,
+                            LocalId = i,
+                            GlobalId = globalId,
+                            X = globalX,
+                            Y = globalY,
+                            ChunkId = chunkId,
+                            Width = Global.TileSize,
+                            Height = Global.TileSize
+                        };
+                    }
+                    continue;
+                }
+                ushort tileId = reader.ReadUInt16();
+                int colorArgb = reader.ReadInt32();
+                float rotation = reader.ReadSingle();
+                bool hasItem = reader.ReadBoolean();
+                int itemId = hasItem ? reader.ReadInt32() : -1;
+
+                var refTile = Global.ReferenceTiles[tileId];
+                if (refTile == null)
+                {
+                    var airRefTile = Global.ReferenceTiles[(int)TileType.Air];
+                    if (isForeground)
+                    {
+                        result[i] = new CollisionTile
+                        {
+                            TileId = (int)TileType.Air,
+                            textureId = airRefTile.textureId,
+                            Name = airRefTile.Name,
+                            TextureName = airRefTile.TextureName,
+                            IsSolid = airRefTile.IsSolid,
+                            IsOccupied = false,
+                            ColorArgb = null,
+                            Rotation = 0,
+                            LocalId = i,
+                            GlobalId = globalId,
+                            X = globalX,
+                            Y = globalY,
+                            ChunkId = chunkId,
+                            Width = Global.TileSize,
+                            Height = Global.TileSize
+                        };
+                    }
+                    else
+                    {
+                        result[i] = new BackgroundTile
+                        {
+                            TileId = (int)TileType.Air,
+                            textureId = airRefTile.textureId,
+                            Name = airRefTile.Name,
+                            TextureName = airRefTile.TextureName,
+                            IsOccupied = false,
+                            ColorArgb = null,
+                            Rotation = 0,
+                            LocalId = i,
+                            GlobalId = globalId,
+                            X = globalX,
+                            Y = globalY,
+                            ChunkId = chunkId,
+                            Width = Global.TileSize,
+                            Height = Global.TileSize
+                        };
+                    }
+                    continue;
+                }
+
+
+                if (isForeground)
+                {
+                    var ct = new CollisionTile
+                    {
+                        TileId = tileId,
+                        textureId = refTile.textureId,
+                        Name = refTile.Name,
+                        TextureName = refTile.TextureName,
+                        IsSolid = refTile.IsSolid,
+                        IsOccupied = true,
+                        ColorArgb = colorArgb == -1 ? null : (int?)colorArgb,
+                        Rotation = rotation,
+                        LocalId = i,
+                        GlobalId = globalId,
+                        X = globalX,
+                        Y = globalY,
+                        ChunkId = chunkId,
+                        Width = Global.TileSize,
+                        Height = Global.TileSize
+                    };
+
+                    if (hasItem && itemId != -1 && itemId < Global.Items.Count)
+                    {
+                        ct.PlacedItem = Global.Items[itemId];
+                    }
+                    result[i] = ct;
+                }
+                else
+                {
+                    var bt = new BackgroundTile
+                    {
+                        TileId = tileId,
+                        textureId = refTile.textureId,
+                        Name = refTile.Name,
+                        TextureName = refTile.TextureName,
+                        IsOccupied = true,
+                        ColorArgb = colorArgb == -1 ? null : (int?)colorArgb,
+                        Rotation = rotation,
+                        LocalId = i,
+                        GlobalId = globalId,
+                        X = globalX,
+                        Y = globalY,
+                        ChunkId = chunkId,
+                        Width = Global.TileSize,
+                        Height = Global.TileSize
+                    };
+                    result[i] = bt;
+                }
+            }
+            return result;
         }
     }
 }

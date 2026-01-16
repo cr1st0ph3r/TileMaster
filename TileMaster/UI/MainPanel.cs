@@ -164,7 +164,16 @@ namespace TileMaster.UI
         {
             _debugWindow.SPPlayerPositionX.Value = x;
             _debugWindow.SPPlayerPositionY.Value = y;
+        }
 
+        public void UpdateDebugInfo(
+            string cameraPos, string mapSize, string playerGrid, string cursorGrid,
+            string isMoving, string velocity, string insideBlock, string layer,
+            string steppingOn, string onChunk, string solidGround, string mouseChunk,
+            string mousePos, string mouseBlock,
+            TileMaster.Entity.Tiles.Tile block)
+        {
+            _debugWindow.UpdateDebugInfo(cameraPos, mapSize, playerGrid, cursorGrid, isMoving, velocity, insideBlock, layer, steppingOn, onChunk, solidGround, mouseChunk, mousePos, mouseBlock, block);
         }
         #endregion
 

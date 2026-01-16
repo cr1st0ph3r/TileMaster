@@ -98,14 +98,63 @@ namespace TileMaster.UI
                 Type = Myra.Graphics2D.UI.ProportionType.Auto,
             };
 
+            // Row 0: FPS
             grid1.Widgets.Add(label2);
             grid1.Widgets.Add(spinButton1);
+            grid1.Widgets.Add(capFpsTo60);
+
+            // Row 1: Player X & Chunk Boundaries
             grid1.Widgets.Add(label3);
             grid1.Widgets.Add(spinButton2);
+            grid1.Widgets.Add(showChunkBoundaries);
+
+            // Row 2: Player Y
             grid1.Widgets.Add(label4);
             grid1.Widgets.Add(spinButton3);
-            grid1.Widgets.Add(capFpsTo60);
-            grid1.Widgets.Add(showChunkBoundaries);
+
+            // Adding new debug labels
+            int row = 3;
+            void AddDebugLabel(string title, Label lbl) {
+                var titleLbl = new Label { Text = title };
+                Grid.SetRow(titleLbl, row);
+                Grid.SetRow(lbl, row);
+                Grid.SetColumn(lbl, 1);
+                grid1.Widgets.Add(titleLbl);
+                grid1.Widgets.Add(lbl);
+                row++;
+            }
+
+            AddDebugLabel("Camera:", LblCameraPosition);
+            AddDebugLabel("Map:", LblMapSize);
+            AddDebugLabel("Player Grid:", LblPlayerGrid);
+            AddDebugLabel("Cursor Grid:", LblCursorGrid);
+            AddDebugLabel("Is Moving:", LblIsMoving);
+            AddDebugLabel("Velocity:", LblPlayerVelocity);
+            AddDebugLabel("Inside Block:", LblPlayerInsideBlock);
+            AddDebugLabel("Layer:", LblPlayerLayer);
+            AddDebugLabel("Stepping On:", LblPlayerSteppingOn);
+            AddDebugLabel("On Chunk:", LblPlayerOnChunk);
+            AddDebugLabel("Solid Ground:", LblPlayerOnSolidGround);
+            AddDebugLabel("Mouse Chunk:", LblMouseOnChunk);
+            AddDebugLabel("Mouse Pos:", LblMousePos);
+            AddDebugLabel("Mouse Block:", LblMouseBlockIn);
+
+            // Tile Info Section
+            var tileHeader = new Label { Text = "--- Tile Info ---", HorizontalAlignment = HorizontalAlignment.Center };
+            Grid.SetRow(tileHeader, row);
+            Grid.SetColumnSpan(tileHeader, 2);
+            grid1.Widgets.Add(tileHeader);
+            row++;
+
+            AddDebugLabel("Tile ID:", LblTileId);
+            AddDebugLabel("Name:", LblTileName);
+            AddDebugLabel("Local ID:", LblTileLocalId);
+            AddDebugLabel("Global ID:", LblTileGlobalId);
+            AddDebugLabel("Chunk ID:", LblTileChunkId);
+            AddDebugLabel("Is Edge:", LblTileIsEdge);
+            AddDebugLabel("Is Solid:", LblTileIsSolid);
+
+            Grid.SetRow(rndActBtn, row);
             grid1.Widgets.Add(rndActBtn);
 
             var verticalStackPanel1 = new VerticalStackPanel();

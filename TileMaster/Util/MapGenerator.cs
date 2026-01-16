@@ -21,7 +21,7 @@ namespace TileMaster.Util
             int[,] matrice = GenerateInitialArrayMap(X, Y);
 
             //Create surface terrain discrepancies in height for a more natural look
-            gameInstance._mainPanel.InitializeLoadProgress("Generating surface topology");          
+            gameInstance._mainPanel.InitializeLoadProgress("Generating surface topology");
             matrice = Noise.Noise.RandomWalkTopSmoothed(matrice, r.Next(100000000), 3, 7, Global.GroundLevel);
 
             //create caves
@@ -33,7 +33,7 @@ namespace TileMaster.Util
             matrice = GenerateRockLayer(matrice, Global.RockLevel);
 
             //adds granite
-            matrice = SpreadTile(matrice, Global.RockLevel + 5, 0.01F, 4, 1, 10);
+            GenerateVeins(matrice, (int)TileType.Granite, Global.RockLevel + 5,veinCount: 20,veinLength: 5, 2, 4);
             //plant gras on surface
             gameInstance._mainPanel.InitializeLoadProgress("Planting grass");
             matrice = plantGrass(matrice);
@@ -77,7 +77,7 @@ namespace TileMaster.Util
             // We use a simple 1D value noise approach
             int sampleRate = 16; // Sample noise every 16 blocks
             float[] noiseSamples = new float[(width / sampleRate) + 2];
-            
+
             for (int i = 0; i < noiseSamples.Length; i++)
             {
                 noiseSamples[i] = (float)(r.NextDouble() * 2.0 - 1.0); // Range -1 to 1
@@ -88,7 +88,7 @@ namespace TileMaster.Util
                 // Interpolate noise
                 int sampleIndex = x / sampleRate;
                 float t = (float)(x % sampleRate) / sampleRate;
-                
+
                 // Smoothstep interpolation: t * t * (3 - 2 * t)
                 float smoothT = t * t * (3 - 2 * t);
                 float noiseVal = noiseSamples[sampleIndex] * (1 - smoothT) + noiseSamples[sampleIndex + 1] * smoothT;
@@ -112,7 +112,7 @@ namespace TileMaster.Util
                         // In the transition zone, blend based on probability
                         float depthInZone = y - (transitionY - 3);
                         float probability = depthInZone / 6.0f; // 0.0 to 1.0
-                        
+
                         if (r.NextDouble() < probability)
                         {
                             matrice[x, y] = (int)TileType.Stone;
@@ -123,65 +123,50 @@ namespace TileMaster.Util
             return matrice;
         }
 
-        /// <summary>
-        /// randomly spread a tile to the map
-        /// </summary>
-        /// <param name="matrice"></param>
-        /// <param name="startLayer"></param>
-        /// <param name="percentage"></param>
-        /// <param name="tileId"></param>
-        /// <param name="minSize"></param>
-        /// <param name="maxSize"></param>
-        /// <returns></returns>
-        public static int[,] SpreadTile(int[,] matrice, int startLayer, float percentage, int tileId, int minSize, int maxSize)
+        public static int[,] GenerateVeins(int[,] matrice, int tileId, int startLayer, int veinCount, int veinLength, int minRadius, int maxRadius)
         {
-            var size = Game.rnd.Next(minSize, maxSize);
-            for (int x = 0; x < matrice.GetLength(0); x++)
-            {
-                for (int yy = startLayer; yy < matrice.GetLength(1); yy++)
-                {
-                    //make sure to replace solid tiles only
-                    if (matrice[x, yy] > 0)
-                    {
-                        matrice[x, yy] = CoinFlipper(percentage, matrice[x, yy], tileId);
-                        for (int i = 0; i < size; i++)
-                        {
-                            var randN = GetRandomNeighborBlock(x, yy);
-                            if (x == 0 || yy == 0)
-                            {
-                                continue;
-                            }
-                            if (randN.Item1 <= matrice.GetLength(0) || randN.Item2 <= matrice.GetLength(1))
-                            {
-                                matrice[randN.Item1, randN.Item2] = CoinFlipper(percentage, matrice[x, yy], tileId);
-                            }
-                            else
-                            {
-                                //out of bounds
-                                break;
-                            }
+            int width = matrice.GetLength(0);
+            int height = matrice.GetLength(1);
 
+            for (int i = 0; i < veinCount; i++)
+            {
+                float currentX = Game.rnd.Next(10, width - 10);
+                float currentY = Game.rnd.Next(startLayer + 10, height - 10);
+                float angle = (float)(Game.rnd.NextDouble() * Math.PI * 2);
+
+                int radius = Game.rnd.Next(minRadius, maxRadius + 1);
+
+                for (int step = 0; step < veinLength; step++)
+                {
+                    for (int x = -radius; x <= radius; x++)
+                    {
+                        for (int y = -radius; y <= radius; y++)
+                        {
+                            if (x * x + y * y <= radius * radius)
+                            {
+                                int carveX = (int)currentX + x;
+                                int carveY = (int)currentY + y;
+
+                                if (carveX > 0 && carveX < width - 1 && carveY > startLayer && carveY < height - 1)
+                                {
+                                    //don't replace air
+                                    if (matrice[carveX, carveY] != (int)TileType.Air)
+                                    {
+                                        matrice[carveX, carveY] = tileId;
+                                    }
+                                }
+                            }
                         }
                     }
+                    angle += (float)(Game.rnd.NextDouble() * 1.0 - 0.5);
+                    currentX += (float)Math.Cos(angle);
+                    currentY += (float)Math.Sin(angle);
+
+                    if (currentX <= 1 || currentX >= width - 2 || currentY <= startLayer + 1 || currentY >= height - 2)
+                        break;
                 }
             }
-
             return matrice;
-        }
-
-        public static int CoinFlipper(float probability, int currentTileId, int tileId)
-        {
-            int perCent = Game.rnd.Next(0, 100);
-            if (perCent < probability)
-            {
-                return tileId;
-            }
-            return currentTileId;
-        }
-
-        private static Tuple<int, int> GetRandomNeighborBlock(int X, int Y)
-        {
-            return Tuple.Create(Game.rnd.Next(X - 1, X + 1), Game.rnd.Next(Y - 1, Y + 1));
         }
 
         public static int[,] GenerateInitialArrayMap(int x, int y)

@@ -1,32 +1,23 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
- 
+
 namespace TileMaster.Model
 {
-  public class Animation
-  {
-    public int CurrentFrame { get; set; }
-
-    public int FrameCount { get; private set; }
-
-    public int FrameHeight { get { return Texture.Height; } }
-
-    public float FrameSpeed { get; set; }
-
-    public int FrameWidth { get { return Texture.Width / FrameCount; } }
-
-    public bool IsLooping { get; set; }
-
-    public Texture2D Texture { get; private set; }
-
-    public Animation(Texture2D texture, int frameCount)
+    public class Animation
     {
-      Texture = texture;
+        public Texture2D Texture { get; private set; }
+        public int FrameCount { get; private set; }
+        public float FrameSpeed { get; private set; }
+        public bool IsLooping { get; private set; }
 
-      FrameCount = frameCount;
+        public int FrameWidth => Texture.Width / FrameCount;
+        public int FrameHeight => Texture.Height;
 
-      IsLooping = true;
-
-      FrameSpeed = 0.2f;
+        public Animation(Texture2D texture, int frameCount, float frameSpeed = 0.2f, bool isLooping = true)
+        {
+            Texture = texture;
+            FrameCount = frameCount;
+            FrameSpeed = frameSpeed;
+            IsLooping = isLooping;
+        }
     }
-  }
 }

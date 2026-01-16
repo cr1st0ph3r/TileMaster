@@ -20,11 +20,11 @@ namespace TileMaster
         /// <summary>
         /// Defines the map width multiplier
         /// </summary>
-        public static int MapWidthMultiplier = 48;
+        public static int MapWidthMultiplier = 32;
         /// <summary>
         /// Defines the map width multiplier
         /// </summary>
-        public static int MapHeightMultiplier = 12;
+        public static int MapHeightMultiplier = 18;
 
         /// <summary>
         /// Defines if the game will run in full screen mode
@@ -82,9 +82,6 @@ namespace TileMaster
         public static int CursorX = 0;
         public static int CursorY = 0;
 
-        //debug variables
-        public static bool isCursorOverAButton = false;
-        public static bool RenderOnlyPlayerAtChunk = true;
         /// <summary>
         /// Defines if the game is in debug mode
         /// </summary>

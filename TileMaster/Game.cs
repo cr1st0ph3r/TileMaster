@@ -7,7 +7,6 @@ using Myra.Graphics2D.UI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using TileMaster.Entity;
 using TileMaster.Entity.Enums;
@@ -39,6 +38,7 @@ namespace TileMaster
         private MouseState previous_mouse;
         private KeyboardState _lastKeyboardState;
         private int cursorOnChunk = 0;
+        private int lastPlayerChunk = 0;
         private List<int> ChunksToUpdate;
         private List<Mob> mobs;
         private Texture2D mainMenuBackground;
@@ -111,6 +111,8 @@ namespace TileMaster
                 map.mapManager.GenerateMap();
             }
             map.mapManager.LoadMap();
+            // Initial chunk update to load area around player
+            map.mapManager.UpdateChunks(player.GetPosition());
 
             // INTEGRATION TEST: Place a torch
             try
@@ -173,7 +175,7 @@ namespace TileMaster
             //load tile data
             Global.ReferenceTiles = CollisionTile.LoadTilesTypes(Content);
             //load item data
-            Global.Items = Entity.Item.LoadItems(Content);
+            Global.Items = Item.LoadItems(Content);
         }
 
         protected override void UnloadContent()
@@ -230,6 +232,15 @@ namespace TileMaster
                 HandleMouseEvents();
                 //updates player
                 player.Update(gameTime, map);
+                
+                // Check if player changed chunk to update loaded areas
+                if (player.onChunk != lastPlayerChunk)
+                { 
+                     map.mapManager.UpdateChunks(player.GetPosition());
+                     lastPlayerChunk = player.onChunk;
+                     LogMessage($"Updated chunks around chunk {player.onChunk}", Color.LightGreen, 300);
+                }
+
                 //update mobs
                 foreach (var mob in mobs)
                 {
@@ -284,6 +295,8 @@ namespace TileMaster
                         timerLighting = TIMER_LIGHTING;
                         lightingDirty = false;
                     }
+                    Global.FrameRate = (Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)).ToString();
+                    _mainPanel.UpdateFPS((int)(Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)));
                 }
 
                 map.UpdateModifiedTiles();
@@ -334,7 +347,7 @@ namespace TileMaster
 
                 if (Global.isDebugging)
                 {
-                    WriteDebugInformation();
+                    UpdateDebugInformation();
                 }
 
                 //messages
@@ -349,10 +362,7 @@ namespace TileMaster
                     {
                         Messages.Remove(mess);
                     }
-                }
-
-                Global.FrameRate = (Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)).ToString();
-                _mainPanel.UpdateFPS((int)(Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)));
+                }            
                 spriteBatch.End();
             }
             base.Draw(gameTime);
@@ -390,7 +400,7 @@ namespace TileMaster
         #region Event Handlers
         private void HandleMouseEvents()
         {
-            if (this.IsActive && Global.isCursorOverAButton == false)
+            if (IsActive)
             {
                 //temporary handlers for the buttons
                 if (current_mouse.LeftButton == ButtonState.Pressed && _desktop.IsMouseOverGUI == false)
@@ -488,89 +498,36 @@ namespace TileMaster
         #endregion
 
         #region Debug
-        private void WriteDebugInformation()
+        private void UpdateDebugInformation()
         {
-            float debugXCoordinate = camera.Center.X - 800;
-            float debugYCoordinate = camera.Center.Y - 500;
             Vector2 worldPosition = Vector2.Transform(new Vector2(current_mouse.Position.X, current_mouse.Position.Y), Matrix.Invert(camera.Transform));
 
-            _mainPanel.UpdatePlayerPos((int)player.GetPosition().X, (int)player.GetPosition().Y);
+            string cameraPosition = string.Format("({0:0.0}, {1:0.0})", GraphicsDevice.Viewport.X, GraphicsDevice.Viewport.Y);
+            string mapSize = map.Width + " x " + map.Height;
+            string playerGrid = player.GridX + " x " + player.GridY;
+            string cursorGrid = cursorGridX + " x " + cursorGridY;
+            string isMoving = player.isMoving.ToString();
+            string velocity = "x:" + player.velocity.X + " y:" + player.velocity.Y;
+            string playerInside = player.onBlock.ToString();
+            string playerOnLayer = player.Layer.ToString();
+            string playerSteppingOn = player.SteppingOn.ToString();
+            string playerOnChunk = player.onChunk.ToString();
+            string playerOnSolidGround = player.isOnSolidBlock.ToString();
+            string mouseOnChunk = cursorOnChunk.ToString();
+            string mousePos = worldPosition.X + " x " + worldPosition.Y;
+            string mouseBlockIn = mouseIsOverBlock.ToString();
 
-            string cameraPosition = string.Format("Camera Position: ({0:0.0}, {1:0.0})", GraphicsDevice.Viewport.X, GraphicsDevice.Viewport.Y);
-
-            string Map = "Map:" + map.Width + " x " + map.Height;
-
-            //PLAYER
-            string gridTest = "Player na grid:" + player.GridX + " x " + player.GridY;
-            string gridTestCursor = "Cursor na grid:" + cursorGridX + " x " + cursorGridY;
-            string isPlayerMoving = "isMoving?:" + player.isMoving;
-            string playerVelocities = "Player Velocities: x" + player.velocity.X + "y:" + player.velocity.Y;
-            string playerInside = "Player is inside of block n.: " + (player.onBlock);
-            string playerOnLayer = "Player is on layer: " + (player.Layer);
-            string playerSteppingOn = "Player is stepping on block n.: " + (player.SteppingOn);
-            string playerOnChunk = "Player is inside chunk n.: " + player.onChunk;
-            string playerOnSolidGround = "Player is on solid ground? " + player.isOnSolidBlock;
-            //cursor
-            string mouseOnChunk = "Cursor is on chunk: " + cursorOnChunk;
-            string MousePos = "Cursor on map:" + worldPosition.X + " x " + worldPosition.Y;
-            string mouseBlockIn = "Cursor over block:" + mouseIsOverBlock;
-
+            TileMaster.Entity.Tiles.Tile block = null;
             if (IsActive)
             {
-                var block = map.GetTileAt(cursorGridX, cursorGridY);
-                if (block != null)
-                {
-                    int referenceStart = 300;
-
-                    if (block.GlobalId == 20545)
-                    {
-
-                    }
-                    DrawWithShadow("Tile TileId:" + block.TileId, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart));
-                    DrawWithShadow("Tile Name:" + block.Name, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 20));
-                    DrawWithShadow("Tile Local Id:" + block.LocalId, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 40));
-                    DrawWithShadow("Tile Global Id:" + block.GlobalId, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 60));
-                    DrawWithShadow("Tile Chunk Id:" + block.ChunkId, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 80));
-                    DrawWithShadow("Tile is edge?: " + block.isEdgeTile, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 100));
-                    DrawWithShadow("Is solid tile?: " + block.IsSolid, new Vector2(debugXCoordinate + 350, debugYCoordinate + referenceStart + 120));
-
-
-                    //DrawWithShadow("chunkId: " + map.MapDictionary[block.GlobalId].ChunkId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 180));
-                    //DrawWithShadow("localId: " + map.MapDictionary[block.GlobalId].LocalId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 200));
-                    //DrawWithShadow("globalId: " + map.MapDictionary[block.GlobalId].GlobalId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 220));
-                    //DrawWithShadow("TileId: " + map.MapDictionary[block.GlobalId].TileId, new Vector2(debugXCoordinate + 350, debugYCoordinate + 240));
-                    //DrawWithShadow("Name: " + map.MapDictionary[block.GlobalId].Name, new Vector2(debugXCoordinate + 350, debugYCoordinate + 260));
-                    //DrawWithShadow("Texture name: " + map.MapDictionary[block.GlobalId].TextureName, new Vector2(debugXCoordinate + 350, debugYCoordinate + 280));
-                    //DrawWithShadow("Texture.name: " + map.MapDictionary[block.GlobalId].texture?.Name, new Vector2(debugXCoordinate + 350, debugYCoordinate + 300));
-
-                }
-                else
-                {
-                    //var block = map.MapDictionary[mouseIsOverBlock];
-                    //DrawWithShadow("Tile TileId:" + block.GlobalId + " is expected to be on chunk:" + block.ChunkId, new Vector2(debugXCoordinate + 350, debugYCoordinate));
-                    DrawWithShadow("Tile TileId:" + mouseIsOverBlock + " is expected to be on chunk:" + cursorOnChunk, new Vector2(debugXCoordinate + 350, debugYCoordinate + 400));
-                }
+                block = map.GetTileAt(cursorGridX, cursorGridY);
             }
 
-
-            //buttonMgr.UpdateButton(1, new Vector2(debugXCoordinate, debugYCoordinate + 500));
-
-            //DrawWithShadow(positionInText, new Vector2(debugXCoordinate, debugYCoordinate));
-            DrawWithShadow(cameraPosition, new Vector2(debugXCoordinate, debugYCoordinate + 20));
-            DrawWithShadow(playerOnChunk, new Vector2(debugXCoordinate, debugYCoordinate + 40));
-            DrawWithShadow(playerOnSolidGround, new Vector2(debugXCoordinate, debugYCoordinate + 60));
-            DrawWithShadow(Map, new Vector2(debugXCoordinate, debugYCoordinate + 80));
-            DrawWithShadow(gridTest, new Vector2(debugXCoordinate, debugYCoordinate + 100));
-            DrawWithShadow(gridTestCursor, new Vector2(debugXCoordinate, debugYCoordinate + 120));
-            DrawWithShadow(isPlayerMoving, new Vector2(debugXCoordinate, debugYCoordinate + 140));
-            DrawWithShadow(playerVelocities, new Vector2(debugXCoordinate, debugYCoordinate + 160));
-            DrawWithShadow(playerSteppingOn, new Vector2(debugXCoordinate, debugYCoordinate + 180));
-            DrawWithShadow(playerInside, new Vector2(debugXCoordinate, debugYCoordinate + 200));
-            DrawWithShadow(playerOnLayer, new Vector2(debugXCoordinate, debugYCoordinate + 220));
-
-            DrawWithShadow(mouseBlockIn, new Vector2(debugXCoordinate, debugYCoordinate + 260));
-            DrawWithShadow(MousePos, new Vector2(debugXCoordinate, debugYCoordinate + 280));
-            DrawWithShadow(mouseOnChunk, new Vector2(debugXCoordinate, debugYCoordinate + 300));
+            _mainPanel.UpdateDebugInfo(
+                cameraPosition, mapSize, playerGrid, cursorGrid,
+                isMoving, velocity, playerInside, playerOnLayer,
+                playerSteppingOn, playerOnChunk, playerOnSolidGround, mouseOnChunk,
+                mousePos, mouseBlockIn, block);
         }
         private void DrawWithShadow(string text, Vector2 position)
         {
