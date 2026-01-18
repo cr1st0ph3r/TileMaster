@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using TileMaster.Entity;
 using TileMaster.Entity.Enums;
 using TileMaster.Entity.Tiles;
 using TileMaster.Manager;
@@ -211,6 +212,131 @@ namespace TileMaster.Map
                     return;
                 }
             }
+        }
+
+        public void PlaceItem(int chunkId, int blockId, Item item)
+        {
+            var chunk = GetChunk(chunkId);
+            if (chunk == null) return;
+
+            CollisionTile targetTile = null;
+
+            // Find tile by globalId
+            for (int i = 0; i < chunk.Tiles.Length; i++)
+            {
+                if (chunk.Tiles[i] != null && chunk.Tiles[i].GlobalId == blockId)
+                {
+                    targetTile = chunk.Tiles[i];
+                    break;
+                }
+            }
+
+            if (targetTile == null) return;
+
+            // Validation Logic
+            // 1. Check if the target tile is already occupied by a solid block
+            if (targetTile.IsSolid && targetTile.TileId != (int)TileType.Air)
+            {
+                Game.LogMessage("Cannot place item inside a solid block.", Color.Red);
+                return;
+            }
+
+            // 2. Check if the tile already has an item
+             if (targetTile.PlacedItem != null)
+            {
+                Game.LogMessage("Tile already contains an item.", Color.Red);
+                return;
+            }
+
+            // 3. Check for support (Background or other criteria)
+            bool hasSupport = false;
+
+            if (item.PlaceableOnBackground)
+            {
+                // Check if there is a background tile behind this
+                var bgTile = GetBackgroundTileAt(targetTile.X, targetTile.Y);
+                if (bgTile != null && bgTile.TileId != (int)TileType.Air)
+                {
+                    hasSupport = true;
+                }
+            }
+            
+            // If item is placeable on background but there is no background, we might still allow it if there is floor support?
+            // User requirement: "nothing (when it comes to items) can be placed "on top" of a foreground tile as in "two bodies cannot occupy the same place in space" rule"
+            // This is handled by check #1. 
+            
+            // "loadmap assumes that items can only be placed on foreground items" -> user means Items are mistakenly treated as blocks?
+            // "The idea of placeable items is that they can be placed both on foreground tiles as well as on background tiles."
+            // "Control which items can be placed on foreground tiles." -> Maybe they mean stick TO a foreground tile (like a torch on a wall block)?
+            // Assuming simplified logic for now: Item needs EITHER a background wall OR a solid block adjacent/below (if we implement gravity/attachment later).
+            // For now, if PlaceableOnBackground is true, we strictly require a background wall OR a solid attachment point.
+            
+            // For this task, let's implement the specific request for Background support.
+            if (item.PlaceableOnBackground && !hasSupport)
+            {
+                // Optionally check for other support types here (like sitting on floor) 
+                // but if the item is *primarily* a wall item (like torch on bg), reject if no bg.
+                // However, torches can also be placed on the floor usually.
+                
+                // Let's check for floor support as a fallback
+                var tileBelow = GetTileAt(targetTile.X, targetTile.Y + 1);
+                if (tileBelow != null && tileBelow.IsSolid)
+                {
+                    hasSupport = true;
+                }
+            }
+            else if (!item.PlaceableOnBackground)
+            {
+                // If NOT placeable on background, it MUST have floor support (or be a flying item?)
+                // Assuming standard gravity items need floor.
+                 var tileBelow = GetTileAt(targetTile.X, targetTile.Y + 1);
+                if (tileBelow != null && tileBelow.IsSolid)
+                {
+                    hasSupport = true;
+                }
+            }
+
+            if (!hasSupport)
+            {
+                 Game.LogMessage("Item needs support (background wall or solid ground).", Color.Red);
+                 return;
+            }
+
+            // Placement allowed
+            // We need to 'place' the item inside the Tile object without making the Tile itself solid/occupied by a block
+            // The Tile object acts as a container.
+            
+            targetTile.PlacedItem = item;
+            // IMPORTANT: Do NOT set targetTile.IsOccupied = true or IsSolid = true, 
+            // because that would make it act like a Dirt block colliding with player.
+            // Items are usually pass-through unless they are furniture with collision.
+            // Keeping IsOccupied = false explicitly for the Tile itself, but the Item is there.
+            // Wait, existing logic might rely on IsOccupied?
+            // SaveDataManager.cs line 86 checks `if (tile == null || !tile.IsOccupied)`. If IsOccupied is false, it saves as Air.
+            // SO WE MUST SET IsOccupied = true?
+            // If we set IsOccupied = true, is it solid? 
+            // CollisionTile has IsSolid property. We can set IsOccupied=true, IsSolid=false.
+            // Does IsOccupied mean "There is something here"? Yes.
+            
+            // Let's modify the tile to hold the item
+            targetTile.IsOccupied = true;
+            targetTile.IsSolid = false; // Items don't block movement usually
+            
+            // We also need to set the texture id for the tile to render the item?
+            // Rendering usually checks PlacedItem? 
+            // SaveDataManager uses `writer.Write(true); // HasItem` if PlacedItem != null.
+            // But it also writes a TileId. If we are an item, what acts as the "Base" tile? Air?
+            // If we set TileId to Air, and IsOccupied to true, SaveData might get confused or behave correctly.
+            // Let's check SaveData logic again.
+            // Line 368: `if (hasItem ...)` -> creates Item.
+            // Line 356: `IsOccupied = true`.
+            // So yes, we need IsOccupied = true.
+            
+            //targetTile.NeedUpdate = true;
+            chunk.HasBeenModified = true;
+            chunk.NeedUpdate = true;
+            
+            AddTileToModificationTracker(targetTile);
         }
         public void SetTile(Tile targetTile, int referenceTileId, float rotation = 0f)
         {

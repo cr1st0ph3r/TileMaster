@@ -171,6 +171,7 @@ namespace TileMaster.Manager
 
                 var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
                 var grassTexture = grassDef?.Textures.FirstOrDefault(x => x.Name.EndsWith(textureName));
+                destinationTile.textureId = mask;
                 destinationTile.TextureName = grassTexture.Name;
                 destinationTile.TileId = (int)TileType.DirtWithGrass;
                 map.SetTile(destinationTile, grassTexture);

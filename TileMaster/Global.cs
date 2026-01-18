@@ -20,11 +20,11 @@ namespace TileMaster
         /// <summary>
         /// Defines the map width multiplier
         /// </summary>
-        public static int MapWidthMultiplier = 48;
+        public static int MapWidthMultiplier = 4;
         /// <summary>
         /// Defines the map width multiplier
         /// </summary>
-        public static int MapHeightMultiplier = 12;
+        public static int MapHeightMultiplier = 8;
 
         /// <summary>
         /// Defines if the game will run in full screen mode

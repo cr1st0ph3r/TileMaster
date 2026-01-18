@@ -404,28 +404,46 @@ namespace TileMaster
                 //temporary handlers for the buttons
                 if (current_mouse.LeftButton == ButtonState.Pressed && _desktop.IsMouseOverGUI == false)
                 {
-                    if (Keyboard.GetState().IsKeyDown(Keys.B))
+                    int itemId = _mainPanel.SelectedItem;
+                    if (itemId >= 0 && itemId < Global.Items.Count)
                     {
-                        try
+                        var item = Global.Items[itemId];
+
+                        if (Keyboard.GetState().IsKeyDown(Keys.B))
                         {
-                            map.SetBackgroundTile(cursorOnChunk, mouseIsOverBlock, _mainPanel.SelectedItem);
+                            try
+                            {
+                                // Only Tiles can be placed as background (walls)
+                                if (item.IsTile)
+                                {
+                                    map.SetBackgroundTile(cursorOnChunk, mouseIsOverBlock, item.TileId);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                LogMessage("Failed to set background: " + ex.Message, Color.Red);
+                            }
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            LogMessage("Failed to set background: " + ex.Message, Color.Red);
-                        }
-                    }
-                    else
-                    {
-                        try
-                        {
-                            map.SetTile(cursorOnChunk, mouseIsOverBlock, _mainPanel.SelectedItem);
-                            lightingDirty = true;
-                        }
-                        catch
-                        {
-                            //mouse clicked outside the game context
-                            //for the mean time this can be neglected
+                            try
+                            {
+                                if (item.IsTile)
+                                {
+                                    map.SetTile(cursorOnChunk, mouseIsOverBlock, item.TileId);
+                                    lightingDirty = true;
+                                }
+                                else if (item.IsPlaceable)
+                                {
+                                    map.PlaceItem(cursorOnChunk, mouseIsOverBlock, item);
+                                    lightingDirty = true;
+                                }
+                            }
+                            catch
+                            {
+                                //mouse clicked outside the game context
+                                //for the mean time this can be neglected
+                            }
                         }
                     }
 
@@ -474,24 +492,17 @@ namespace TileMaster
             }
 
             _lastKeyboardState = currentKeyboardState;
-
-
         }
         public void GenericAction()
         {
-
             //map.GrowGrass(player.onChunk);
             map.GrowTree(player.onChunk, player.onBlock);
-
         }
 
         private void OnScrollWheelChanged(int delta)
         {
             // raise event for external subscribers
             ScrollWheelChanged?.Invoke(delta);
-
-            // default internal behavior: log the delta
-            // replace or extend with your own logic (change selected hotbar item, zoom camera, etc.)
             _mainPanel.ChangeActionBarSelectedItem(delta > 0 ? 1 : -1);
         }
         #endregion
@@ -612,18 +623,7 @@ namespace TileMaster
                 AddTile(commandParts.Skip(1).ToArray());
             }
         }
-        private void SetTile(string[] commandParts)
-        {
-            if (commandParts.Length < 4)
-            {
-                LogMessage("Usage: set tile <property> <tileId> <chunkId> <blockId>", Color.Red);
-                return;
-            }
-            if (commandParts[0] == "rotation")
-            {
-                RotateTlle(commandParts.Skip(1).ToArray());
-            }
-        }
+  
         private void RotateTlle(string[] commandParts)
         {
             if (commandParts.Length < 3)
@@ -681,8 +681,7 @@ namespace TileMaster
                 if (testTile != null)
                 {
                     var torch = Global.Items[(int)Items.Torch];
-                    testTile.PlacedItem = torch;
-                    Game.LogMessage("TEST: Placed Torch at (25,30)", Color.Yellow, 500);
+                    map.PlaceItem(cursorOnChunk, mouseIsOverBlock, torch); 
                 }
 
 

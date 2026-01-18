@@ -1,10 +1,13 @@
-﻿using System;
+﻿using Microsoft.Xna.Framework;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+using TileMaster.Entity;
 using TileMaster.Entity.Enums;
 using TileMaster.Entity.Tiles;
 using TileMaster.Map;
@@ -88,13 +91,24 @@ namespace TileMaster.Manager
 
                 writer.Write(true); // IsOccupied
                 writer.Write((ushort)tile.TileId);
+                writer.Write(tile.textureId);
                 writer.Write(tile.ColorArgb ?? -1);
                 writer.Write(tile.Rotation);
-
-                if (isForeground && tile is CollisionTile ct && ct.PlacedItem != null)
+                                
+                if (tile is CollisionTile ct && ct.PlacedItem != null)
                 {
                     writer.Write(true); // HasItem
                     writer.Write(ct.PlacedItem.TileId);
+                    
+                    if (ct.PlacedItem.LightColor.HasValue)
+                    {
+                        writer.Write(true);
+                        writer.Write(Tile.PackArgb(ct.PlacedItem.LightColor.Value));
+                    }
+                    else
+                    {
+                        writer.Write(false);
+                    }
                 }
                 else
                 {
@@ -162,7 +176,7 @@ namespace TileMaster.Manager
         {
             var chunk = new Chunk();
             chunk.PositionOnscreen = chunkId;
-            
+
             // Metadata
             chunk.HasGrass = reader.ReadBoolean();
             chunk.NeedUpdate = true; // Force update when loaded
@@ -208,7 +222,10 @@ namespace TileMaster.Manager
                 int globalX = chunkX * Global.ChunkSize + localX;
                 int globalY = chunkY * Global.ChunkSize + localY;
                 int globalId = globalY * totalMapWidth + globalX;
+                if (globalId == 8773)
+                {
 
+                }
                 bool isOccupied = reader.ReadBoolean();
                 if (!isOccupied)
                 {
@@ -257,10 +274,25 @@ namespace TileMaster.Manager
                     continue;
                 }
                 ushort tileId = reader.ReadUInt16();
+                
+                // NEW: Read textureId directly
+                int textureId = reader.ReadInt32();
+
                 int colorArgb = reader.ReadInt32();
                 float rotation = reader.ReadSingle();
                 bool hasItem = reader.ReadBoolean();
                 int itemId = hasItem ? reader.ReadInt32() : -1;
+                
+                // NEW: Read Item Properties (unconditional)
+                Color? itemLightColor = null;
+                if (hasItem)
+                {
+                    bool hasColor = reader.ReadBoolean();
+                    if (hasColor)
+                    {
+                        itemLightColor = Tile.UnpackArgb(reader.ReadInt32());
+                    }
+                }
 
                 var refTile = Global.ReferenceTiles[tileId];
                 if (refTile == null)
@@ -316,8 +348,9 @@ namespace TileMaster.Manager
                     var ct = new CollisionTile
                     {
                         TileId = tileId,
-                        textureId = refTile.textureId,
+                        textureId = textureId, // USE SAVED ID
                         Name = refTile.Name,
+                        // Note: Texture and TextureName might be updated by InitializeTextures later based on textureId
                         TextureName = refTile.TextureName,
                         IsSolid = refTile.IsSolid,
                         IsOccupied = true,
@@ -334,7 +367,29 @@ namespace TileMaster.Manager
 
                     if (hasItem && itemId != -1 && itemId < Global.Items.Count)
                     {
-                        ct.PlacedItem = Global.Items[itemId];
+                        // NEW: Create a distinct instance of the item to store per-tile data (e.g. LightColor)
+                        var templateItem = Global.Items[itemId];
+                        var newItem = new Item
+                        {
+                            Name = templateItem.Name,
+                            Description = templateItem.Description,
+                            TextureName = templateItem.TextureName,
+                            LightColorName = templateItem.LightColorName,
+                            StackSize = templateItem.StackSize,
+                            IsTile = templateItem.IsTile,
+                            TileId = templateItem.TileId, // ID of the tile this item places
+                            Texture = templateItem.Texture,
+                            IsPlaceable = templateItem.IsPlaceable,
+                            IsLightSource = templateItem.IsLightSource,
+                            IsFlickeringLight = templateItem.IsFlickeringLight,
+                            LightColor = templateItem.LightColor,
+                            LightIntensity = templateItem.LightIntensity,
+                            LightRadius = templateItem.LightRadius
+                        };
+
+                        if (itemLightColor.HasValue) newItem.LightColor = itemLightColor;
+
+                        ct.PlacedItem = newItem;
                     }
                     result[i] = ct;
                 }
@@ -343,7 +398,7 @@ namespace TileMaster.Manager
                     var bt = new BackgroundTile
                     {
                         TileId = tileId,
-                        textureId = refTile.textureId,
+                        textureId = textureId, // USE SAVED ID
                         Name = refTile.Name,
                         TextureName = refTile.TextureName,
                         IsOccupied = true,
@@ -357,6 +412,7 @@ namespace TileMaster.Manager
                         Width = Global.TileSize,
                         Height = Global.TileSize
                     };
+
                     result[i] = bt;
                 }
             }

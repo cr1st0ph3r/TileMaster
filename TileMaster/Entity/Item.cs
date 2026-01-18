@@ -4,7 +4,6 @@ using Microsoft.Xna.Framework.Graphics;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 
 namespace TileMaster.Entity
@@ -23,6 +22,7 @@ namespace TileMaster.Entity
         public Texture2D Texture;
 
         public bool IsPlaceable { get; set; }
+        public bool PlaceableOnBackground { get; set; }
         
         // Lighting properties
         public bool IsLightSource { get; set; }

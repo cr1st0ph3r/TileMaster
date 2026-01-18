@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace TileMaster.Entity.Tiles
 {
@@ -80,7 +81,24 @@ namespace TileMaster.Entity.Tiles
 
         public void InitializeTexture()
         {
-            Texture = Global.ReferenceTiles[textureId].Texture;
+          
+            if (textureId == 0)
+            {
+                Texture = Global.ReferenceTiles[textureId].Texture;
+            }
+            else {
+                var refTile = Global.ReferenceTiles[TileId];
+                //fatal flaw: we dont save which texture we are reffereing to, we have alternative textures, textures etc
+                if (refTile.Textures.Any())
+                {
+                    Texture = refTile.Textures.FirstOrDefault(x => x.Name.EndsWith($"{Name}{textureId}"));
+                }
+                else
+                {
+                    Texture = refTile.AltTextures.FirstOrDefault(x => x.Name.EndsWith($"{Name}{textureId}"));
+                }
+           
+            }
         }
 
         /// <summary>
@@ -133,7 +151,7 @@ namespace TileMaster.Entity.Tiles
         /// <summary>
         /// Pack a Color into an int (A<<24 | R<<16 | G<<8 | B).
         /// </summary>
-        private static int PackArgb(Color c)
+        public static int PackArgb(Color c)
         {
             return (c.A << 24) | (c.R << 16) | (c.G << 8) | c.B;
         }
@@ -141,7 +159,7 @@ namespace TileMaster.Entity.Tiles
         /// <summary>
         /// Unpack an int ARGB into a Color.
         /// </summary>
-        private static Color UnpackArgb(int argb)
+        public static Color UnpackArgb(int argb)
         {
             byte a = (byte)((argb >> 24) & 0xFF);
             byte r = (byte)((argb >> 16) & 0xFF);

@@ -5,6 +5,7 @@
     "TextureName": "Torch1",
     "Description": "A basic torch that provides light.",
     "IsPlaceable": true,
+    "PlaceableOnBackground": true,
     "IsLightSource": true,
     "IsFlickeringLight": true,
     "LightColorName": "Orange",
