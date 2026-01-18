@@ -59,6 +59,10 @@ namespace TileMaster.Entity.Tiles
                                      0f);
                 }
             }
+            else
+            {
+                Game.LogMessage($"Tile {GlobalId} of type {Name} has no texture!!!",null);
+            }
             
             
             if (PlacedItem != null && PlacedItem.Texture != null)
@@ -81,7 +85,6 @@ namespace TileMaster.Entity.Tiles
 
         public void InitializeTexture()
         {
-          
             if (textureId == 0)
             {
                 Texture = Global.ReferenceTiles[textureId].Texture;

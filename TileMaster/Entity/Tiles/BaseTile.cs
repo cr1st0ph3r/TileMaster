@@ -56,6 +56,11 @@ namespace TileMaster.Entity.Tiles
         /// Denotes if this tile is on the edge of a chunk
         /// </summary>
         public bool isEdgeTile { get; set; }
+
+        /// <summary>
+        /// Whether the tile is collectable if mined.
+        /// </summary>
+        public bool Collectable { get; set; }
         /// <summary>
         /// Denotes if this tile is neighboring a different tile type. Used for blend logic
         /// </summary>

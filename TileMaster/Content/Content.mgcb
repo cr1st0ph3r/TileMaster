@@ -92,18 +92,6 @@
 /processorParam:TextureFormat=Color
 /build:Layers/Sky/Background.png
 
-#begin Layers/Sky/Background.png
-/importer:TextureImporter
-/processor:TextureProcessor
-/processorParam:ColorKeyColor=255,0,255,255
-/processorParam:ColorKeyEnabled=True
-/processorParam:GenerateMipmaps=False
-/processorParam:PremultiplyAlpha=True
-/processorParam:ResizeToPowerOfTwo=False
-/processorParam:MakeSquare=False
-/processorParam:TextureFormat=Color
-/build:Layers/Sky/Background.png
-
 #begin Layers/Surface/Background.png
 /importer:TextureImporter
 /processor:TextureProcessor
@@ -115,30 +103,6 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:Layers/Surface/Background.png
-
-#begin Layers/Surface/Background.png
-/importer:TextureImporter
-/processor:TextureProcessor
-/processorParam:ColorKeyColor=255,0,255,255
-/processorParam:ColorKeyEnabled=True
-/processorParam:GenerateMipmaps=False
-/processorParam:PremultiplyAlpha=True
-/processorParam:ResizeToPowerOfTwo=False
-/processorParam:MakeSquare=False
-/processorParam:TextureFormat=Color
-/build:Layers/Surface/Background.png
-
-#begin Layers/Surface/Clouds_Fast.png
-/importer:TextureImporter
-/processor:TextureProcessor
-/processorParam:ColorKeyColor=255,0,255,255
-/processorParam:ColorKeyEnabled=True
-/processorParam:GenerateMipmaps=False
-/processorParam:PremultiplyAlpha=True
-/processorParam:ResizeToPowerOfTwo=False
-/processorParam:MakeSquare=False
-/processorParam:TextureFormat=Color
-/build:Layers/Surface/Clouds_Fast.png
 
 #begin Layers/Surface/Clouds_Fast.png
 /importer:TextureImporter
@@ -164,18 +128,6 @@
 /processorParam:TextureFormat=Color
 /build:Layers/Surface/Clouds_Slow.png
 
-#begin Layers/Surface/Clouds_Slow.png
-/importer:TextureImporter
-/processor:TextureProcessor
-/processorParam:ColorKeyColor=255,0,255,255
-/processorParam:ColorKeyEnabled=True
-/processorParam:GenerateMipmaps=False
-/processorParam:PremultiplyAlpha=True
-/processorParam:ResizeToPowerOfTwo=False
-/processorParam:MakeSquare=False
-/processorParam:TextureFormat=Color
-/build:Layers/Surface/Clouds_Slow.png
-
 #begin Layers/Surface/Floor.png
 /importer:TextureImporter
 /processor:TextureProcessor
@@ -187,30 +139,6 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:Layers/Surface/Floor.png
-
-#begin Layers/Surface/Floor.png
-/importer:TextureImporter
-/processor:TextureProcessor
-/processorParam:ColorKeyColor=255,0,255,255
-/processorParam:ColorKeyEnabled=True
-/processorParam:GenerateMipmaps=False
-/processorParam:PremultiplyAlpha=True
-/processorParam:ResizeToPowerOfTwo=False
-/processorParam:MakeSquare=False
-/processorParam:TextureFormat=Color
-/build:Layers/Surface/Floor.png
-
-#begin Layers/Surface/Hills_Back.png
-/importer:TextureImporter
-/processor:TextureProcessor
-/processorParam:ColorKeyColor=255,0,255,255
-/processorParam:ColorKeyEnabled=True
-/processorParam:GenerateMipmaps=False
-/processorParam:PremultiplyAlpha=True
-/processorParam:ResizeToPowerOfTwo=False
-/processorParam:MakeSquare=False
-/processorParam:TextureFormat=Color
-/build:Layers/Surface/Hills_Back.png
 
 #begin Layers/Surface/Hills_Back.png
 /importer:TextureImporter
@@ -236,18 +164,6 @@
 /processorParam:TextureFormat=Color
 /build:Layers/Surface/Hills_Front.png
 
-#begin Layers/Surface/Hills_Front.png
-/importer:TextureImporter
-/processor:TextureProcessor
-/processorParam:ColorKeyColor=255,0,255,255
-/processorParam:ColorKeyEnabled=True
-/processorParam:GenerateMipmaps=False
-/processorParam:PremultiplyAlpha=True
-/processorParam:ResizeToPowerOfTwo=False
-/processorParam:MakeSquare=False
-/processorParam:TextureFormat=Color
-/build:Layers/Surface/Hills_Front.png
-
 #begin Layers/Surface/Hills_Middle.png
 /importer:TextureImporter
 /processor:TextureProcessor
@@ -259,30 +175,6 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:Layers/Surface/Hills_Middle.png
-
-#begin Layers/Surface/Hills_Middle.png
-/importer:TextureImporter
-/processor:TextureProcessor
-/processorParam:ColorKeyColor=255,0,255,255
-/processorParam:ColorKeyEnabled=True
-/processorParam:GenerateMipmaps=False
-/processorParam:PremultiplyAlpha=True
-/processorParam:ResizeToPowerOfTwo=False
-/processorParam:MakeSquare=False
-/processorParam:TextureFormat=Color
-/build:Layers/Surface/Hills_Middle.png
-
-#begin Layers/Surface/Trees.png
-/importer:TextureImporter
-/processor:TextureProcessor
-/processorParam:ColorKeyColor=255,0,255,255
-/processorParam:ColorKeyEnabled=True
-/processorParam:GenerateMipmaps=False
-/processorParam:PremultiplyAlpha=True
-/processorParam:ResizeToPowerOfTwo=False
-/processorParam:MakeSquare=False
-/processorParam:TextureFormat=Color
-/build:Layers/Surface/Trees.png
 
 #begin Layers/Surface/Trees.png
 /importer:TextureImporter
@@ -691,6 +583,54 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:Tiles/Stone/Stone3.png
+
+#begin Tiles/TallGrass/TallGrass.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:Tiles/TallGrass/TallGrass.png
+
+#begin Tiles/TallGrass/TallGrass1.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:Tiles/TallGrass/TallGrass1.png
+
+#begin Tiles/TallGrass/TallGrass2.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:Tiles/TallGrass/TallGrass2.png
+
+#begin Tiles/TallGrass/TallGrass2.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:Tiles/TallGrass/TallGrass2.png
 
 #begin Tiles/TreeLeaf/TreeLeaf.png
 /importer:TextureImporter

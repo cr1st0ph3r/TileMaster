@@ -1,12 +1,12 @@
-﻿using System;
+﻿using Microsoft.Xna.Framework;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Collections.Concurrent;
+using TileMaster.Entity.Enums;
 using TileMaster.Entity.Tiles;
-using TileMaster.Map;
-using Microsoft.Xna.Framework;
 using TileMaster.Helper;
+using TileMaster.Map;
 
 namespace TileMaster.Manager
 {
@@ -236,14 +236,24 @@ namespace TileMaster.Manager
 
             gameInstance._mainPanel.InitializeLoadProgress("Generating chunks");
             ToChunks();
-            
+
+            //fix grass textures before saving the map
+            for (int i = 0; i < map.Chunks.Length; i++)
+            {
+                if (map.Chunks[i].Tiles.Any(x => x.TileId == (int)TileType.DirtWithGrass))
+                {
+                    map.grass.GrowGrass(i);
+
+                }
+            } 
+
             // Initialize worldData properly for saving
              worldData = new WorldData
             {
                 WorldHeight = Global.MapHeightMultiplier,
                 WorldWidth = Global.MapWidthMultiplier
             };
-            
+                       
             gameInstance._mainPanel.InitializeLoadProgress("Saving map to file");
             SaveMap();            
             gameInstance._mainPanel.HideLoadProgress();           
