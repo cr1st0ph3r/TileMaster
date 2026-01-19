@@ -10,7 +10,7 @@ namespace TileMaster.Helper
         {
             if (Keyboard.GetState().IsKeyDown(Keys.D))
             {
-                var tileAt = map.GetTileAt(player.onBlock + 1, player.onChunk, "right");
+                var tileAt = map.GetTileByGlobalId(player.onBlock + 1);
                 if (tileAt != null && tileAt.IsOccupied == false)
                 {
                     return true;//proceed with the moving
@@ -26,7 +26,7 @@ namespace TileMaster.Helper
 
             if (Keyboard.GetState().IsKeyDown(Keys.A))
             {
-                var tileAt = map.GetTileAt(player.onBlock - 1, player.onChunk, "left");
+                var tileAt = map.GetTileByGlobalId(player.onBlock - 1);
                 if (tileAt != null && tileAt.IsOccupied == false)
                     return true;//proceed with the moving
             }
@@ -69,9 +69,9 @@ namespace TileMaster.Helper
                 int gx = sampleX / Global.TileSize;
                 if (gx < 0 || gx >= Global.MapWidth) continue;
 
-                int blockId = (footRow * Global.MapWidth) + gx;
+                int globalId = (footRow * Global.MapWidth) + gx;
                 string direction = gx > player.GridX ? "right" : (gx < player.GridX ? "left" : "right");
-                var tile = map.GetTileAt(blockId, player.onChunk, direction);
+                var tile = map.GetTileByGlobalId(globalId);
 
                 // if tile is missing, preserve previous behavior and allow falling
                 if (tile == null)
@@ -100,7 +100,7 @@ namespace TileMaster.Helper
 
         public static bool HandleJump(Entity.Entity player, Map.Map map)
         {
-            var tileAt = map.GetTileAt(player.onBlock - (Global.MapWidth * player.Height), player.onChunk, "up");
+            var tileAt = map.GetTileByGlobalId(player.onBlock - (Global.MapWidth * player.Height));
             var game = Game.GetInstance();
             if (tileAt is null)
             {

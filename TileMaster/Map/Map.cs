@@ -89,41 +89,29 @@ namespace TileMaster.Map
         }
 
         /// <summary>
-        /// retrieves a tile at a given location. Accounts for cross chunk tiles
+        /// Retrieves a tile by its global ID using mathematical extrapolation.
         /// </summary>
-        /// <param name="globalId"></param>
-        /// <param name="chunkId"></param>
-        /// <param name="direction"></param>
-        /// <param name="retrial"></param>
-        /// <returns></returns>
-        public CollisionTile GetTileAt(int globalId, int chunkId, string direction, bool retrial = false)
+        public CollisionTile GetTileByGlobalId(int globalId)
         {
-            var chunk = GetChunk(chunkId);
-            if (chunk != null)
-            {
-                // Search in the chunk's tiles for the matching globalId
-                foreach (var tile in chunk.Tiles)
-                {
-                    if (tile.GlobalId == globalId)
-                        return tile;
-                }
-            }
-            if (retrial == false)
-            {
-                if (direction == "right")
-                {
-                    return GetTileAt(globalId, chunkId + 1, "right", true);
-                }
-                if (direction == "left")
-                {
-                    return GetTileAt(globalId, chunkId - 1, "left", true);
-                }
-                if (direction == "up")
-                {
-                    return GetTileAt(globalId, chunkId - Global.MapWidth / Global.ChunkSize, "up", true);
-                }
-            }
-            return null;
+            if (globalId < 0 || globalId >= Global.MapWidth * Global.MapHeight)
+                return null;
+
+            int x = globalId % Global.MapWidth;
+            int y = globalId / Global.MapWidth;
+            return GetTileAt(x, y);
+        }
+
+        /// <summary>
+        /// Retrieves a background tile by its global ID using mathematical extrapolation.
+        /// </summary>
+        public BackgroundTile GetBackgroundTileByGlobalId(int globalId)
+        {
+            if (globalId < 0 || globalId >= Global.MapWidth * Global.MapHeight)
+                return null;
+
+            int x = globalId % Global.MapWidth;
+            int y = globalId / Global.MapWidth;
+            return GetBackgroundTileAt(x, y);
         }
 
         public CollisionTile GetTileAt(int globalX, int globalY)
@@ -188,10 +176,9 @@ namespace TileMaster.Map
         #region Modify Tiles
         public void SetTile(int chunkId, int globalId, int referenceTileId)
         {
-            var chunk = GetChunk(chunkId);
-            if (chunk == null) return;
-            SetTile(chunk.Tiles.FirstOrDefault(t => t.GlobalId == globalId), referenceTileId);
-            chunk.HasBeenModified = true;
+            var targetTile = GetTileByGlobalId(globalId);
+            if (targetTile == null) return;
+            SetTile(targetTile, referenceTileId);
         }
 
         public void PlaceItem(int chunkId, int globalId, Item item)
@@ -201,8 +188,8 @@ namespace TileMaster.Map
 
             CollisionTile targetTile = null;
 
-            // Find tile by globalId
-            targetTile = chunk.Tiles.FirstOrDefault(t => t.GlobalId == globalId);
+            // Find tile by globalId using direct math-based retrieval
+            targetTile = GetTileByGlobalId(globalId);
 
             if (targetTile == null) return;
 
@@ -306,8 +293,12 @@ namespace TileMaster.Map
             // So yes, we need IsOccupied = true.
 
             //targetTile.NeedUpdate = true;
-            chunk.HasBeenModified = true;
-            chunk.NeedUpdate = true;
+            var actualChunk = GetChunk(targetTile.ChunkId);
+            if (actualChunk != null)
+            {
+                actualChunk.HasBeenModified = true;
+                actualChunk.NeedUpdate = true;
+            }
 
             AddTileToModificationTracker(targetTile);
         }
@@ -356,34 +347,28 @@ namespace TileMaster.Map
         }
         public void UpdateTile(Tile updated)
         {
-            var chunk = GetChunk(updated.ChunkId);
-            if (chunk == null) return;
+            int globalX = updated.X;
+            int globalY = updated.Y;
+            int chunkIndex = GlobalToChunkIndex(globalX, globalY);
 
-            // Find and update by globalId
-            for (int i = 0; i < chunk.Tiles.Length; i++)
+            if (Chunks != null && chunkIndex >= 0 && chunkIndex < Chunks.Length)
             {
-                if (chunk.Tiles[i] != null && chunk.Tiles[i].GlobalId == updated.GlobalId)
+                var chunk = Chunks[chunkIndex];
+                if (chunk != null && chunk.Tiles != null)
                 {
-                    chunk.Tiles[i] = (CollisionTile)updated;
-                    return;
+                    int localIndex = GlobalToLocalIndex(globalX, globalY);
+                    if (localIndex >= 0 && localIndex < chunk.Tiles.Length)
+                    {
+                        chunk.Tiles[localIndex] = (CollisionTile)updated;
+                    }
                 }
             }
         }
         public void SetBackgroundTile(int chunkId, int blockId, int referenceTileId)
         {
-            var chunk = GetChunk(chunkId);
-            if (chunk == null) return;
-
-            // Find tile by globalId
-            for (int i = 0; i < chunk.BackgroundTiles.Length; i++)
-            {
-                if (chunk.BackgroundTiles[i] != null && chunk.BackgroundTiles[i].GlobalId == blockId)
-                {
-                    SetBackgroundTile(chunk.BackgroundTiles[i], referenceTileId);
-                    chunk.HasBeenModified = true;
-                    return;
-                }
-            }
+            var targetTile = GetBackgroundTileByGlobalId(blockId);
+            if (targetTile == null) return;
+            SetBackgroundTile(targetTile, referenceTileId);
         }
 
         public void SetBackgroundTile(BackgroundTile targetTile, int referenceTileId, float rotation = 0f)
@@ -418,16 +403,20 @@ namespace TileMaster.Map
 
         public void UpdateBackgroundTile(BackgroundTile updated)
         {
-            var chunk = GetChunk(updated.ChunkId);
-            if (chunk == null) return;
+            int globalX = updated.X;
+            int globalY = updated.Y;
+            int chunkIndex = GlobalToChunkIndex(globalX, globalY);
 
-            // Find and update by globalId
-            for (int i = 0; i < chunk.BackgroundTiles.Length; i++)
+            if (Chunks != null && chunkIndex >= 0 && chunkIndex < Chunks.Length)
             {
-                if (chunk.BackgroundTiles[i] != null && chunk.BackgroundTiles[i].GlobalId == updated.GlobalId)
+                var chunk = Chunks[chunkIndex];
+                if (chunk != null && chunk.BackgroundTiles != null)
                 {
-                    chunk.BackgroundTiles[i] = updated;
-                    return;
+                    int localIndex = GlobalToLocalIndex(globalX, globalY);
+                    if (localIndex >= 0 && localIndex < chunk.BackgroundTiles.Length)
+                    {
+                        chunk.BackgroundTiles[localIndex] = updated;
+                    }
                 }
             }
         }
@@ -459,16 +448,8 @@ namespace TileMaster.Map
         /// <returns></returns>
         public bool IsBlockOnChunk(int chunkId, int blockId)
         {
-            var chunk = GetChunk(chunkId);
-            if (chunk != null && chunk.Tiles != null)
-            {
-                foreach (var tile in chunk.Tiles)
-                {
-                    if (tile != null && tile.GlobalId == blockId)
-                        return true;
-                }
-            }
-            return false;
+            var tile = GetTileByGlobalId(blockId);
+            return tile != null && tile.ChunkId == chunkId;
         }
 
         /// <summary>
@@ -542,16 +523,8 @@ namespace TileMaster.Map
                 var chunk = GetChunk(chunkId);
                 if (chunk == null) return;
 
-                // Find the tile with globalId = blockId + 3
-                CollisionTile baseTile = null;
-                foreach (var tile in chunk.Tiles)
-                {
-                    if (tile != null && tile.GlobalId == blockId + 3)
-                    {
-                        baseTile = tile;
-                        break;
-                    }
-                }
+                // Find the tile with globalId = blockId + 3 using direct math-based retrieval
+                CollisionTile baseTile = GetTileByGlobalId(blockId + 3);
                 if (baseTile == null) return;
 
                 var treeBase = baseTile.GlobalId;
