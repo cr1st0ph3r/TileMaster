@@ -61,6 +61,34 @@ namespace TileMaster.Manager
 
             // mark chunk if any change occurred           
             chunk.NeedUpdate = hasChanged;
+
+            // Phase 3: Grow TallGrass on top of existing grass tiles
+            GrowTallGrass(chunkId);
+        }
+
+        /// <summary>
+        /// Periodically checks tiles with grass that are in contact with air above and grows tall grass.
+        /// </summary>
+        /// <param name="chunkId"></param>
+        private void GrowTallGrass(int chunkId)
+        {
+            var chunk = map.GetChunk(chunkId);
+            if (chunk == null || chunk.Tiles == null) return;
+
+            foreach (var tile in chunk.Tiles.Where(x => x != null && x.TileId == (int)TileType.DirtWithGrass).ToList())
+            {
+                // Check tile above
+                var tileAbove = map.GetTileAt(tile.X, tile.Y - 1);
+                if (tileAbove != null && tileAbove.TileId == (int)TileType.Air)
+                {
+                    // Grow tall grass with a small chance (5%)
+                    if (Game.rnd.Next(100) < 5)
+                    {
+                        map.SetTile(tileAbove.ChunkId, tileAbove.GlobalId, (int)TileType.TallGrass);
+                        chunk.NeedUpdate = true;
+                    }
+                }
+            }
         }
 
 
@@ -194,10 +222,10 @@ namespace TileMaster.Manager
             var neighbors = map.tileInspector.GetNeighboringTiles(tile);
             int mask = 0;
 
-            if (neighbors[1].TileId == (int)TileType.Air) mask |= 1;  // Top
-            if (neighbors[5].TileId == (int)TileType.Air) mask |= 2;  // Right
-            if (neighbors[7].TileId == (int)TileType.Air) mask |= 4;  // Bottom
-            if (neighbors[3].TileId == (int)TileType.Air) mask |= 8;  // Left
+            if (!neighbors[1].IsOccupied) mask |= 1;  // Top
+            if (!neighbors[5].IsOccupied) mask |= 2;  // Right
+            if (!neighbors[7].IsOccupied) mask |= 4;  // Bottom
+            if (!neighbors[3].IsOccupied) mask |= 8;  // Left
 
             return mask;
         }

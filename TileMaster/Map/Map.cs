@@ -89,33 +89,22 @@ namespace TileMaster.Map
         }
 
         /// <summary>
-        /// Converts a 1-based chunk ID to a 0-based index
-        /// </summary>
-        public static int ChunkIdToIndex(int chunkId) => chunkId - 1;
-
-        /// <summary>
-        /// Converts a 0-based chunk index to a 1-based chunk ID
-        /// </summary>
-        public static int ChunkIndexToId(int index) => index + 1;
-
-        /// <summary>
         /// retrieves a tile at a given location. Accounts for cross chunk tiles
         /// </summary>
-        /// <param name="blockId"></param>
+        /// <param name="globalId"></param>
         /// <param name="chunkId"></param>
         /// <param name="direction"></param>
         /// <param name="retrial"></param>
         /// <returns></returns>
-        public CollisionTile GetTileAt(int blockId, int chunkId, string direction, bool retrial = false)
+        public CollisionTile GetTileAt(int globalId, int chunkId, string direction, bool retrial = false)
         {
             var chunk = GetChunk(chunkId);
             if (chunk != null)
             {
-                // blockId is a globalId, we need to find it in the chunk
                 // Search in the chunk's tiles for the matching globalId
                 foreach (var tile in chunk.Tiles)
                 {
-                    if (tile != null && tile.GlobalId == blockId)
+                    if (tile.GlobalId == globalId)
                         return tile;
                 }
             }
@@ -123,15 +112,15 @@ namespace TileMaster.Map
             {
                 if (direction == "right")
                 {
-                    return GetTileAt(blockId, chunkId + 1, "right", true);
+                    return GetTileAt(globalId, chunkId + 1, "right", true);
                 }
                 if (direction == "left")
                 {
-                    return GetTileAt(blockId, chunkId - 1, "left", true);
+                    return GetTileAt(globalId, chunkId - 1, "left", true);
                 }
                 if (direction == "up")
                 {
-                    return GetTileAt(blockId, chunkId - Global.MapWidth / Global.ChunkSize, "up", true);
+                    return GetTileAt(globalId, chunkId - Global.MapWidth / Global.ChunkSize, "up", true);
                 }
             }
             return null;
@@ -197,24 +186,15 @@ namespace TileMaster.Map
         }
 
         #region Modify Tiles
-        public void SetTile(int chunkId, int blockId, int referenceTileId)
+        public void SetTile(int chunkId, int globalId, int referenceTileId)
         {
             var chunk = GetChunk(chunkId);
             if (chunk == null) return;
-
-            // Find tile by globalId
-            for (int i = 0; i < chunk.Tiles.Length; i++)
-            {
-                if (chunk.Tiles[i] != null && chunk.Tiles[i].GlobalId == blockId)
-                {
-                    SetTile(chunk.Tiles[i], referenceTileId);
-                    chunk.HasBeenModified = true;
-                    return;
-                }
-            }
+            SetTile(chunk.Tiles.FirstOrDefault(t => t.GlobalId == globalId), referenceTileId);
+            chunk.HasBeenModified = true;
         }
 
-        public void PlaceItem(int chunkId, int blockId, Item item)
+        public void PlaceItem(int chunkId, int globalId, Item item)
         {
             var chunk = GetChunk(chunkId);
             if (chunk == null) return;
@@ -222,14 +202,7 @@ namespace TileMaster.Map
             CollisionTile targetTile = null;
 
             // Find tile by globalId
-            for (int i = 0; i < chunk.Tiles.Length; i++)
-            {
-                if (chunk.Tiles[i] != null && chunk.Tiles[i].GlobalId == blockId)
-                {
-                    targetTile = chunk.Tiles[i];
-                    break;
-                }
-            }
+            targetTile = chunk.Tiles.FirstOrDefault(t => t.GlobalId == globalId);
 
             if (targetTile == null) return;
 
@@ -242,7 +215,7 @@ namespace TileMaster.Map
             }
 
             // 2. Check if the tile already has an item
-             if (targetTile.PlacedItem != null)
+            if (targetTile.PlacedItem != null)
             {
                 Game.LogMessage("Tile already contains an item.", Color.Red);
                 return;
@@ -260,24 +233,24 @@ namespace TileMaster.Map
                     hasSupport = true;
                 }
             }
-            
+
             // If item is placeable on background but there is no background, we might still allow it if there is floor support?
             // User requirement: "nothing (when it comes to items) can be placed "on top" of a foreground tile as in "two bodies cannot occupy the same place in space" rule"
             // This is handled by check #1. 
-            
+
             // "loadmap assumes that items can only be placed on foreground items" -> user means Items are mistakenly treated as blocks?
             // "The idea of placeable items is that they can be placed both on foreground tiles as well as on background tiles."
             // "Control which items can be placed on foreground tiles." -> Maybe they mean stick TO a foreground tile (like a torch on a wall block)?
             // Assuming simplified logic for now: Item needs EITHER a background wall OR a solid block adjacent/below (if we implement gravity/attachment later).
             // For now, if PlaceableOnBackground is true, we strictly require a background wall OR a solid attachment point.
-            
+
             // For this task, let's implement the specific request for Background support.
             if (item.PlaceableOnBackground && !hasSupport)
             {
                 // Optionally check for other support types here (like sitting on floor) 
                 // but if the item is *primarily* a wall item (like torch on bg), reject if no bg.
                 // However, torches can also be placed on the floor usually.
-                
+
                 // Let's check for floor support as a fallback
                 var tileBelow = GetTileAt(targetTile.X, targetTile.Y + 1);
                 if (tileBelow != null && tileBelow.IsSolid)
@@ -289,7 +262,7 @@ namespace TileMaster.Map
             {
                 // If NOT placeable on background, it MUST have floor support (or be a flying item?)
                 // Assuming standard gravity items need floor.
-                 var tileBelow = GetTileAt(targetTile.X, targetTile.Y + 1);
+                var tileBelow = GetTileAt(targetTile.X, targetTile.Y + 1);
                 if (tileBelow != null && tileBelow.IsSolid)
                 {
                     hasSupport = true;
@@ -298,14 +271,14 @@ namespace TileMaster.Map
 
             if (!hasSupport)
             {
-                 Game.LogMessage("Item needs support (background wall or solid ground).", Color.Red);
-                 return;
+                Game.LogMessage("Item needs support (background wall or solid ground).", Color.Red);
+                return;
             }
 
             // Placement allowed
             // We need to 'place' the item inside the Tile object without making the Tile itself solid/occupied by a block
             // The Tile object acts as a container.
-            
+
             targetTile.PlacedItem = item;
             // IMPORTANT: Do NOT set targetTile.IsOccupied = true or IsSolid = true, 
             // because that would make it act like a Dirt block colliding with player.
@@ -317,11 +290,11 @@ namespace TileMaster.Map
             // If we set IsOccupied = true, is it solid? 
             // CollisionTile has IsSolid property. We can set IsOccupied=true, IsSolid=false.
             // Does IsOccupied mean "There is something here"? Yes.
-            
+
             // Let's modify the tile to hold the item
             targetTile.IsOccupied = true;
             targetTile.IsSolid = false; // Items don't block movement usually
-            
+
             // We also need to set the texture id for the tile to render the item?
             // Rendering usually checks PlacedItem? 
             // SaveDataManager uses `writer.Write(true); // HasItem` if PlacedItem != null.
@@ -331,11 +304,11 @@ namespace TileMaster.Map
             // Line 368: `if (hasItem ...)` -> creates Item.
             // Line 356: `IsOccupied = true`.
             // So yes, we need IsOccupied = true.
-            
+
             //targetTile.NeedUpdate = true;
             chunk.HasBeenModified = true;
             chunk.NeedUpdate = true;
-            
+
             AddTileToModificationTracker(targetTile);
         }
         public void SetTile(Tile targetTile, int referenceTileId, float rotation = 0f)
@@ -358,7 +331,7 @@ namespace TileMaster.Map
             targetTile.IsSolid = referenceTile.IsSolid;
             targetTile.Rotation = rotation;
             var chunk = GetChunk(targetTile.ChunkId);
-            if (chunk != null) 
+            if (chunk != null)
             {
                 chunk.NeedUpdate = true;
                 chunk.HasBeenModified = true;
@@ -373,7 +346,7 @@ namespace TileMaster.Map
             targetTile.TextureName = targetTile.Texture.Name;
             targetTile.Rotation = rotation;
             var chunk = GetChunk(targetTile.ChunkId);
-            if (chunk != null) 
+            if (chunk != null)
             {
                 chunk.NeedUpdate = true;
                 chunk.HasBeenModified = true;
@@ -431,9 +404,9 @@ namespace TileMaster.Map
             targetTile.TileId = referenceTileId;
             targetTile.Rotation = rotation;
             targetTile.Color = "Gray"; // Ensure background tiles stay dark/dimmed
-            
+
             var chunk = GetChunk(targetTile.ChunkId);
-            if (chunk != null) 
+            if (chunk != null)
             {
                 chunk.NeedUpdate = true;
                 chunk.HasBeenModified = true;
@@ -734,7 +707,7 @@ namespace TileMaster.Map
         {
             //draw relevant chunks
             var tiles = GetTilesToDraw(chunkId);
-            
+
             // Draw background tiles first
             foreach (var tile in tiles)
             {
@@ -749,7 +722,7 @@ namespace TileMaster.Map
                         if (bgTile != null)
                         {
                             // Ensure background tiles are always drawn with a specific color filter to distinguish them
-                            if(bgTile.Color == "Gray" && !bgTile.ColorArgb.HasValue && !bgTile.ColorFilter.HasValue) 
+                            if (bgTile.Color == "Gray" && !bgTile.ColorArgb.HasValue && !bgTile.ColorFilter.HasValue)
                             {
                                 // Force a visual dimming if using default
                                 bgTile.ColorFilter = Microsoft.Xna.Framework.Color.Gray;
@@ -775,7 +748,7 @@ namespace TileMaster.Map
             }
 
         }
-        
+
         public Point? FocusPoint { get; set; } = null;
 
         /// <summary>

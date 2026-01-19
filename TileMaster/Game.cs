@@ -539,11 +539,6 @@ namespace TileMaster
                 playerSteppingOn, playerOnChunk, playerOnSolidGround, mouseOnChunk,
                 mousePos, mouseBlockIn, block);
         }
-        private void DrawWithShadow(string text, Vector2 position)
-        {
-            spriteBatch.DrawString(_debugFont, text, position + Vector2.One, Color.Black);
-            spriteBatch.DrawString(_debugFont, text, position, Color.LightYellow);
-        }
         private void DrawWithShadow(string text, Vector2 position, Color color)
         {
             spriteBatch.DrawString(_debugFont, text, position, Color.White);

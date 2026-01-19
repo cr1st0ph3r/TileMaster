@@ -8,6 +8,7 @@
         DirtWithGrass = 3,
         Granite = 4,
         TreeTrunk = 5,
-        TreeLeaf = 6
+        TreeLeaf = 6,
+        TallGrass = 7
     }
 }

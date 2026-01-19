@@ -102,7 +102,7 @@
     "TextureId": 0,
     "ParentTileId": 0,
     "TileId": 7,
-    "IsOccupied": true,
+    "IsOccupied": false,
     "IsSolid": false,
     "Color": "White"
   }
