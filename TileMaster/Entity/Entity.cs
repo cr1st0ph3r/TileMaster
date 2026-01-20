@@ -11,8 +11,8 @@ namespace TileMaster.Entity
         protected Vector2 position = new Vector2(Global.MapWidth * Global.TileSize / 2, (Global.GroundLevel - 20) * Global.TileSize);
         public Vector2 velocity;
         public int SteppingOn;
-        public int onBlock;
-        public int onChunk;
+        public int OnBlock;
+        public int OnChunk;
         public int GridX;
         public int GridY;
         protected bool hasJumped = false;
@@ -124,9 +124,9 @@ namespace TileMaster.Entity
 
             int newChunkX = GridX / Global.ChunkSize;
             int newChunkY = GridY / Global.ChunkSize;
-            onChunk = (1 + ((newChunkY * (Global.MapWidth / Global.ChunkSize)) + newChunkX));
-            onBlock = (GridY * Global.MapWidth) + GridX;
-            SteppingOn = onBlock + Global.MapWidth;
+            OnChunk = (1 + ((newChunkY * (Global.MapWidth / Global.ChunkSize)) + newChunkX));
+            OnBlock = (GridY * Global.MapWidth) + GridX;
+            SteppingOn = OnBlock + Global.MapWidth;
         }
 
         public void Draw(SpriteBatch spriteBatch)

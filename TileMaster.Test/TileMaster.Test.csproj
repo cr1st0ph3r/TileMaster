@@ -8,11 +8,25 @@
 
   <ItemGroup>
     <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\TileMaster.Util\TileMaster.Util.csproj" />
     <ProjectReference Include="..\TileMaster\TileMaster.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="..\TileMaster\Data\Items.json">
+      <Link>Data\Items.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="..\TileMaster\Data\Tiles.json">
+      <Link>Data\Tiles.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

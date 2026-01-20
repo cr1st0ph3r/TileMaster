@@ -1,9 +1,13 @@
+using AssetManagementBase;
 using Microsoft.Xna.Framework;
+using Myra;
+using Myra.Graphics2D;
 using Myra.Graphics2D.Brushes;
 using Myra.Graphics2D.UI;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using TileMaster.Entity;
 using TileMaster.Entity.Enums;
 
 namespace TileMaster.UI
@@ -20,7 +24,7 @@ namespace TileMaster.UI
         {
             BuildUI();
 
-            _debugButton.PressedChanged += _button1_PressedChanged;      
+            _debugButton.PressedChanged += _button1_PressedChanged;
             _loadMapButton.PressedChanged += _loadMapButton_PressedChanged;
             _saveMapButton.PressedChanged += _saveMapButton_PressedChanged;
             _openInventoryButton.PressedChanged += _openInventoryButton_PressedChanged;
@@ -38,9 +42,60 @@ namespace TileMaster.UI
 
             inventoryWindow = new InventoryWindow();
 
-            BuildActionBar();
+            ActionBarPanel = new Panel();
 
-  
+
+        }
+
+        public void BuildActionBar(Player player)
+        {
+            ActionBarPanel.Height = 60;
+            ActionBarPanel.Width = 510;
+            ActionBarPanel.Left = (Global.WindowWidth / 2 - (ActionBarPanel.Width.Value / 2));
+            ActionBarPanel.Top = (Global.WindowHeight - ActionBarPanel.Height.Value);
+            ActionBarPanel.Background = new SolidBrush(CommonComponents.PanelColor);
+
+            int buttonWidth = 40;
+            for (int i = 0; i < 10; i++)
+            {
+                var butt = new ItemButton();
+                butt.Id = "ActionBarButton" + i;
+
+                var panel = new Panel();
+                var image = new Image();
+                image.Id = "Image";
+                panel.Widgets.Add(image);
+
+                if (player.ActionBar.ContainsKey(i))
+                {
+                    var label = new Label();
+                    label.Text = player.ActionBar[i].Quantity.ToString();
+                    label.TextAlign = FontStashSharp.RichText.TextHorizontalAlignment.Center;
+                    label.VerticalAlignment = VerticalAlignment.Center;
+                    label.HorizontalAlignment = HorizontalAlignment.Center;
+                    label.Id = "Label";
+                    panel.Widgets.Add(label);
+                    image.Renderable = MyraEnvironment.DefaultAssetManager.LoadTextureRegion($"{Global.UIIconsLocation}{player.ActionBar[i].Item.UIIcon}.png");
+                    butt.Index = i;
+
+
+                }
+
+                butt.Content = panel;
+                butt.Width = buttonWidth;
+                butt.Padding = new Thickness(5, 5);
+                butt.PressedChanged += _actionBarButtonPress;
+                butt.Background = new SolidBrush(CommonComponents.ActionBarButtonColor);
+                butt.Height = 40;
+                butt.Top = 10;
+                butt.Left = 10 + (i * buttonWidth) + ((i * buttonWidth) / 4);
+
+                ActionBarPanel.Widgets.Add(butt);
+            }
+            Widgets.Add(ActionBarPanel);
+
+            //set the first action bar button as selected
+            ActionBarPanel.Widgets.First(x => x.Id == "ActionBarButton0").Background = new SolidBrush(CommonComponents.ButtonPressedColor);
         }
 
         public void UpdateState(Entity.Enums.GameState state)
@@ -82,7 +137,7 @@ namespace TileMaster.UI
             {
                 selectedIndex = 9;
             }
-            var button = ActionBarPanel.Widgets.FirstOrDefault(x => x.Id == "ActionBarButton" + selectedIndex) as Button;
+            var button = ActionBarPanel.Widgets.FirstOrDefault(x => x.Id == "ActionBarButton" + selectedIndex) as ItemButton;
             if (button != null)
             {
                 HandleActionBarPress(button);
@@ -111,10 +166,12 @@ namespace TileMaster.UI
             //when the task of loading the map is over, hide the progress bar
             task.ContinueWith(t => { game._mainPanel._loadMapProgressBar.Visible = false; });
         }
-        public void HandleActionBarPress(Button pressedButton)
+        public void HandleActionBarPress(ItemButton pressedButton)
         {
             pressedButton.Background = new SolidBrush(CommonComponents.ButtonPressedColor);
-            SelectedItem = pressedButton.MinHeight.Value;
+
+            SelectedItem = pressedButton.Index;
+
             foreach (var butt in ActionBarPanel.Widgets.Where(x => x.Id != pressedButton.Id))
             {
                 butt.Background = new SolidBrush(CommonComponents.ActionBarButtonColor);
@@ -182,7 +239,7 @@ namespace TileMaster.UI
 
         private void _actionBarButtonPress(object sender, EventArgs e)
         {
-            HandleActionBarPress(sender as Button);
+            HandleActionBarPress(sender as ItemButton);
         }
 
         private void _button1_PressedChanged(object sender, EventArgs e)

@@ -3,6 +3,7 @@
     "Id": 0,
     "Name": "Torch",
     "TextureName": "Torch1",
+    "UIIcon": "UITorch",
     "Description": "A basic torch that provides light.",
     "IsPlaceable": true,
     "PlaceableOnBackground": true,
@@ -16,6 +17,7 @@
     "Id": 1,
     "Name": "Dirt",
     "TextureName": "UIDirt",
+    "UIIcon": "UIDirt",
     "IsPlaceable": true,
     "IsTile": true,
     "TileId": 1
@@ -24,8 +26,18 @@
     "Id": 2,
     "Name": "Stone",
     "TextureName": "UIStone",
+    "UIIcon": "UIStone",
     "IsPlaceable": true,
     "IsTile": true,
     "TileId": 2
+  },
+  {
+    "Id": 3,
+    "Name": "Pickaxe",
+    "TextureName": "Pickaxe",
+    "StackSize": 1,
+    "UIIcon": "UIPickaxe",
+    "IsTool": true,
+    "ToolAction": 0
   }
 ]

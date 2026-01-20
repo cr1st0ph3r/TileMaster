@@ -20,11 +20,31 @@ namespace TileMaster.Map
 
         // The chunk array used for chunk storage (0-indexed, row-major order)
         public Chunk[] Chunks { get; set; }
+
+        /// <summary>
+        /// The list of modified tiles
+        /// </summary>
         public List<CollisionTile> ModifiedTiles { get; set; }
+     
+        /// <summary>
+        /// The tile manager used for tile storage and management
+        /// </summary>
         public TileManager TileMgr { get; set; }
 
-        //shouldn't be public
-        public int Width, Height;
+        /// <summary>
+        /// The focus point of the map
+        /// </summary>
+        public Point? FocusPoint { get; set; } = null;
+
+        /// <summary>
+        /// The width of the map
+        /// </summary>
+        public int Width { get; set; }
+
+        /// <summary>
+        /// The height of the map
+        /// </summary>
+        public int Height { get; set; }
 
         public Map()
         {
@@ -53,16 +73,6 @@ namespace TileMaster.Map
         public Chunk GetChunk(int chunkId)
         {
             int index = chunkId - 1; // Convert 1-based to 0-based
-            if (index < 0 || Chunks == null || index >= Chunks.Length)
-                return null;
-            return Chunks[index];
-        }
-
-        /// <summary>
-        /// Gets a chunk by its 0-based index
-        /// </summary>
-        public Chunk GetChunkByIndex(int index)
-        {
             if (index < 0 || Chunks == null || index >= Chunks.Length)
                 return null;
             return Chunks[index];
@@ -114,6 +124,9 @@ namespace TileMaster.Map
             return GetBackgroundTileAt(x, y);
         }
 
+        /// <summary>
+        /// Retrieves a tile by its global coordinates using mathematical extrapolation.
+        /// </summary>
         public CollisionTile GetTileAt(int globalX, int globalY)
         {
             // out of bounds guard
@@ -141,6 +154,9 @@ namespace TileMaster.Map
             return null;
         }
 
+        /// <summary>
+        /// Retrieves a background tile by its global coordinates using mathematical extrapolation.
+        /// </summary>
         public BackgroundTile GetBackgroundTileAt(int globalX, int globalY)
         {
             // out of bounds guard
@@ -168,12 +184,18 @@ namespace TileMaster.Map
             return null;
         }
 
+        /// <summary>
+        /// Checks if the map data exists
+        /// </summary>
         public bool CheckIfMapDataExists()
         {
             return File.Exists($"{Global.SaveDataFolderName}/map.tlm");
         }
 
         #region Modify Tiles
+        /// <summary>
+        /// Sets a tile at a given global ID
+        /// </summary>
         public void SetTile(int chunkId, int globalId, int referenceTileId)
         {
             var targetTile = GetTileByGlobalId(globalId);
@@ -181,6 +203,9 @@ namespace TileMaster.Map
             SetTile(targetTile, referenceTileId);
         }
 
+        /// <summary>
+        /// Places an item at a given global ID
+        /// </summary>
         public void PlaceItem(int chunkId, int globalId, Item item)
         {
             var chunk = GetChunk(chunkId);
@@ -197,14 +222,16 @@ namespace TileMaster.Map
             // 1. Check if the target tile is already occupied by a solid block
             if (targetTile.IsSolid && targetTile.TileId != (int)TileType.Air)
             {
-                Game.LogMessage("Cannot place item inside a solid block.", Color.Red);
+                if (Game.GetInstance() != null)
+                    Game.LogMessage("Cannot place item inside a solid block.", Color.Red);
                 return;
             }
 
             // 2. Check if the tile already has an item
             if (targetTile.PlacedItem != null)
             {
-                Game.LogMessage("Tile already contains an item.", Color.Red);
+                if (Game.GetInstance() != null)
+                    Game.LogMessage("Tile already contains an item.", Color.Red);
                 return;
             }
 
@@ -258,7 +285,8 @@ namespace TileMaster.Map
 
             if (!hasSupport)
             {
-                Game.LogMessage("Item needs support (background wall or solid ground).", Color.Red);
+                if (Game.GetInstance() != null)
+                    Game.LogMessage("Item needs support (background wall or solid ground).", Color.Red);
                 return;
             }
 
@@ -279,7 +307,7 @@ namespace TileMaster.Map
             // Does IsOccupied mean "There is something here"? Yes.
 
             // Let's modify the tile to hold the item
-            targetTile.IsOccupied = true;
+            targetTile.IsOccupied = false;
             targetTile.IsSolid = false; // Items don't block movement usually
 
             // We also need to set the texture id for the tile to render the item?
@@ -302,13 +330,33 @@ namespace TileMaster.Map
 
             AddTileToModificationTracker(targetTile);
         }
+
+        /// <summary>
+        /// Performs an action on a tile at a given global ID and action
+        /// </summary>
+        public void PerformActionOnTile(int chunkId, int globalId, ToolAction action)
+        {
+            if(action == ToolAction.MineBlock)
+            {
+                var targetTile = GetTileByGlobalId(globalId);
+                // Reset tile to Air
+                SetTile(targetTile, (int)TileType.Air);
+            }
+        }
+
+        /// <summary>
+        /// Updates a given tile with a new reference tile
+        /// </summary>
         public void SetTile(Tile targetTile, int referenceTileId, float rotation = 0f)
         {
             var referenceTile = Global.ReferenceTiles.FirstOrDefault(x => x.TileId == referenceTileId);
+            if (referenceTile == null) return;
 
-            if (referenceTile.AlternateTextures.Any())
+            if (referenceTile.AlternateTextures != null && referenceTile.AlternateTextures.Any() && referenceTile.AltTextures != null && referenceTile.AltTextures.Any())
             {
-                targetTile.Texture = referenceTile.AltTextures[Game.rnd.Next(referenceTile.AltTextures.Count)];
+                // Use a local random if Game instance is not available (headless tests)
+                var random = Game.rnd ?? new Random();
+                targetTile.Texture = referenceTile.AltTextures[random.Next(referenceTile.AltTextures.Count)];
             }
             else
             {
@@ -316,7 +364,7 @@ namespace TileMaster.Map
             }
 
             targetTile.Name = ((TileType)referenceTileId).ToString();
-            targetTile.TextureName = targetTile.Texture.Name;
+            targetTile.TextureName = targetTile.Texture?.Name ?? "None";
             targetTile.TileId = referenceTileId;
             targetTile.IsOccupied = referenceTile.IsOccupied;
             targetTile.IsSolid = referenceTile.IsSolid;
@@ -334,7 +382,7 @@ namespace TileMaster.Map
         public void SetTile(Tile targetTile, Texture2D texture = default, float rotation = 0f)
         {
             targetTile.Texture = texture;
-            targetTile.TextureName = targetTile.Texture.Name;
+            targetTile.TextureName = targetTile.Texture?.Name ?? "None";
             targetTile.Rotation = rotation;
             var chunk = GetChunk(targetTile.ChunkId);
             if (chunk != null)
@@ -345,6 +393,9 @@ namespace TileMaster.Map
 
             UpdateTile(targetTile);
         }
+        /// <summary>
+        /// Updates a tile in the map
+        /// </summary>
         public void UpdateTile(Tile updated)
         {
             int globalX = updated.X;
@@ -364,13 +415,19 @@ namespace TileMaster.Map
                 }
             }
         }
-        public void SetBackgroundTile(int chunkId, int blockId, int referenceTileId)
+        /// <summary>
+        /// Sets a background tile at a given global ID
+        /// </summary>
+        public void SetBackgroundTile(int chunkId, int globalId, int referenceTileId)
         {
-            var targetTile = GetBackgroundTileByGlobalId(blockId);
+            var targetTile = GetBackgroundTileByGlobalId(globalId);
             if (targetTile == null) return;
             SetBackgroundTile(targetTile, referenceTileId);
         }
 
+        /// <summary>
+        /// Updates a background tile in the map
+        /// </summary>
         public void SetBackgroundTile(BackgroundTile targetTile, int referenceTileId, float rotation = 0f)
         {
             var referenceTile = Global.ReferenceTiles.FirstOrDefault(x => x.TileId == referenceTileId);
@@ -385,7 +442,7 @@ namespace TileMaster.Map
             }
 
             targetTile.Name = ((TileType)referenceTileId).ToString();
-            targetTile.TextureName = targetTile.Texture.Name;
+            targetTile.TextureName = targetTile.Texture?.Name ?? "None";
             targetTile.TileId = referenceTileId;
             targetTile.Rotation = rotation;
             targetTile.Color = "Gray"; // Ensure background tiles stay dark/dimmed
@@ -401,6 +458,9 @@ namespace TileMaster.Map
             UpdateBackgroundTile(targetTile);
         }
 
+        /// <summary>
+        /// Updates a background tile in the map
+        /// </summary>
         public void UpdateBackgroundTile(BackgroundTile updated)
         {
             int globalX = updated.X;
@@ -421,6 +481,9 @@ namespace TileMaster.Map
             }
         }
 
+        /// <summary>
+        /// Adds a tile to the modification tracker
+        /// </summary>
         private void AddTileToModificationTracker(Tile tile)
         {
             if (!ModifiedTiles.Contains((CollisionTile)tile))
@@ -444,11 +507,11 @@ namespace TileMaster.Map
         /// Checks whether a block is at the specified chunk (by globalId)
         /// </summary>
         /// <param name="chunkId">1-based chunk ID</param>
-        /// <param name="blockId">Global tile ID</param>
+        /// <param name="globalId">Global tile ID</param>
         /// <returns></returns>
-        public bool IsBlockOnChunk(int chunkId, int blockId)
+        public bool IsBlockOnChunk(int chunkId, int globalId)
         {
-            var tile = GetTileByGlobalId(blockId);
+            var tile = GetTileByGlobalId(globalId);
             return tile != null && tile.ChunkId == chunkId;
         }
 
@@ -504,177 +567,7 @@ namespace TileMaster.Map
             return tiles;
         }
 
-        #region Tree Logic
 
-        /// <summary>
-        /// Creates a random tree with trunk variation, branches and a layered canopy.
-        /// Replaces the previous flat rectangular canopy with:
-        /// - Slightly leaning trunk
-        /// - Several randomized branches
-        /// - Layered canopy with jitter and holes for depth
-        /// The routine only writes to chunks/tiles that are currently loaded (safe against chunk boundaries).
-        /// </summary>
-        /// <param name="chunkId"></param>
-        /// <param name="blockId"></param>
-        public void GrowTree(int chunkId, int blockId)
-        {
-            try
-            {
-                var chunk = GetChunk(chunkId);
-                if (chunk == null) return;
-
-                // Find the tile with globalId = blockId + 3 using direct math-based retrieval
-                CollisionTile baseTile = GetTileByGlobalId(blockId + 3);
-                if (baseTile == null) return;
-
-                var treeBase = baseTile.GlobalId;
-
-                // convert to (x,y)
-                var mapWidth = Global.MapWidth;
-                var mapHeight = Global.MapHeight;
-                var chunksPerRow = Global.MapWidth / Global.ChunkSize;
-
-                var baseX = treeBase % mapWidth;
-                var baseY = treeBase / mapWidth;
-
-                // local helper: safely attempt to set a tile if the target chunk & tile exist
-                bool TrySet(int x, int y, int tileType)
-                {
-                    if (x < 0 || y < 0 || x >= mapWidth || y >= mapHeight) return false;
-                    var globalId = y * mapWidth + x;
-                    var chunkX = x / Global.ChunkSize;
-                    var chunkY = y / Global.ChunkSize;
-                    var targetChunkIndex = chunkY * chunksPerRow + chunkX;
-                    if (Chunks == null || targetChunkIndex < 0 || targetChunkIndex >= Chunks.Length) return false;
-                    var targetChunk = Chunks[targetChunkIndex];
-                    if (targetChunk == null) return false;
-
-                    // Find tile by globalId
-                    bool found = false;
-                    for (int i = 0; i < targetChunk.Tiles.Length; i++)
-                    {
-                        if (targetChunk.Tiles[i] != null && targetChunk.Tiles[i].GlobalId == globalId)
-                        {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) return false;
-                    SetTile(targetChunkIndex + 1, globalId, tileType); // +1 for 1-based chunkId
-                    return true;
-                }
-
-                var rnd = Game.rnd;
-
-                // trunk parameters
-                var trunkHeight = rnd.Next(6, 12);
-                var lean = rnd.Next(-1, 2); // -1, 0 or 1 (slight lean)
-                var trunkX = baseX;
-                var trunkY = baseY;
-
-                // Build trunk with subtle lean and occasional thicker segments
-                for (var i = 0; i < trunkHeight; i++)
-                {
-                    trunkY -= 1;
-                    // occasional lateral step to create a natural lean
-                    if (i > 1 && rnd.NextDouble() < 0.25)
-                    {
-                        trunkX = Math.Max(0, Math.Min(mapWidth - 1, trunkX + lean));
-                    }
-                    TrySet(trunkX, trunkY, (int)TileType.TreeTrunk);
-
-                    // Occasionally add a thicker trunk pixel (simulate 2x trunk)
-                    if (rnd.NextDouble() < 0.15)
-                    {
-                        TrySet(Math.Max(0, trunkX - 1), trunkY, (int)TileType.TreeTrunk);
-                        TrySet(Math.Min(mapWidth - 1, trunkX + 1), trunkY, (int)TileType.TreeTrunk);
-                    }
-                }
-
-                // Branch generation: a few branches sprouting from mid/upper trunk
-                var branches = rnd.Next(1, 4);
-                for (var b = 0; b < branches; b++)
-                {
-                    // choose a trunk level to start branch (near top)
-                    var startLevel = trunkY + rnd.Next(0, Math.Max(1, trunkHeight / 2));
-                    var branchLength = rnd.Next(3, 7);
-                    var direction = rnd.Next(0, 2) == 0 ? -1 : 1; // left or right
-                    var bx = trunkX;
-                    var by = startLevel;
-
-                    for (var s = 0; s < branchLength; s++)
-                    {
-                        // step outwards and a bit upwards
-                        bx = Math.Max(0, Math.Min(mapWidth - 1, bx + direction * (rnd.Next(1, 2))));
-                        by = Math.Max(0, by - rnd.Next(0, 2));
-                        TrySet(bx, by, (int)TileType.TreeTrunk);
-
-                        // small leaf cluster at branch tip or intermittently
-                        if (s == branchLength - 1 || rnd.NextDouble() < 0.25)
-                        {
-                            var clusterRadius = rnd.Next(2, 4);
-                            for (var cx = -clusterRadius; cx <= clusterRadius; cx++)
-                            {
-                                for (var cy = -clusterRadius; cy <= clusterRadius; cy++)
-                                {
-                                    // circular-ish cluster with jitter and occasional holes
-                                    if (Math.Sqrt(cx * cx + cy * cy) <= clusterRadius + rnd.NextDouble() * 0.5)
-                                    {
-                                        if (rnd.NextDouble() < 0.2) continue; // hole for depth
-                                        TrySet(bx + cx, by + cy, (int)TileType.TreeLeaf);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Canopy: layered circular layers decreasing radius to form a rounded top
-                var canopyLayers = rnd.Next(3, 5);
-                var canopyBaseRadius = rnd.Next(3, 6);
-
-                for (var layer = 0; layer < canopyLayers; layer++)
-                {
-                    var layerY = trunkY - layer;
-                    // radius shrinks with layer index and gets a little random jitter
-                    var layerRadius = canopyBaseRadius * (1.0 - (double)layer / canopyLayers) + rnd.NextDouble();
-                    var r = (int)Math.Ceiling(layerRadius);
-
-                    for (var dx = -r; dx <= r; dx++)
-                    {
-                        for (var dy = -r; dy <= r; dy++)
-                        {
-                            var dist = Math.Sqrt(dx * dx + dy * dy);
-                            // add some randomness to keep canopy organic and avoid perfect circles
-                            var jitter = rnd.NextDouble() * 0.6 - 0.3;
-                            if (dist <= layerRadius + jitter)
-                            {
-                                // occasionally skip tiles to create holes and depth
-                                if (rnd.NextDouble() < 0.12) continue;
-
-                                var lx = trunkX + dx + rnd.Next(-1, 2); // small horizontal jitter
-                                var ly = layerY + dy;
-                                TrySet(lx, ly, (int)TileType.TreeLeaf);
-                            }
-                        }
-                    }
-                }
-
-                // Additional scattered leaves under canopy for depth
-                var scatter = rnd.Next(6, 12);
-                for (var s = 0; s < scatter; s++)
-                {
-                    var sx = trunkX + rnd.Next(-canopyBaseRadius - 2, canopyBaseRadius + 3);
-                    var sy = trunkY + rnd.Next(-2, canopyLayers + 1);
-                    if (rnd.NextDouble() < 0.5) TrySet(sx, sy, (int)TileType.TreeLeaf);
-                }
-            }
-            catch
-            {
-                // Safe-fail: if chunk boundaries or missing chunks cause writes to fail, don't crash the generator.
-            }
-        }
-        #endregion
 
         public void Draw(SpriteBatch spriteBatch, int chunkId)
         {
@@ -711,7 +604,7 @@ namespace TileMaster.Map
             {
                 if (Global.MarkTilesOnTheEdge)
                 {
-                    if (tile.isEdgeTile)
+                    if (tile.IsEdgeTile)
                     {
                         tile.Color = "Gray";
                     }
@@ -721,8 +614,6 @@ namespace TileMaster.Map
             }
 
         }
-
-        public Point? FocusPoint { get; set; } = null;
 
         /// <summary>
         /// Processes all tiles that have been marked as modified and clears the list of modified tiles.

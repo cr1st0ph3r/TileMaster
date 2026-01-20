@@ -1,12 +1,9 @@
 ﻿using Microsoft.Xna.Framework;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using TileMaster.Entity;
 using TileMaster.Entity.Enums;
 using TileMaster.Entity.Tiles;
@@ -14,6 +11,15 @@ using TileMaster.Map;
 
 namespace TileMaster.Manager
 {
+    public class PlayerData
+    {
+        public float X { get; set; }
+        public float Y { get; set; }
+        public Layer Layer { get; set; }
+        public Dictionary<int, InventoryItem> Inventory { get; set; }
+        public Dictionary<int, InventoryItem> ActionBar { get; set; }
+    }
+
     public static class SaveDataManager
     {
         public static int Progress;
@@ -117,6 +123,40 @@ namespace TileMaster.Manager
             }
         }
 
+        public static void SavePlayerData(Player player)
+        {
+            if (Directory.Exists(Global.SaveDataFolderName) == false)
+            {
+                Directory.CreateDirectory(Global.SaveDataFolderName);
+            }
+
+            var archivePath = Path.Combine(Global.SaveDataFolderName, "map.tlm");
+
+            using (var fs = File.Open(archivePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
+            using (var archive = new ZipArchive(fs, ZipArchiveMode.Update))
+            {
+                var playerEntry = archive.GetEntry("player.json");
+                if (playerEntry != null) playerEntry.Delete();
+
+                playerEntry = archive.CreateEntry("player.json", CompressionLevel.Optimal);
+                using (var entryStream = playerEntry.Open())
+                {
+                    var playerData = new PlayerData
+                    {
+                        X = player.GetPosition().X,
+                        Y = player.GetPosition().Y,
+                        Layer = player.Layer,
+                        Inventory = player.Inventory,
+                        ActionBar = player.ActionBar
+                    };
+
+                    var options = new JsonSerializerOptions { IncludeFields = true, WriteIndented = true };
+                    var playerBytes = JsonSerializer.SerializeToUtf8Bytes(playerData, options);
+                    entryStream.Write(playerBytes, 0, playerBytes.Length);
+                }
+            }
+        }
+
         /// <summary>
         /// Loads WorldData metadata only. Does NOT load chunks.
         /// </summary>
@@ -135,6 +175,27 @@ namespace TileMaster.Manager
                     {
                         var options = new JsonSerializerOptions { IncludeFields = true };
                         return JsonSerializer.Deserialize<WorldData>(stream, options);
+                    }
+                }
+            }
+            return null;
+        }
+
+        public static PlayerData LoadPlayerData()
+        {
+            var archivePath = Path.Combine(Global.SaveDataFolderName, "map.tlm");
+            if (!File.Exists(archivePath)) return null;
+
+            using (var fs = File.OpenRead(archivePath))
+            using (var archive = new ZipArchive(fs, ZipArchiveMode.Read, leaveOpen: false))
+            {
+                var playerEntry = archive.GetEntry("player.json");
+                if (playerEntry != null)
+                {
+                    using (var stream = playerEntry.Open())
+                    {
+                        var options = new JsonSerializerOptions { IncludeFields = true };
+                        return JsonSerializer.Deserialize<PlayerData>(stream, options);
                     }
                 }
             }

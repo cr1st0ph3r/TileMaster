@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using TileMaster.Entity;
 using TileMaster.Entity.Enums;
 using TileMaster.Entity.Tiles;
 using TileMaster.Helper;
@@ -12,7 +13,7 @@ namespace TileMaster.Manager
 {
     public class MapManager
     {
-        
+
         private WorldData worldData;
         private Map.Map map;
         //The map dictionary used for map generation
@@ -24,14 +25,14 @@ namespace TileMaster.Manager
 
         public MapManager(Map.Map map)
         {
-            this.map = map;          
+            this.map = map;
         }
 
         #region Map Loading
         /// <summary>
         /// Saves the currently loaded chunks to the save file
         /// </summary>
-        public void SaveMap()
+        public void SaveMap(Player player = null)
         {
             if (worldData == null)
             {
@@ -55,24 +56,48 @@ namespace TileMaster.Manager
                 }
             }
             SaveDataManager.SaveGame(worldData, loadedChunks);
+
+            if (player != null)
+            {
+                SaveDataManager.SavePlayerData(player);
+            }
         }
 
         /// <summary>
         /// Initializes the map structure from save data but does NOT load chunks.
         /// Chunks are loaded dynamically via UpdateChunks.
         /// </summary>
-        public void LoadMap()
+        public void LoadMap(Player player = null)
         {
             var gameInstance = Game.GetInstance();
             worldData = SaveDataManager.LoadGame();
-            
+
             if (worldData == null) return; // Handle error appropriately
+
+            if (player != null)
+            {
+                var playerData = SaveDataManager.LoadPlayerData();
+                if (playerData != null)
+                {
+                    player.SetPosition(new Vector2(playerData.X, playerData.Y));
+                    player.Layer = playerData.Layer;
+                    player.Inventory = playerData.Inventory;
+                    player.ActionBar = playerData.ActionBar;
+                }
+                else
+                {
+                    // Default items
+                    player.ActionBar[0] = new InventoryItem(Global.Items[(int)Items.Torch], 99);
+                    player.ActionBar[1] = new InventoryItem(Global.Items[(int)Items.Pickaxe], 1);
+                    player.ActionBar[2] = new InventoryItem(Global.Items[(int)Items.Dirt], 99);
+                }
+            }
 
             gameInstance._mainPanel.InitializeLoadProgress("Initializing map structure");
 
             Global.MapHeightMultiplier = worldData.WorldHeight;
             Global.MapWidthMultiplier = worldData.WorldWidth;
-            
+
             // Recalculate global dimensions
             Global.MapWidth = Global.MapWidthMultiplier * Global.ChunkSize;
             Global.MapHeight = Global.MapHeightMultiplier * Global.ChunkSize;
@@ -95,14 +120,14 @@ namespace TileMaster.Manager
                 {
                     map.Chunks[result.index] = result.chunk;
                 }
-                
+
                 // Remove from loading set based on chunk ID (1-based)
                 if (result.chunk != null)
                 {
-                     // We could track by ID here, but removing by index logic is tricky since we only have index here easily
-                     // Actually we can reconstruct ID
-                     int id = result.index + 1;
-                     lock (_loadingChunks) { _loadingChunks.Remove(id); }
+                    // We could track by ID here, but removing by index logic is tricky since we only have index here easily
+                    // Actually we can reconstruct ID
+                    int id = result.index + 1;
+                    lock (_loadingChunks) { _loadingChunks.Remove(id); }
                 }
             }
         }
@@ -117,16 +142,16 @@ namespace TileMaster.Manager
 
             int playerTileX = (int)(playerPosition.X / Global.TileSize);
             int playerTileY = (int)(playerPosition.Y / Global.TileSize);
-            
+
             // Safety check for bounds
             if (playerTileX < 0) playerTileX = 0;
             if (playerTileY < 0) playerTileY = 0;
 
             int centerChunkIndex = map.GlobalToChunkIndex(playerTileX, playerTileY);
-            
+
             // Determine render distance (radius in chunks)
             // 2 horizontal radius means: center - 2 to center + 2 (5 chunks wide)
-            int radiusX = 3; 
+            int radiusX = 3;
             int radiusY = 3;
 
             int chunksPerRow = map.ChunksPerRow;
@@ -167,7 +192,7 @@ namespace TileMaster.Manager
                         var dict = new Dictionary<int, Chunk> { { i + 1, map.Chunks[i] } };
                         SaveDataManager.SaveGame(worldData, dict);
                     }
-                    
+
                     // Unload
                     map.Chunks[i] = null;
                 }
@@ -181,7 +206,7 @@ namespace TileMaster.Manager
                 {
                     int chunkId = chunkIndex + 1;
                     bool startLoad = false;
-                    lock(_loadingChunks)
+                    lock (_loadingChunks)
                     {
                         if (!_loadingChunks.Contains(chunkId))
                         {
@@ -192,7 +217,7 @@ namespace TileMaster.Manager
 
                     if (startLoad)
                     {
-                        Task.Run(async () => 
+                        Task.Run(async () =>
                         {
                             try
                             {
@@ -204,12 +229,12 @@ namespace TileMaster.Manager
                                 else
                                 {
                                     // Failed to load or doesn't exist? Remove from loading so we can retry or handle it
-                                     lock(_loadingChunks) { _loadingChunks.Remove(chunkId); }
+                                    lock (_loadingChunks) { _loadingChunks.Remove(chunkId); }
                                 }
                             }
                             catch
                             {
-                                 lock(_loadingChunks) { _loadingChunks.Remove(chunkId); }
+                                lock (_loadingChunks) { _loadingChunks.Remove(chunkId); }
                             }
                         });
                     }
@@ -221,16 +246,16 @@ namespace TileMaster.Manager
         #region Map Generation
 
         public void GenerateMap()
-        {  
+        {
             var gameInstance = Game.GetInstance();
             int seed = Game.rnd.Next(100000000); // Master seed for the world
             var initialArrayMap = Util.MapGenerator.GenerateRandomMap(seed);
-            
+
             // Generate background with the SAME seed to ensure topography matches
             var backgroundArrayMap = Util.MapGenerator.GenerateBackgroundMap(seed);
-          
+
             gameInstance._mainPanel.InitializeLoadProgress("Generating map dictionary");
-            MapDictionary =  GenerateMapDictionary(initialArrayMap);
+            MapDictionary = GenerateMapDictionary(initialArrayMap);
             ImageHelper.SaveMapDictionaryAsImage(MapDictionary, "GeneratedMap.png");
             BackgroundMapDictionary = GenerateMapDictionary(backgroundArrayMap);
 
@@ -245,18 +270,18 @@ namespace TileMaster.Manager
                     map.grass.GrowGrass(i);
 
                 }
-            } 
+            }
 
             // Initialize worldData properly for saving
-             worldData = new WorldData
+            worldData = new WorldData
             {
                 WorldHeight = Global.MapHeightMultiplier,
                 WorldWidth = Global.MapWidthMultiplier
             };
-                       
+
             gameInstance._mainPanel.InitializeLoadProgress("Saving map to file");
-            SaveMap();            
-            gameInstance._mainPanel.HideLoadProgress();           
+            SaveMap();
+            gameInstance._mainPanel.HideLoadProgress();
         }
         /// <summary>
         /// Generate a dictionary map from a 2d integer array using threads
@@ -287,7 +312,7 @@ namespace TileMaster.Manager
             });
 
             // 3. Convert the array to a dictionary
-            return tileArray.ToDictionary(t => t.GlobalId, t => t);           
+            return tileArray.ToDictionary(t => t.GlobalId, t => t);
         }
 
         private void ToChunks()
@@ -297,11 +322,11 @@ namespace TileMaster.Manager
             var SectorsInY = (Global.MapHeight + Global.ChunkSize - 1) / Global.ChunkSize;
             int totalChunks = SectorsInX * SectorsInY;
             var chunks = new Chunk[totalChunks];
-            
+
             var blockCount = 1;
             var chunkIndex = 0;
             var pointOnscreenCounter = 0;
-            
+
             for (var gridY = 0; gridY < SectorsInY; gridY++)
             {
                 for (var gridX = 0; gridX < SectorsInX; gridX++)
@@ -309,7 +334,7 @@ namespace TileMaster.Manager
                     var chunk = new Chunk();
                     chunk.PositionOnscreen = pointOnscreenCounter++;
                     var localChunkCounter = 0;
-                    
+
                     for (var localY = 0; localY < Global.ChunkSize; localY++)
                     {
                         // iterate local coords inside the chunk
@@ -332,13 +357,13 @@ namespace TileMaster.Manager
 
                             // Update tile metadata (1-based chunkId for compatibility)
                             tile.ChunkId = chunkIndex + 1;
-                            tile.isEdgeTile = isEdgeTile;
+                            tile.IsEdgeTile = isEdgeTile;
                             tile.LocalId = localChunkCounter;
                             tile.GlobalId = globalId;
 
                             // store into chunk.Tiles using local index
                             chunk.Tiles[localChunkCounter] = tile;
-                            
+
                             // Create background tile
                             var bgTile = BackgroundMapDictionary[globalId].ToBackgroundTile();
                             bgTile.Color = "Gray";
@@ -347,7 +372,7 @@ namespace TileMaster.Manager
                             chunk.BackgroundTiles[localChunkCounter] = bgTile;
 
                             // also update the master map entry
-                            MapDictionary[globalId].isEdgeTile = isEdgeTile;
+                            MapDictionary[globalId].IsEdgeTile = isEdgeTile;
 
                             blockCount++;
                             localChunkCounter++;
@@ -356,7 +381,7 @@ namespace TileMaster.Manager
                     chunks[chunkIndex] = chunk;
                     chunkIndex++;
                 }
-            }            
+            }
             map.Chunks = chunks;
         }
         /// <summary>

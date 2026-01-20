@@ -55,8 +55,15 @@ namespace TileMaster.Entity.Tiles
         /// <summary>
         /// Denotes if this tile is on the edge of a chunk
         /// </summary>
-        public bool isEdgeTile { get; set; }
-
+        public bool IsEdgeTile { get; set; }
+        /// <summary>
+        /// Whether the ile is a slope tile.
+        /// </summary>
+        public bool IsSlope { get; set; }
+        /// <summary>
+        /// The angle in which the slope tile is rotated
+        /// </summary>
+        public int SlopeRotation { get; set; } = 0;
         /// <summary>
         /// Whether the tile is collectable if mined.
         /// </summary>

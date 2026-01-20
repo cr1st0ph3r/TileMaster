@@ -52,11 +52,9 @@ namespace TileMaster.Manager
             // This ensures mask computations use the original map state (no race between neighboring updates).
             foreach (var candidate in candidates.Values)
             {
-                if (candidate.GlobalId == 22464)
-                {
-
-                }
-                hasChanged |= CheckTileEligibilityForGrass(candidate);
+                bool tileChanged = CheckTileEligibilityForGrass(candidate);
+                if (tileChanged) System.Console.WriteLine($"Tile {candidate.GlobalId} changed to grass.");
+                hasChanged |= tileChanged;
             }
 
             // mark chunk if any change occurred           
@@ -82,7 +80,8 @@ namespace TileMaster.Manager
                 if (tileAbove != null && tileAbove.TileId == (int)TileType.Air)
                 {
                     // Grow tall grass with a small chance (5%)
-                    if (Game.rnd.Next(100) < 5)
+                    var random = Game.rnd ?? new System.Random();
+                    if (random.Next(100) < 5)
                     {
                         map.SetTile(tileAbove.ChunkId, tileAbove.GlobalId, (int)TileType.TallGrass);
                         chunk.NeedUpdate = true;
@@ -173,8 +172,15 @@ namespace TileMaster.Manager
                         textureToUse = "DirtWithGrassCorner3";
                         rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(270f);
                     }
-                    var grassTexture = grassDef?.Textures.FirstOrDefault(x => x.Name.EndsWith(textureToUse));
+                    var grassTexture = grassDef?.Textures?.FirstOrDefault(x => x.Name.EndsWith(textureToUse));
                     
+                    // IF we don't have textures (headless), we just update the metadata
+                    if (grassTexture == null)
+                    {
+                        map.SetTile(destinationTile, referenceTileId: (int)TileType.DirtWithGrass, rotation: rotation);
+                        return true;
+                    }
+
                     // Optimization: Check if already set
                     if (destinationTile.TextureName == grassTexture.Name && System.Math.Abs(destinationTile.Rotation - rotation) < 0.01f)
                         return false;
@@ -198,11 +204,20 @@ namespace TileMaster.Manager
                 string textureName = $"DirtWithGrass{mask}";
 
                 var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
-                var grassTexture = grassDef?.Textures.FirstOrDefault(x => x.Name.EndsWith(textureName));
+                var grassTexture = grassDef?.Textures?.FirstOrDefault(x => x.Name.EndsWith(textureName));
                 destinationTile.textureId = mask;
-                destinationTile.TextureName = grassTexture.Name;
                 destinationTile.TileId = (int)TileType.DirtWithGrass;
-                map.SetTile(destinationTile, grassTexture);
+
+                if (grassTexture == null)
+                {
+                    destinationTile.TextureName = "None";
+                    map.SetTile(destinationTile, referenceTileId: (int)TileType.DirtWithGrass);
+                }
+                else
+                {
+                    destinationTile.TextureName = grassTexture.Name;
+                    map.SetTile(destinationTile, grassTexture);
+                }
                 return true;
             }
 

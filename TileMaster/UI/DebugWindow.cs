@@ -65,7 +65,7 @@ namespace TileMaster.UI
                 LblTileLocalId.Text = block.LocalId.ToString();
                 LblTileGlobalId.Text = block.GlobalId.ToString();
                 LblTileChunkId.Text = block.ChunkId.ToString();
-                LblTileIsEdge.Text = block.isEdgeTile.ToString();
+                LblTileIsEdge.Text = block.IsEdgeTile.ToString();
                 LblTileIsSolid.Text = block.IsSolid.ToString();
             }
             else

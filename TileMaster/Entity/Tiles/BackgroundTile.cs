@@ -17,7 +17,7 @@ namespace TileMaster.Entity.Tiles
             IsOccupied = false; // Background tiles are generally not occupied in the collision sense
             IsSolid = false;    // Background tiles are never solid
             GlobalId = tileRef.GlobalId;
-            isEdgeTile = tileRef.isEdgeTile;
+            IsEdgeTile = tileRef.IsEdgeTile;
             // neighboringTiles = tileRef.neighboringTiles; // Might not need this for background
             Name = tileType.Name;
             TileId = tileType.TileId;

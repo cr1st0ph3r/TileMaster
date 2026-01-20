@@ -114,5 +114,6 @@ namespace TileMaster
         public static readonly string SaveDataFolderName = "SaveData";
         public static readonly string TileDataLocation = @"Data\Tiles.json";
         public static readonly string ItemsDataLocation = @"Data\Items.json";
+        public static readonly string UIIconsLocation = @"content\UI\";
     }
 }

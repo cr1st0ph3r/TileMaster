@@ -2,6 +2,8 @@
 {
    public enum Items
     {
-        Torch = 0
+        Torch = 0,
+        Dirt = 1,
+        Pickaxe = 3
     }
 }

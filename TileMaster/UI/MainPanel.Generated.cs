@@ -134,66 +134,6 @@ namespace TileMaster.UI
             Widgets.Add(_menuContainer);
         }
 
-        void BuildActionBar()
-        {
-            ActionBarPanel = new Panel();
-            ActionBarPanel.Height = 60;
-            ActionBarPanel.Width = 510;
-            ActionBarPanel.Left = (Global.WindowWidth / 2 - (ActionBarPanel.Width.Value / 2));
-            ActionBarPanel.Top = (Global.WindowHeight - ActionBarPanel.Height.Value);
-            ActionBarPanel.Background = new SolidBrush(CommonComponents.PanelColor);
-
-            int buttonWidth = 40;
-            for (int i = 0; i < 10; i++)
-            {
-                var butt = new Button();             
-                butt.Id = "ActionBarButton" + i;
-                
-                var panel = new Panel();
-                var image = new Image();
-                image.Id = "Image";
-                panel.Widgets.Add(image);
-                
-                var label = new Label();
-                label.Text = "99";
-                label.TextAlign = FontStashSharp.RichText.TextHorizontalAlignment.Center;
-                label.VerticalAlignment = VerticalAlignment.Center;
-                label.HorizontalAlignment = HorizontalAlignment.Center;
-                label.Id = "Label";
-                panel.Widgets.Add(label);
-
-                butt.Content = panel;
-                butt.Width = buttonWidth;
-                butt.Padding = new Thickness(5, 5);
-                butt.PressedChanged += _actionBarButtonPress;
-                butt.Background = new SolidBrush(CommonComponents.ActionBarButtonColor);
-                if (i % 2 == 0)
-                {
-                    image.Renderable = MyraEnvironment.DefaultAssetManager.LoadTextureRegion("content/UI/UIStone.png");
-                    butt.MinHeight = 2;
-                }
-
-                else
-                {
-                    image.Renderable = MyraEnvironment.DefaultAssetManager.LoadTextureRegion("content/UI/UIDirt.png");
-                    butt.MinHeight = 1;
-                }
-
-
-                butt.Height = 40;
-                butt.Top = 10;
-                butt.Left = 10 + (i * buttonWidth) + ((i * buttonWidth) / 4);
-
-                ActionBarPanel.Widgets.Add(butt);
-            }
-            Widgets.Add(ActionBarPanel);
-
-            //set the first action bar button as selected
-            ActionBarPanel.Widgets.First(x => x.Id == "ActionBarButton0").Background = new SolidBrush(CommonComponents.ButtonPressedColor);
-            
-            ActionBarPanel.Visible = false;
-        }
-
         public ToggleButton _debugButton;  
         public ToggleButton _loadMapButton;
         public ToggleButton _saveMapButton;

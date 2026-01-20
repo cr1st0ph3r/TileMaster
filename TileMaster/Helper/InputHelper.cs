@@ -6,11 +6,11 @@ namespace TileMaster.Helper
 {
     public static class InputHelper
     {
-        public static bool HandleMovingRight(Player player, Map.Map map)
+        public static bool HandleMovingRight(Player player, Map.Map map, KeyboardState keyboardState)
         {
-            if (Keyboard.GetState().IsKeyDown(Keys.D))
+            if (keyboardState.IsKeyDown(Keys.D))
             {
-                var tileAt = map.GetTileByGlobalId(player.onBlock + 1);
+                var tileAt = map.GetTileByGlobalId(player.OnBlock + 1);
                 if (tileAt != null && tileAt.IsOccupied == false)
                 {
                     return true;//proceed with the moving
@@ -21,12 +21,12 @@ namespace TileMaster.Helper
             return false;
         }
 
-        public static bool HandleMovingLeft(Player player, Map.Map map)
+        public static bool HandleMovingLeft(Player player, Map.Map map, KeyboardState keyboardState)
         {
 
-            if (Keyboard.GetState().IsKeyDown(Keys.A))
+            if (keyboardState.IsKeyDown(Keys.A))
             {
-                var tileAt = map.GetTileByGlobalId(player.onBlock - 1);
+                var tileAt = map.GetTileByGlobalId(player.OnBlock - 1);
                 if (tileAt != null && tileAt.IsOccupied == false)
                     return true;//proceed with the moving
             }
@@ -100,12 +100,12 @@ namespace TileMaster.Helper
 
         public static bool HandleJump(Entity.Entity player, Map.Map map)
         {
-            var tileAt = map.GetTileByGlobalId(player.onBlock - (Global.MapWidth * player.Height));
+            var tileAt = map.GetTileByGlobalId(player.OnBlock - (Global.MapWidth * player.Height));
             var game = Game.GetInstance();
             if (tileAt is null)
             {
              
-                game.LogMessage($"Jump found null block at block {player.onBlock - (Global.MapWidth * player.Height)} on chunk {player.onChunk}",Microsoft.Xna.Framework.Color.Red);
+                game.LogMessage($"Jump found null block at block {player.OnBlock - (Global.MapWidth * player.Height)} on chunk {player.OnChunk}",Microsoft.Xna.Framework.Color.Red);
                 return false;
             }
             if (tileAt.IsOccupied == false)
@@ -154,7 +154,7 @@ namespace TileMaster.Helper
             // prefer assigning the exact chunk when present, otherwise search nearby loaded neighbors
             if (map.GetChunk(newChunk) != null)
             {
-                player.onChunk = newChunk;
+                player.OnChunk = newChunk;
             }
             else
             {
@@ -170,7 +170,7 @@ namespace TileMaster.Helper
                         int cid = 1 + (cy * chunksPerRow) + cx;
                         if (map.GetChunk(cid) != null)
                         {
-                            player.onChunk = cid;
+                            player.OnChunk = cid;
                             found = true;
                         }
                     }
@@ -179,8 +179,8 @@ namespace TileMaster.Helper
             }
 
             // keep onBlock / SteppingOn consistent with the chosen grid indices
-            player.onBlock = (player.GridY * Global.MapWidth) + player.GridX;
-            player.SteppingOn = player.onBlock + Global.MapWidth;
+            player.OnBlock = (player.GridY * Global.MapWidth) + player.GridX;
+            player.SteppingOn = player.OnBlock + Global.MapWidth;
         }
     }
 }

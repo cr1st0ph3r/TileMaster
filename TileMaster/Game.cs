@@ -1,11 +1,11 @@
 ﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Myra;
 using Myra.Graphics2D.UI;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using TileMaster.Entity;
@@ -13,20 +13,22 @@ using TileMaster.Entity.Enums;
 using TileMaster.Entity.MobMovement;
 using TileMaster.Entity.Tiles;
 using TileMaster.Manager;
+using TileMaster.Map;
 using TileMaster.UI;
 using ButtonState = Microsoft.Xna.Framework.Input.ButtonState;
 
 namespace TileMaster
 {
-    public class Game : Microsoft.Xna.Framework.Game
+    public partial class Game : Microsoft.Xna.Framework.Game
     {
+        #region Variables
         public MainPanel _mainPanel;
         public static GameState _state;
         public static Camera camera;
         public int mouseIsOverBlock;
         public static readonly Random rnd = new(DateTime.Now.GetHashCode());
         public event Action<int> ScrollWheelChanged;
-        #region Variables
+
         private static Game _game;
         private readonly GraphicsDeviceManager graphics;
         private SpriteBatch spriteBatch;
@@ -99,10 +101,9 @@ namespace TileMaster
         }
         public static Game GetInstance()
         {
-            if (_game == null)
-                throw new Exception("Call SetInstance() with a valid object");
             return _game;
         }
+      
         public void LoadMap()
         {
             //do I have a map to load?
@@ -110,16 +111,19 @@ namespace TileMaster
             {
                 map.mapManager.GenerateMap();
             }
-            map.mapManager.LoadMap();
+            map.mapManager.LoadMap(player);
             // Initial chunk update to load area around player
-            map.mapManager.UpdateChunks(player.GetPosition());          
+            map.mapManager.UpdateChunks(player.GetPosition());
+            _mainPanel.BuildActionBar(player);
         }
 
         public void SaveMap()
         {
-            map.mapManager.SaveMap();
+            map.mapManager.SaveMap(player);
             LogMessage("Map saved successfully", Color.Green, 300);
         }
+
+        #region Game Overrides
         protected override void Initialize()
         {
             map = new Map.Map();
@@ -128,16 +132,6 @@ namespace TileMaster
             this.Exiting += OnGameExiting;
             base.Initialize();
         }
-
-        private void OnGameExiting(object sender, EventArgs e)
-        {
-             if (map != null && map.mapManager != null)
-            {
-                System.Diagnostics.Debug.WriteLine("Saving map before exit...");
-                map.mapManager.SaveMap();
-            }
-        }
-
         protected override void LoadContent()
         {
             MyraEnvironment.Game = this;
@@ -177,8 +171,7 @@ namespace TileMaster
             // TODO: Unload any non ContentManager content here
         }
 
-
-
+        #region Updates
         /// <summary>
         /// Allows the game to run logic such as updating the world,
         /// checking for collisions, gathering input, and playing audio.
@@ -188,23 +181,140 @@ namespace TileMaster
         {
             if (_state == GameState.Menu)
             {
-                _mainMenuScrollOffset += MainMenuScrollSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds;
-                if (mainMenuBackground != null)
+                updateMenuState(gameTime);
+            }
+
+            else if (_state == GameState.Running && Global.IsMapLoaded)
+            {
+                updateRunningState(gameTime);
+            }
+
+            base.Update(gameTime);
+        }
+        void updateMenuState(GameTime gameTime)
+        {
+            _mainMenuScrollOffset += MainMenuScrollSpeed * (float)gameTime.ElapsedGameTime.TotalSeconds;
+            if (mainMenuBackground != null)
+            {
+                _mainMenuScrollOffset %= mainMenuBackground.Width;
+            }
+        }
+        void updateRunningState(GameTime gameTime)
+        {
+            var timer = new Stopwatch();
+            timer.Start();
+            Dictionary<string,string> log = new Dictionary<string,string>();
+            // Process pending chunk loads/unloads
+            map.mapManager.ProcessPendingChunks();
+            log["Proccess pending chunks"] = timer.ElapsedTicks + " ms";
+          
+            // Input handling
+            UpdateInputHandling(gameTime);
+            log["Handle IO"] = timer.ElapsedTicks + " ms";
+         
+            //updates player
+            player.Update(gameTime, map);
+            log["Update Player"] = timer.ElapsedTicks + " ms";
+          
+            // Check if player changed chunk to update loaded areas
+            if (player.OnChunk != lastPlayerChunk)
+            {
+                map.mapManager.UpdateChunks(player.GetPosition());
+                lastPlayerChunk = player.OnChunk;
+                LogMessage($"Updated chunks around chunk {player.OnChunk}", Color.LightGreen, 300);
+            }
+            log["Update map chunks"] = timer.ElapsedTicks + " ms";
+           
+            //update mobs
+            foreach (var mob in mobs)
+            {
+                mob.Target = player; // Simple AI test: chase player
+                mob.Update(gameTime, map);
+            }
+            log["Update Mobs"] = timer.ElapsedTicks + " ms";
+        
+            // Update focus point for lighting optimization
+            map.FocusPoint = new Point((int)player.GetPosition().X / Global.TileSize, (int)player.GetPosition().Y / Global.TileSize);
+
+            camera.Update(player.GetPosition(), map.Width, map.Height);
+            log["Update Camera"] = timer.ElapsedTicks + " ms";
+            backgroundManager.Update(gameTime);
+            log["Update Background"] = timer.ElapsedTicks + " ms";
+
+            //timer
+            float elapsed = (float)gameTime.ElapsedGameTime.TotalMilliseconds;
+            timer5s -= elapsed;
+            timer2s -= elapsed;
+            if (timer5s < 0)
+            {
+                timer5s = TIMER5S;
+
+                if (ChunksToUpdate.Any() == false)
                 {
-                    _mainMenuScrollOffset %= mainMenuBackground.Width;
+                    for (int i = 0; i < map.Chunks.Length; i++)
+                    {
+                        var chunk = map.Chunks[i];
+                        if (chunk != null && chunk.HasGrass && chunk.NeedUpdate)
+                        {
+                            ChunksToUpdate.Add(i + 1); // 1-based chunkId
+                        }
+                    }
+
+                    LogMessage("checking tiles for grass grow", Color.Red);
                 }
             }
-
-            if (map != null && map.mapManager != null)
+            if (timer2s < 0)
             {
-                map.mapManager.ProcessPendingChunks();
+                timer2s = TIMER2S;
+                CheckChunkForUpdates();
             }
 
+            // Lighting update logic: 
+            // - Immediate update when a block is placed/removed (lightingDirty)
+            // - Periodic background update every 100ms to catch edge cases
+            timerLighting -= elapsed;
+            if (lightingDirty || timerLighting < 0)
+            {
+              UpdateEvery100ms(gameTime);
+
+            }
+            // Immediate lighting update if dirty
+            if (lightingDirty)
+            {
+                UpdateLighting(gameTime);
+            }
+            log["run timers"] = timer.ElapsedTicks + " ms";
+
+            map.UpdateModifiedTiles();
+            log["Update Modified Tiles"] = timer.ElapsedTicks + " ms";
+            timer.Stop();
+        }
+        void UpdateEvery100ms(GameTime gameTime)
+        {
+            //lighting
+            if (!map.tileShadeMgr.IsUpdating)
+            {
+                map.tileShadeMgr.UpdateLightingAsync(gameTime, player.Layer, map.FocusPoint);              
+                lightingDirty = false;
+            }
+            //Frame rate figure
+            Global.FrameRate = (Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)).ToString();
+            _mainPanel.UpdateFPS((int)(Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)));
+            //reset timer
+            timerLighting = TIMER_LIGHTING;
+        }
+        void UpdateLighting(GameTime gameTime) {
+            if (!map.tileShadeMgr.IsUpdating)
+            {
+                map.tileShadeMgr.UpdateLightingAsync(gameTime, player.Layer, map.FocusPoint);          
+                lightingDirty = false;
+            }
+        }
+        void UpdateInputHandling(GameTime gameTime)
+        {
             // Capture mouse state at start of Update so input handling is consistent
             previous_mouse = current_mouse;
             current_mouse = Mouse.GetState();
-            HandleKeyboardEvents();
-
             // detect scroll wheel changes
             int scrollDelta = current_mouse.ScrollWheelValue - previous_mouse.ScrollWheelValue;
             if (scrollDelta != 0)
@@ -215,95 +325,22 @@ namespace TileMaster
                     OnScrollWheelChanged(scrollDelta);
                 }
             }
+            //these actions should only be checked if the game windows is active
+            HandleMouseEvents();
 
-            if (_state == GameState.Running && Global.IsMapLoaded)
-            {
-                Vector2 cursorPosition = Vector2.Transform(new Vector2(current_mouse.Position.X, current_mouse.Position.Y), Matrix.Invert(camera.Transform));
-                var mouseY = (int)((cursorPosition.Y) / Global.TileSize) * Global.MapWidth;
-                var mouseX = (int)((cursorPosition.X) / Global.TileSize);
-                mouseIsOverBlock = (mouseX + mouseY);
+            HandleKeyboardEvents();                    
+            Vector2 cursorPosition = Vector2.Transform(new Vector2(current_mouse.Position.X, current_mouse.Position.Y), Matrix.Invert(camera.Transform));
+            var mouseY = (int)((cursorPosition.Y) / Global.TileSize) * Global.MapWidth;
+            var mouseX = (int)((cursorPosition.X) / Global.TileSize);
+            mouseIsOverBlock = (mouseX + mouseY);
 
-                cursorGridX = (int)((cursorPosition.X) / Global.TileSize);
-                cursorGridY = (int)((cursorPosition.Y) / Global.TileSize);
-                int cursorChunkX = (cursorGridX / Global.ChunkSize);
-                int cursorChunkY = (cursorGridY / Global.ChunkSize);
-                cursorOnChunk = (1/*chunks are 1 based*/+ ((cursorChunkY * (Global.MapWidth / Global.ChunkSize)) + cursorChunkX));
-
-                //these actions should only be checked if the game windows is active
-                HandleMouseEvents();
-                //updates player
-                player.Update(gameTime, map);
-                
-                // Check if player changed chunk to update loaded areas
-                if (player.onChunk != lastPlayerChunk)
-                { 
-                     map.mapManager.UpdateChunks(player.GetPosition());
-                     lastPlayerChunk = player.onChunk;
-                     LogMessage($"Updated chunks around chunk {player.onChunk}", Color.LightGreen, 300);
-                }
-
-                //update mobs
-                foreach (var mob in mobs)
-                {
-                    mob.Target = player; // Simple AI test: chase player
-                    mob.Update(gameTime, map);
-                }
-                // Update focus point for lighting optimization
-                map.FocusPoint = new Point((int)player.GetPosition().X / Global.TileSize, (int)player.GetPosition().Y / Global.TileSize);
-
-                camera.Update(player.GetPosition(), map.Width, map.Height);
-                backgroundManager.Update(gameTime);
-
-                //timer
-                float elapsed = (float)gameTime.ElapsedGameTime.TotalMilliseconds;
-                timer5s -= elapsed;
-                timer2s -= elapsed;
-                if (timer5s < 0)
-                {
-                    timer5s = TIMER5S;
-
-                    if (ChunksToUpdate.Any() == false)
-                    {                      
-                            for (int i = 0; i < map.Chunks.Length; i++)
-                            {
-                                var chunk = map.Chunks[i];
-                                if (chunk != null && chunk.HasGrass && chunk.NeedUpdate)
-                                {
-                                    ChunksToUpdate.Add(i + 1); // 1-based chunkId
-                                }
-                            }
-                        
-                        LogMessage("checking tiles for grass grow", Color.Red);
-                    }
-                }
-                if (timer2s < 0)
-                {
-                    timer2s = TIMER2S;
-                    CheckChunkForUpdates();
-                }
-
-                // Lighting update logic: 
-                // - Immediate update when a block is placed/removed (lightingDirty)
-                // - Periodic background update every 100ms to catch edge cases
-                timerLighting -= elapsed;
-                if (lightingDirty || timerLighting < 0)
-                {
-                    if (!map.tileShadeMgr.IsUpdating)
-                    {
-                        map.tileShadeMgr.UpdateLightingAsync(gameTime, player.Layer, map.FocusPoint);
-                        timerLighting = TIMER_LIGHTING;
-                        lightingDirty = false;
-                    }
-                    Global.FrameRate = (Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)).ToString();
-                    _mainPanel.UpdateFPS((int)(Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)));
-                }
-
-                map.UpdateModifiedTiles();
-            }
-
-            base.Update(gameTime);
+            cursorGridX = (int)((cursorPosition.X) / Global.TileSize);
+            cursorGridY = (int)((cursorPosition.Y) / Global.TileSize);
+            int cursorChunkX = (cursorGridX / Global.ChunkSize);
+            int cursorChunkY = (cursorGridY / Global.ChunkSize);
+            cursorOnChunk = (1/*chunks are 1 based*/+ ((cursorChunkY * (Global.MapWidth / Global.ChunkSize)) + cursorChunkX));
         }
-
+        #endregion
         protected override void Draw(GameTime gameTime)
         {
             GraphicsDevice.Clear(Color.Black);
@@ -311,16 +348,16 @@ namespace TileMaster
             if (_state == GameState.Menu)
             {
                 spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearWrap, null, null);
-                
+
                 // Draw the background using a source rectangle that is offset by _mainMenuScrollOffset.
                 // SamplerState.LinearWrap will handle the tiling.
                 Rectangle destinationRectangle = new Rectangle(0, 0, graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight);
                 Rectangle sourceRectangle = new Rectangle((int)_mainMenuScrollOffset, 0, mainMenuBackground.Width, mainMenuBackground.Height);
-                
+
                 // If the destination is larger than the source, we might want to scale it or tile it.
                 // Given the original code used a destination rectangle of screen size, I'll keep that.
                 spriteBatch.Draw(mainMenuBackground, destinationRectangle, sourceRectangle, Color.White);
-                
+
                 spriteBatch.End();
             }
             else
@@ -331,7 +368,7 @@ namespace TileMaster
 
                 if (_state == GameState.Running && Global.IsMapLoaded)
                 {
-                    map.Draw(spriteBatch, player.onChunk);
+                    map.Draw(spriteBatch, player.OnChunk);
 
                     player.Draw(spriteBatch);
                 }
@@ -361,12 +398,13 @@ namespace TileMaster
                     {
                         Messages.Remove(mess);
                     }
-                }            
+                }
                 spriteBatch.End();
             }
             base.Draw(gameTime);
             _desktop.Render();
         }
+        #endregion
 
         #region Misc
         public void LogMessage(string message, Color color, int timeout = 300)
@@ -405,47 +443,50 @@ namespace TileMaster
                 if (current_mouse.LeftButton == ButtonState.Pressed && _desktop.IsMouseOverGUI == false)
                 {
                     int itemId = _mainPanel.SelectedItem;
-                    if (itemId >= 0 && itemId < Global.Items.Count)
-                    {
-                        var item = Global.Items[itemId];
 
-                        if (Keyboard.GetState().IsKeyDown(Keys.B))
+                    var item = player.ActionBar[itemId].Item;
+
+                    if (Keyboard.GetState().IsKeyDown(Keys.B))
+                    {
+                        try
                         {
-                            try
+                            // Only Tiles can be placed as background (walls)
+                            if (item.IsTile)
                             {
-                                // Only Tiles can be placed as background (walls)
-                                if (item.IsTile)
-                                {
-                                    map.SetBackgroundTile(cursorOnChunk, mouseIsOverBlock, item.TileId);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                LogMessage("Failed to set background: " + ex.Message, Color.Red);
+                                map.SetBackgroundTile(cursorOnChunk, mouseIsOverBlock, item.TileId);
                             }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            try
-                            {
-                                if (item.IsTile)
-                                {
-                                    map.SetTile(cursorOnChunk, mouseIsOverBlock, item.TileId);
-                                    lightingDirty = true;
-                                }
-                                else if (item.IsPlaceable)
-                                {
-                                    map.PlaceItem(cursorOnChunk, mouseIsOverBlock, item);
-                                    lightingDirty = true;
-                                }
-                            }
-                            catch
-                            {
-                                //mouse clicked outside the game context
-                                //for the mean time this can be neglected
-                            }
+                            LogMessage("Failed to set background: " + ex.Message, Color.Red);
                         }
                     }
+                    else
+                    {
+                        try
+                        {
+                            if (item.IsTile)
+                            {
+                                map.SetTile(cursorOnChunk, mouseIsOverBlock, item.TileId);
+                                lightingDirty = true;
+                            }
+                            else if (item.IsPlaceable)
+                            {
+                                map.PlaceItem(cursorOnChunk, mouseIsOverBlock, item);
+                                lightingDirty = true;
+                            }
+                            else if (item.IsTool)
+                            {
+                                map.PerformActionOnTile(cursorOnChunk, mouseIsOverBlock, item.ToolAction);
+                            }
+                        }
+                        catch
+                        {
+                            //mouse clicked outside the game context
+                            //for the mean time this can be neglected
+                        }
+                    }
+
 
                 }
                 else if (current_mouse.RightButton == ButtonState.Pressed)
@@ -496,14 +537,21 @@ namespace TileMaster
         public void GenericAction()
         {
             //map.GrowGrass(player.onChunk);
-            map.GrowTree(player.onChunk, player.onBlock);
+            FeatureGenerator.GrowTree(map, player.OnChunk, player.OnBlock);
         }
-
         private void OnScrollWheelChanged(int delta)
         {
             // raise event for external subscribers
             ScrollWheelChanged?.Invoke(delta);
             _mainPanel.ChangeActionBarSelectedItem(delta > 0 ? 1 : -1);
+        }
+        private void OnGameExiting(object sender, EventArgs e)
+        {
+            if (map != null && map.mapManager != null)
+            {
+                System.Diagnostics.Debug.WriteLine("Saving map before exit...");
+                map.mapManager.SaveMap(player);
+            }
         }
         #endregion
 
@@ -518,10 +566,10 @@ namespace TileMaster
             string cursorGrid = cursorGridX + " x " + cursorGridY;
             string isMoving = player.isMoving.ToString();
             string velocity = "x:" + player.velocity.X + " y:" + player.velocity.Y;
-            string playerInside = player.onBlock.ToString();
+            string playerInside = player.OnBlock.ToString();
             string playerOnLayer = player.Layer.ToString();
             string playerSteppingOn = player.SteppingOn.ToString();
-            string playerOnChunk = player.onChunk.ToString();
+            string playerOnChunk = player.OnChunk.ToString();
             string playerOnSolidGround = player.isOnSolidBlock.ToString();
             string mouseOnChunk = cursorOnChunk.ToString();
             string mousePos = worldPosition.X + " x " + worldPosition.Y;
@@ -549,12 +597,12 @@ namespace TileMaster
             if (Global.updatePlayerChunkOnly)
             {
                 // Run on main thread to avoid race conditions and crashes
-                map.grass.GrowGrass(player.onChunk);
+                map.grass.GrowGrass(player.OnChunk);
                 // Lighting is handled via dirty flag, but grass growth may affect light.
                 // Mark lighting dirty to update on next cycle.
                 lightingDirty = true;
-                ChunksToUpdate.Remove(player.onChunk);
-                LogMessage("Checking Chunk " + player.onChunk + " for grass growth", Color.Green, 180);
+                ChunksToUpdate.Remove(player.OnChunk);
+                LogMessage("Checking Chunk " + player.OnChunk + " for grass growth", Color.Green, 180);
             }
             else if (ChunksToUpdate.Any())
             {
@@ -566,7 +614,7 @@ namespace TileMaster
             }
 
             //test remove
-            map.grass.GrowGrass(player.onChunk);
+            map.grass.GrowGrass(player.OnChunk);
         }
         #endregion
 
@@ -618,7 +666,7 @@ namespace TileMaster
                 AddTile(commandParts.Skip(1).ToArray());
             }
         }
-  
+
         private void RotateTlle(string[] commandParts)
         {
             if (commandParts.Length < 3)
@@ -676,7 +724,7 @@ namespace TileMaster
                 if (testTile != null)
                 {
                     var torch = Global.Items[(int)Items.Torch];
-                    map.PlaceItem(cursorOnChunk, mouseIsOverBlock, torch); 
+                    map.PlaceItem(cursorOnChunk, mouseIsOverBlock, torch);
                 }
 
 
