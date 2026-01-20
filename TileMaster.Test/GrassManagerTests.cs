@@ -61,5 +61,28 @@ namespace TileMaster.Test
             // Assert
             Assert.True(grew, "Tall grass should have grown after 500 attempts at 5% chance.");
         }
+
+        [Fact]
+        public void RemoveGrass_TallGrassAbove_RemovesTallGrass()
+        {
+            // Arrange
+            var map = TestHelper.CreateTestMap();
+            int chunkId = 1;
+            int grassX = 5, grassY = 5;
+            int tallGrassX = 5, tallGrassY = 4; // Above grass
+
+            map.SetTile(chunkId, grassY * Global.MapWidth + grassX, (int)TileType.DirtWithGrass);
+            map.SetTile(chunkId, tallGrassY * Global.MapWidth + tallGrassX, (int)TileType.TallGrass);
+
+            // Act
+            // Remove the supporting grass block
+            map.SetTile(chunkId, grassY * Global.MapWidth + grassX, (int)TileType.Air);
+            // Run the grass logic which should cleanup the floating tall grass
+            map.grass.GrowGrass(chunkId);
+
+            // Assert
+            var tile = map.GetTileAt(tallGrassX, tallGrassY);
+            Assert.Equal((int)TileType.Air, tile.TileId);
+        }
     }
 }

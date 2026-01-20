@@ -56,7 +56,7 @@ namespace TileMaster
         const float TIMER5S = 5000;
         float timer2s = 1500;
         const float TIMER2S = 2500;
-        float timerLighting = 0;
+        float timer100ms = 0;
         const float TIMER_LIGHTING = 100; // 100ms periodic lighting update
         bool lightingDirty = false; // Set to true when tiles are modified
 
@@ -200,21 +200,18 @@ namespace TileMaster
             }
         }
         void updateRunningState(GameTime gameTime)
-        {
-            var timer = new Stopwatch();
-            timer.Start();
-            Dictionary<string,string> log = new Dictionary<string,string>();
+        { 
+            // Update focus point for lighting optimization
+            map.FocusPoint = new Point((int)player.GetPosition().X / Global.TileSize, (int)player.GetPosition().Y / Global.TileSize);
+          
             // Process pending chunk loads/unloads
             map.mapManager.ProcessPendingChunks();
-            log["Proccess pending chunks"] = timer.ElapsedTicks + " ms";
           
             // Input handling
             UpdateInputHandling(gameTime);
-            log["Handle IO"] = timer.ElapsedTicks + " ms";
          
             //updates player
             player.Update(gameTime, map);
-            log["Update Player"] = timer.ElapsedTicks + " ms";
           
             // Check if player changed chunk to update loaded areas
             if (player.OnChunk != lastPlayerChunk)
@@ -223,7 +220,6 @@ namespace TileMaster
                 lastPlayerChunk = player.OnChunk;
                 LogMessage($"Updated chunks around chunk {player.OnChunk}", Color.LightGreen, 300);
             }
-            log["Update map chunks"] = timer.ElapsedTicks + " ms";
            
             //update mobs
             foreach (var mob in mobs)
@@ -231,63 +227,45 @@ namespace TileMaster
                 mob.Target = player; // Simple AI test: chase player
                 mob.Update(gameTime, map);
             }
-            log["Update Mobs"] = timer.ElapsedTicks + " ms";
-        
-            // Update focus point for lighting optimization
-            map.FocusPoint = new Point((int)player.GetPosition().X / Global.TileSize, (int)player.GetPosition().Y / Global.TileSize);
 
+            //update camera
             camera.Update(player.GetPosition(), map.Width, map.Height);
-            log["Update Camera"] = timer.ElapsedTicks + " ms";
+
+            //update background
             backgroundManager.Update(gameTime);
-            log["Update Background"] = timer.ElapsedTicks + " ms";
 
             //timer
             float elapsed = (float)gameTime.ElapsedGameTime.TotalMilliseconds;
             timer5s -= elapsed;
-            timer2s -= elapsed;
+            timer2s -= elapsed;  
+            timer100ms -= elapsed;
             if (timer5s < 0)
             {
-                timer5s = TIMER5S;
-
-                if (ChunksToUpdate.Any() == false)
-                {
-                    for (int i = 0; i < map.Chunks.Length; i++)
-                    {
-                        var chunk = map.Chunks[i];
-                        if (chunk != null && chunk.HasGrass && chunk.NeedUpdate)
-                        {
-                            ChunksToUpdate.Add(i + 1); // 1-based chunkId
-                        }
-                    }
-
-                    LogMessage("checking tiles for grass grow", Color.Red);
-                }
+                UpdateEvery5000ms(gameTime);
+                timer5s = TIMER5S;           
             }
             if (timer2s < 0)
             {
+                UpdateEvery2000ms(gameTime);
                 timer2s = TIMER2S;
-                CheckChunkForUpdates();
             }
 
             // Lighting update logic: 
             // - Immediate update when a block is placed/removed (lightingDirty)
             // - Periodic background update every 100ms to catch edge cases
-            timerLighting -= elapsed;
-            if (lightingDirty || timerLighting < 0)
+          
+            if (timer100ms < 0)
             {
               UpdateEvery100ms(gameTime);
-
+                timer100ms = TIMER_LIGHTING;
             }
             // Immediate lighting update if dirty
             if (lightingDirty)
             {
                 UpdateLighting(gameTime);
             }
-            log["run timers"] = timer.ElapsedTicks + " ms";
 
             map.UpdateModifiedTiles();
-            log["Update Modified Tiles"] = timer.ElapsedTicks + " ms";
-            timer.Stop();
         }
         void UpdateEvery100ms(GameTime gameTime)
         {
@@ -301,7 +279,28 @@ namespace TileMaster
             Global.FrameRate = (Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)).ToString();
             _mainPanel.UpdateFPS((int)(Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)));
             //reset timer
-            timerLighting = TIMER_LIGHTING;
+           
+        }
+        void UpdateEvery2000ms(GameTime gameTime)
+        {
+            //check chunks for updates
+            CheckChunkForUpdates();
+        }
+        void UpdateEvery5000ms(GameTime gameTime)
+        {
+            if (ChunksToUpdate.Any() == false)
+            {
+                for (int i = 0; i < map.Chunks.Length; i++)
+                {
+                    var chunk = map.Chunks[i];
+                    if (chunk != null && chunk.HasGrass && chunk.NeedUpdate)
+                    {
+                        ChunksToUpdate.Add(i + 1); // 1-based chunkId
+                    }
+                }
+
+                LogMessage("checking tiles for grass grow", Color.Red);
+            }
         }
         void UpdateLighting(GameTime gameTime) {
             if (!map.tileShadeMgr.IsUpdating)

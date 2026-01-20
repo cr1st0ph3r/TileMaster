@@ -62,6 +62,9 @@ namespace TileMaster.Manager
 
             // Phase 3: Grow TallGrass on top of existing grass tiles
             GrowTallGrass(chunkId);
+
+            // Phase 4: Clean up floating TallGrass
+            CleanupFloatingTallGrass(chunkId);
         }
 
         /// <summary>
@@ -86,6 +89,26 @@ namespace TileMaster.Manager
                         map.SetTile(tileAbove.ChunkId, tileAbove.GlobalId, (int)TileType.TallGrass);
                         chunk.NeedUpdate = true;
                     }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Removes tall grass that does not have a supporting grass block underneath
+        /// </summary>
+        /// <param name="chunkId"></param>
+        private void CleanupFloatingTallGrass(int chunkId)
+        {
+            var chunk = map.GetChunk(chunkId);
+            if (chunk == null || chunk.Tiles == null) return;
+
+            foreach (var tile in chunk.Tiles.Where(x => x != null && x.TileId == (int)TileType.TallGrass).ToList())
+            {
+                var tileBelow = map.GetTileAt(tile.X, tile.Y + 1);
+                if (tileBelow == null || tileBelow.TileId != (int)TileType.DirtWithGrass)
+                {
+                    map.SetTile(tile, (int)TileType.Air);
+                    chunk.NeedUpdate = true;
                 }
             }
         }
