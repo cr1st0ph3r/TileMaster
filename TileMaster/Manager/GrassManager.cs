@@ -134,6 +134,10 @@ namespace TileMaster.Manager
         /// <returns>True if the grass was successfully set, false otherwise.</returns>
         private bool SetGrassTile(Tile destinationTile)
         {
+            if (destinationTile.IsSlope)
+            {
+                return false;
+            }
             int mask = GetGrassMask(destinationTile);
             if (destinationTile.TextureName.EndsWith($"DirtWithGrass{mask.ToString()}"))
             {
@@ -230,7 +234,7 @@ namespace TileMaster.Manager
 
                 var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
                 var grassTexture = grassDef?.Textures?.FirstOrDefault(x => x.Name.EndsWith(textureName));
-                destinationTile.textureId = mask;
+                destinationTile.TextureId = mask;
                 destinationTile.TileId = (int)TileType.DirtWithGrass;
 
                 if (grassTexture == null)

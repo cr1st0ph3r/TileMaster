@@ -25,7 +25,7 @@ namespace TileMaster.Entity.Tiles
             GlobalId = blockId;
             Name = refTile.Name;
             TileId = refTile.TileId;
-            textureId = refTile.textureId;
+            TextureId = refTile.TextureId;
             TextureName = refTile.TextureName;
             LocalId = positionOnChunk;
             Color = refTile.Color;
@@ -85,7 +85,7 @@ namespace TileMaster.Entity.Tiles
             bgTile.IsSolid = IsSolid;
             bgTile.Name = Name;
             bgTile.TileId = TileId;
-            bgTile.textureId = textureId;
+            bgTile.TextureId = TextureId;
             bgTile.TextureName = TextureName;
             bgTile.Rectangle = new Rectangle(X * Global.TileSize, Y * Global.TileSize, Global.TileSize, Global.TileSize);
             bgTile.Color = Color;

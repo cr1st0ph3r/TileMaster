@@ -7,6 +7,7 @@ namespace TileMaster.Entity.Tiles
         public InventoryItem(Item item,int quantity)
         {
             Item = item;
+            ItemId = item.Id;
             Quantity = quantity;
         }
         [JsonConstructorAttribute]

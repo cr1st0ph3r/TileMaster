@@ -338,21 +338,80 @@ namespace TileMaster.Map
         /// </summary>
         public void PerformActionOnTile(int chunkId, int globalId, ToolAction action)
         {
-            if(action == ToolAction.MineBlock)
-            {
-                var targetTile = GetTileByGlobalId(globalId);
+            var targetTile = GetTileByGlobalId(globalId);
+            if (action == ToolAction.MineBlock)
+            {               
                 // Reset tile to Air
                 SetTile(targetTile, (int)TileType.Air);
             }
+            else if (action == ToolAction.TransformBlock)
+            {
+                HammerTile(targetTile);
+            }
         }
+        public void HammerTile(Tile targetTile)
+        {
+            var referenceTile = Global.ReferenceTiles[targetTile.TileId];
 
+            if (!targetTile.IsSlope)
+            {
+                // First time hammering - convert to slope
+                targetTile.IsSlope = true;
+                targetTile.SlopeRotation = 0;
+                targetTile.Rotation = 0f;
+                
+                var slopeTexture = referenceTile.Textures.FirstOrDefault(x => x.Name.EndsWith("Slope"));
+                if (slopeTexture != null)
+                {
+                    targetTile.Texture = slopeTexture;
+                    targetTile.TextureName = slopeTexture.Name;
+                }
+                else
+                {
+                    // If no slope texture found, don't convert to slope
+                    targetTile.IsSlope = false;
+                    return;
+                }
+            }
+            else
+            {
+                // Already a slope - cycle rotation or revert
+                targetTile.SlopeRotation++;
+
+                if (targetTile.SlopeRotation < 4)
+                {
+                    // Rotate the tile (90, 180, 270 degrees)
+                    targetTile.Rotation = targetTile.SlopeRotation * (MathF.PI / 2f);
+                }
+                else
+                {
+                    // Revert to original texture
+                    targetTile.IsSlope = false;
+                    targetTile.SlopeRotation = 0;
+                    targetTile.Rotation = 0f;
+
+                    if (referenceTile.AlternateTextures != null && referenceTile.AlternateTextures.Any() && referenceTile.AltTextures != null && referenceTile.AltTextures.Any())
+                    {
+                        var random = Game.rnd ?? new Random();
+                        targetTile.Texture = referenceTile.AltTextures[random.Next(referenceTile.AltTextures.Count)];
+                    }
+                    else
+                    {
+                        targetTile.Texture = referenceTile.Texture;
+                    }
+                    targetTile.TextureName = targetTile.Texture?.Name ?? "None";
+                }
+            }
+
+            AddTileToModificationTracker(targetTile);
+            UpdateTile(targetTile);
+        }
         /// <summary>
         /// Updates a given tile with a new reference tile
         /// </summary>
         public void SetTile(Tile targetTile, int referenceTileId, float rotation = 0f)
         {
-            var referenceTile = Global.ReferenceTiles.FirstOrDefault(x => x.TileId == referenceTileId);
-            if (referenceTile == null) return;
+            var referenceTile = Global.ReferenceTiles[referenceTileId];
 
             if (referenceTile.AlternateTextures != null && referenceTile.AlternateTextures.Any() && referenceTile.AltTextures != null && referenceTile.AltTextures.Any())
             {
@@ -370,6 +429,7 @@ namespace TileMaster.Map
             targetTile.TileId = referenceTileId;
             targetTile.IsOccupied = referenceTile.IsOccupied;
             targetTile.IsSolid = referenceTile.IsSolid;
+            targetTile.TextureId = referenceTile.TextureId;
             targetTile.Rotation = rotation;
             var chunk = GetChunk(targetTile.ChunkId);
             if (chunk != null)
@@ -420,6 +480,7 @@ namespace TileMaster.Map
                     }
                 }
             }
+            //Chunks[updated.ChunkId].Tiles[updated.LocalId] = (CollisionTile)updated;
         }
         /// <summary>
         /// Sets a background tile at a given global ID

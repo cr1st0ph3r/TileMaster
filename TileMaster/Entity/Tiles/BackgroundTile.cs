@@ -44,7 +44,7 @@ namespace TileMaster.Entity.Tiles
                 }
             }
             
-            textureId = tileType.textureId;
+            TextureId = tileType.TextureId;
             TextureName = tileRef.TextureName;
             LocalId = tileRef.LocalId;
             ColorArgb = tileRef.ColorArgb;

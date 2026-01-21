@@ -93,6 +93,7 @@ namespace TileMaster.Manager
                     player.Layer = playerData.Layer;
                     player.Inventory = playerData.Inventory;
                     player.ActionBar = playerData.ActionBar;
+                    player.ActionBar[3] = new InventoryItem(Global.Items[(int)Items.Hammer], 1);
                 }
                 else
                 {
@@ -278,7 +279,6 @@ namespace TileMaster.Manager
                 if (map.Chunks[i].Tiles.Any(x => x.TileId == (int)TileType.DirtWithGrass))
                 {
                     map.grass.GrowGrass(i);
-
                 }
             }
 
@@ -397,33 +397,6 @@ namespace TileMaster.Manager
                 }
             }
             map.Chunks = chunks;
-        }
-        /// <summary>
-        /// generates a column of blocks (one x across all y)
-        /// </summary>
-        /// <param name="mapMatrice"></param>
-        /// <param name="startingX">column (x) index</param>
-        /// <param name="globalCounter"></param>
-        /// <returns></returns>
-        public Dictionary<int, CollisionTile> GenRow(int[,] mapMatrice, int startingX, int globalCounter)
-        {
-            var dictMap = new Dictionary<int, CollisionTile>();
-
-            int width = mapMatrice.GetLength(0); // number of columns (x)
-            int height = mapMatrice.GetLength(1); // number of rows (y)
-
-            for (var y = 0; y < height; y++)
-            {
-                var number = mapMatrice[startingX, y];
-                //var tType = Global.ReferenceTiles.FirstOrDefault(tt => tt.TileId == number);
-                var tType = Global.ReferenceTiles[number];
-
-                // Use row-major indexing: globalId = y * width + x
-                var globalId = y * width + startingX;
-
-                dictMap.Add(globalId, new CollisionTile(tType, startingX, y, 0, globalId));
-            }
-            return dictMap;
         }
         #endregion
     }

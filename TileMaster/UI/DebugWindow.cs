@@ -30,6 +30,7 @@ namespace TileMaster.UI
         public Label LblTileChunkId = new Label();
         public Label LblTileIsEdge = new Label();
         public Label LblTileIsSolid = new Label();
+        public Label lblTextureId = new Label();
 
         public DebugWindow()
 		{
@@ -67,6 +68,7 @@ namespace TileMaster.UI
                 LblTileChunkId.Text = block.ChunkId.ToString();
                 LblTileIsEdge.Text = block.IsEdgeTile.ToString();
                 LblTileIsSolid.Text = block.IsSolid.ToString();
+                lblTextureId.Text = block.TextureId.ToString();
             }
             else
             {

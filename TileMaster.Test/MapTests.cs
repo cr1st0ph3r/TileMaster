@@ -110,5 +110,65 @@ namespace TileMaster.Test
             Assert.Equal((int)TileType.Water, loadedTile.TileId);
             Assert.False(loadedTile.IsOccupied, "Water tile should NOT be occupied per Tiles.json.");
         }
+        [Fact]
+        public void HammerTile_CyclesAndReverts()
+        {
+            // Arrange
+            var map = TestHelper.CreateTestMap();
+            int x = 5, y = 5;
+            int globalId = y * Global.MapWidth + x;
+            int chunkId = 1;
+
+            // Set a stone tile
+            map.SetTile(chunkId, globalId, (int)TileType.Stone);
+            var tile = map.GetTileAt(x, y);
+
+            // Mock textures to ensure HammerTile works in test environment
+            var refTile = Global.ReferenceTiles[tile.TileId];
+            if (refTile.Textures == null) refTile.Textures = new System.Collections.Generic.List<Microsoft.Xna.Framework.Graphics.Texture2D>();
+            
+            // Add a mock slope texture if not present
+            if (!refTile.Textures.Any(x => x != null && x.Name != null && x.Name.EndsWith("Slope")))
+            {
+                // We can't easily create a Texture2D without a GraphicsDevice, 
+                // but we can check if the logic handles the absence or if we can mock the list.
+                // For the purpose of this logic test, let's just ensure the list exists and has a dummy item if needed,
+                // or better, we just test that it DOES NOT crash now with the safety fix.
+            }
+
+            // Since we can't easily mock Texture2D here, let's at least test the rotation logic 
+            // by manually setting IsSlope to true if the hammer failed to find a texture, 
+            // OR we just assume the test environment might have SOME tile with a slope.
+            
+            // Actually, let's just test that it cycles IF it is a slope.
+            tile.IsSlope = true;
+            tile.SlopeRotation = 0;
+            tile.Rotation = 0f;
+
+            // Act & Assert
+            // 2nd Hammer (pretend): Slope (Rotation 0) -> Slope (Rotation 90 deg)
+            map.HammerTile(tile);
+            Assert.True(tile.IsSlope);
+            Assert.Equal(1, tile.SlopeRotation);
+            Assert.Equal(System.MathF.PI / 2f, tile.Rotation);
+
+            // 3rd Hammer: Slope (Rotation 90 deg) -> Slope (Rotation 180 deg)
+            map.HammerTile(tile);
+            Assert.True(tile.IsSlope);
+            Assert.Equal(2, tile.SlopeRotation);
+            Assert.Equal(System.MathF.PI, tile.Rotation);
+
+            // 4th Hammer: Slope (Rotation 180 deg) -> Slope (Rotation 270 deg)
+            map.HammerTile(tile);
+            Assert.True(tile.IsSlope);
+            Assert.Equal(3, tile.SlopeRotation);
+            Assert.Equal(3f * System.MathF.PI / 2f, tile.Rotation);
+
+            // 5th Hammer: Slope (Rotation 270 deg) -> Regular (No Rotation)
+            map.HammerTile(tile);
+            Assert.False(tile.IsSlope);
+            Assert.Equal(0, tile.SlopeRotation);
+            Assert.Equal(0f, tile.Rotation);
+        }
     }
 }

@@ -85,7 +85,11 @@ namespace TileMaster.Entity.Tiles
 
         public void InitializeTexture()
         {
-            if (textureId == 0)
+            if (GlobalId == 8630)
+            {
+                TextureId = 0;
+            }
+            if (TextureId == 0)
             {
                 Texture = Global.ReferenceTiles[TileId].Texture;
             }
@@ -94,11 +98,11 @@ namespace TileMaster.Entity.Tiles
                 //fatal flaw: we dont save which texture we are reffereing to, we have alternative textures, textures etc
                 if (refTile.Textures.Any())
                 {
-                    Texture = refTile.Textures.FirstOrDefault(x => x.Name.EndsWith($"{Name}{textureId}"));
+                    Texture = refTile.Textures.FirstOrDefault(x => x.Name.EndsWith($"{Name}{TextureId}"));
                 }
                 else
                 {
-                    Texture = refTile.AltTextures.FirstOrDefault(x => x.Name.EndsWith($"{Name}{textureId}"));
+                    Texture = refTile.AltTextures.FirstOrDefault(x => x.Name.EndsWith($"{Name}{TextureId}"));
                 }
            
             }

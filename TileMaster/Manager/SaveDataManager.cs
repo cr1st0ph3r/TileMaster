@@ -87,7 +87,7 @@ namespace TileMaster.Manager
         {
             writer.Write(tiles.Length);
             for (int i = 0; i < tiles.Length; i++)
-            {
+            {                
                 var tile = tiles[i];
                 if (tile == null || tile.TileId == (int)TileType.Air)
                 {
@@ -97,7 +97,7 @@ namespace TileMaster.Manager
 
                 writer.Write(true); // IsOccupied
                 writer.Write((ushort)tile.TileId);
-                writer.Write(tile.textureId);
+                writer.Write(tile.TextureId);
                 writer.Write(tile.ColorArgb ?? -1);
                 writer.Write(tile.Rotation);
 
@@ -305,7 +305,7 @@ namespace TileMaster.Manager
                         result[i] = new CollisionTile
                         {
                             TileId = (int)TileType.Air,
-                            textureId = airRefTile.textureId,
+                            TextureId = airRefTile.TextureId,
                             Name = airRefTile.Name,
                             TextureName = airRefTile.TextureName,
                             IsSolid = airRefTile.IsSolid,
@@ -326,7 +326,7 @@ namespace TileMaster.Manager
                         result[i] = new BackgroundTile
                         {
                             TileId = (int)TileType.Air,
-                            textureId = airRefTile.textureId,
+                            TextureId = airRefTile.TextureId,
                             Name = airRefTile.Name,
                             TextureName = airRefTile.TextureName,
                             IsOccupied = false,
@@ -373,7 +373,7 @@ namespace TileMaster.Manager
                         result[i] = new CollisionTile
                         {
                             TileId = (int)TileType.Air,
-                            textureId = airRefTile.textureId,
+                            TextureId = airRefTile.TextureId,
                             Name = airRefTile.Name,
                             TextureName = airRefTile.TextureName,
                             IsSolid = airRefTile.IsSolid,
@@ -394,7 +394,7 @@ namespace TileMaster.Manager
                         result[i] = new BackgroundTile
                         {
                             TileId = (int)TileType.Air,
-                            textureId = airRefTile.textureId,
+                            TextureId = airRefTile.TextureId,
                             Name = airRefTile.Name,
                             TextureName = airRefTile.TextureName,
                             IsOccupied = false,
@@ -418,7 +418,7 @@ namespace TileMaster.Manager
                     var ct = new CollisionTile
                     {
                         TileId = tileId,
-                        textureId = textureId, // USE SAVED ID
+                        TextureId = textureId, // USE SAVED ID
                         Name = refTile.Name,
                         // Note: Texture and TextureName might be updated by InitializeTextures later based on textureId
                         TextureName = refTile.TextureName,
@@ -468,7 +468,7 @@ namespace TileMaster.Manager
                     var bt = new BackgroundTile
                     {
                         TileId = tileId,
-                        textureId = textureId, // USE SAVED ID
+                        TextureId = textureId, // USE SAVED ID
                         Name = refTile.Name,
                         TextureName = refTile.TextureName,
                         IsOccupied = refTile.IsOccupied,

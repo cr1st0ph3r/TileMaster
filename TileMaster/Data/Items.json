@@ -39,5 +39,14 @@
     "UIIcon": "UIPickaxe",
     "IsTool": true,
     "ToolAction": 0
+  },
+  {
+    "Id": 4,
+    "Name": "Hammer",
+    "TextureName": "Hammer",
+    "StackSize": 1,
+    "UIIcon": "UIHammer",
+    "IsTool": true,
+    "ToolAction": 1
   }
 ]

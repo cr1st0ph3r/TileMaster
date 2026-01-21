@@ -4,6 +4,7 @@
     {
         Torch = 0,
         Dirt = 1,
-        Pickaxe = 3
+        Pickaxe = 3,
+        Hammer = 4
     }
 }

@@ -19,7 +19,8 @@
     "AlternateTextures": [
       "Dirt1",
       "Dirt2",
-      "Dirt3"
+      "Dirt3",
+      "DirtSlope"
     ],
     "TextureId": 1,
     "TileId": 1,
@@ -38,7 +39,7 @@
       "Stone2",
       "Stone3"
     ],
-    "TextureId": 1,
+    "TextureId": 0,
     "TileId": 2,
     "IsOccupied": true,
     "IsSolid": true,
@@ -68,7 +69,8 @@
       "DirtWithGrassCorner1",
       "DirtWithGrassCorner2",
       "DirtWithGrassCorner2",
-      "DirtWithGrassCorner4"
+      "DirtWithGrassCorner4",
+      "DirtWithGrassSlope"
     ],
     "AlternateTextures": [],
     "TextureId": 1,
@@ -99,7 +101,7 @@
     "TextureName": "TreeTrunk",
     "TileSet": [],
     "AlternateTextures": [],
-    "TextureId": 1,
+    "TextureId": 0,
     "ParentTileId": 0,
     "TileId": 5,
     "IsOccupied": false,
@@ -113,8 +115,7 @@
     "TextureName": "TreeLeaf",
     "TileSet": [],
     "AlternateTextures": [],
-    "TextureId": 1,
-    "ParentTileId": 0,
+    "TextureId": 0,
     "TileId": 6,
     "IsOccupied": true,
     "IsSolid": true,
@@ -130,7 +131,6 @@
       "TallGrass2"
     ],
     "TextureId": 0,
-    "ParentTileId": 0,
     "TileId": 7,
     "IsOccupied": false,
     "IsSolid": false,
@@ -143,7 +143,6 @@
     "TileSet": [],
     "AlternateTextures": [],
     "TextureId": 0,
-    "ParentTileId": 0,
     "TileId": 8,
     "IsOccupied": false,
     "IsSolid": false,

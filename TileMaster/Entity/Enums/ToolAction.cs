@@ -5,7 +5,13 @@
     /// </summary>
     public enum ToolAction
     {
+        /// <summary>
+        /// Mine the block and remove from map
+        /// </summary>
         MineBlock = 0,
+        /// <summary>
+        /// Hammer action to change block slope
+        /// </summary>
         TransformBlock = 1,
     }
 }

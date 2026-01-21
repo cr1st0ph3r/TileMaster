@@ -153,6 +153,7 @@ namespace TileMaster.UI
             AddDebugLabel("Chunk ID:", LblTileChunkId);
             AddDebugLabel("Is Edge:", LblTileIsEdge);
             AddDebugLabel("Is Solid:", LblTileIsSolid);
+            AddDebugLabel("textureId:", lblTextureId);
 
             Grid.SetRow(rndActBtn, row);
             grid1.Widgets.Add(rndActBtn);

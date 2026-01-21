@@ -23,7 +23,7 @@ namespace TileMaster.Entity.Tiles
         /// <summary>
         /// The Id of the texture used by the tile
         /// </summary>
-        public int textureId { get; set; }
+        public int TextureId { get; set; }
         /// <summary>
         /// the global identifier of the tile (zero based)
         /// </summary>
