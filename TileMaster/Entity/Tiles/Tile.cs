@@ -87,7 +87,7 @@ namespace TileMaster.Entity.Tiles
         {
             if (textureId == 0)
             {
-                Texture = Global.ReferenceTiles[textureId].Texture;
+                Texture = Global.ReferenceTiles[TileId].Texture;
             }
             else {
                 var refTile = Global.ReferenceTiles[TileId];

@@ -43,11 +43,24 @@ namespace TileMaster.Entity
             texture = idleTexture;
         }
 
+        public bool IsInWater { get; private set; }
+
+        private bool CheckIfInWater(Map.Map map)
+        {
+            // Check tile at center of player
+            int centerX = (int)(position.X + texture.Width / 2) / Global.TileSize;
+            int centerY = (int)(position.Y + texture.Height / 2) / Global.TileSize;
+            var tile = map.GetTileAt(centerX, centerY);
+            return tile != null && tile.TileId == (int)TileType.Water;
+        }
+
         public override void Update(GameTime gameTime, Map.Map map)
         {
             var keyboardState = Keyboard.GetState();
             float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
+            IsInWater = CheckIfInWater(map);
+            
             // set if the player is in motion or not
             // We use a slightly more generous threshold for "stationary" to account for floating point jitter
             isMoving = Math.Abs(velocity.X) > 0.1f || Math.Abs(velocity.Y) > 0.5f;
@@ -56,7 +69,7 @@ namespace TileMaster.Entity
             // Skip physics if: Not moving, No movement keys pressed, and already on solid block
             bool moveKeyPressed = keyboardState.IsKeyDown(Keys.A) || keyboardState.IsKeyDown(Keys.D) || keyboardState.IsKeyDown(Keys.Space);
             
-            if (!isMoving && !moveKeyPressed && isOnSolidBlock && !InterruptInput)
+            if (!isMoving && !moveKeyPressed && isOnSolidBlock && !InterruptInput && !IsInWater)
             {
                 // We are stationary. We still need a minimal check to see if the block under us was removed.
                 if (InputHelper.HandleMovingDown(this, map))
@@ -90,10 +103,32 @@ namespace TileMaster.Entity
             isOnSolidBlock = !shouldFall;
 
             // gravity (time-based) - applied to velocity before integration
-            if (velocity.Y < MaxFallSpeed && !isOnSolidBlock)
+            // Water Physics: Buoyancy and Drag
+            if (IsInWater)
             {
-                velocity.Y += Gravity * dt;
+                // Falling slower in water (Drag/Buoyancy)
+                if (velocity.Y < 300f) // Max fall speed in water
+                {
+                    velocity.Y += (Gravity * 0.3f) * dt; // Reduced gravity
+                }
+                else
+                {
+                     velocity.Y -= (Gravity * 0.5f) * dt; // Slow down if falling too fast entering water
+                }
+                
+                // Horizontal Drag
+                velocity.X *= 0.9f; 
+                velocity.Y *= 0.9f; 
             }
+            else
+            {
+                // Normal Gravity
+                 if (velocity.Y < MaxFallSpeed && !isOnSolidBlock)
+                {
+                    velocity.Y += Gravity * dt;
+                }
+            }
+
 
             // per-axis integration with collision resolution to avoid tunneling
             // Horizontal movement
@@ -258,15 +293,30 @@ namespace TileMaster.Entity
             else { velocity.X = 0; }
 
             // handle player jump (jump impulse is in px/s)
-            // only allow a jump when we believe we are on solid ground
-            if (keyboardState.IsKeyDown(Keys.Space) && hasJumped == false && isOnSolidBlock)
+            // only allow a jump when we believe we are on solid ground OR IN WATER (Swimming)
+            if (keyboardState.IsKeyDown(Keys.Space) && hasJumped == false && (isOnSolidBlock || IsInWater))
             {
                 // small positional tweak to avoid immediate collision
                 position.Y -= 5F;
-                velocity.Y = -JumpVelocity;
+                
+                if (IsInWater)
+                {
+                     velocity.Y = -JumpVelocity * 0.7f; // Reduced jump strength in water (swimming up)
+                }
+                else
+                {
+                     velocity.Y = -JumpVelocity;
+                }
+               
                 hasJumped = true;
                 isOnSolidBlock = false;
             }
+            // Reset jump flag if space is released while in water to allow repeated swim strokes
+            if (IsInWater && keyboardState.IsKeyUp(Keys.Space))
+            {
+                hasJumped = false;
+            }
+            
             if (hasJumped)
             {
                 if (!InputHelper.HandleJump(player, map))

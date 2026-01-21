@@ -15,6 +15,7 @@ namespace TileMaster.Map
     {
         public TileInspector tileInspector;
         public GrassManager grass;
+        public WaterManager water;
         public TileShadeManager tileShadeMgr;
         public MapManager mapManager;
 
@@ -51,6 +52,7 @@ namespace TileMaster.Map
             Chunks = null; // Will be initialized by MapManager
             TileMgr = new TileManager();
             grass = new GrassManager(this);
+            water = new WaterManager(this);
             tileInspector = new TileInspector(this);
             mapManager = new MapManager(this);
             tileShadeMgr = new TileShadeManager(this);
@@ -374,6 +376,10 @@ namespace TileMaster.Map
             {
                 chunk.NeedUpdate = true;
                 chunk.HasBeenModified = true;
+                if (referenceTileId == (int)TileType.Water)
+                {
+                    chunk.HasWater = true;
+                }
             }
             AddTileToModificationTracker(targetTile);
 

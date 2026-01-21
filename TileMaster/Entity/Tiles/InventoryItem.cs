@@ -1,4 +1,6 @@
-﻿namespace TileMaster.Entity.Tiles
+﻿using System.Text.Json.Serialization;
+
+namespace TileMaster.Entity.Tiles
 {
     public class InventoryItem
     {
@@ -7,7 +9,15 @@
             Item = item;
             Quantity = quantity;
         }
+        [JsonConstructorAttribute]
+        public InventoryItem(int itemId, int quantity)
+        {
+            ItemId = itemId;
+            Quantity = quantity;
+        }
+        [JsonIgnore]
         public Item Item { get; set; }
+        public int ItemId { get; set; }
         public int Quantity { get; set; }
     }
 }

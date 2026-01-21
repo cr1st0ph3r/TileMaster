@@ -35,7 +35,7 @@ namespace TileMaster.Manager
             }
 
             var archivePath = Path.Combine(Global.SaveDataFolderName, "map.tlm");
-            
+
             // Open in Update mode to preserve unloaded chunks that are already on disk
             using (var fs = File.Open(archivePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
             using (var archive = new ZipArchive(fs, ZipArchiveMode.Update))
@@ -43,7 +43,7 @@ namespace TileMaster.Manager
                 // 1. Save World Data
                 var worldEntry = archive.GetEntry("worlddata.json");
                 if (worldEntry != null) worldEntry.Delete();
-                
+
                 worldEntry = archive.CreateEntry("worlddata.json", CompressionLevel.Optimal);
                 using (var entryStream = worldEntry.Open())
                 {
@@ -75,10 +75,10 @@ namespace TileMaster.Manager
         {
             // Chunk Metadata
             writer.Write(chunk.HasGrass);
-            
+
             // Foreground
             WriteTileArray(writer, (BaseTile[])chunk.Tiles, true);
-            
+
             // Background
             WriteTileArray(writer, (BaseTile[])chunk.BackgroundTiles, false);
         }
@@ -89,9 +89,9 @@ namespace TileMaster.Manager
             for (int i = 0; i < tiles.Length; i++)
             {
                 var tile = tiles[i];
-                if (tile == null || !tile.IsOccupied)
+                if (tile == null || tile.TileId == (int)TileType.Air)
                 {
-                    writer.Write(false); // IsOccupied
+                    writer.Write(false); // IsOccupied (as in "Something other than air is here")
                     continue;
                 }
 
@@ -100,12 +100,12 @@ namespace TileMaster.Manager
                 writer.Write(tile.textureId);
                 writer.Write(tile.ColorArgb ?? -1);
                 writer.Write(tile.Rotation);
-                                
+
                 if (tile is CollisionTile ct && ct.PlacedItem != null)
                 {
                     writer.Write(true); // HasItem
                     writer.Write(ct.PlacedItem.TileId);
-                    
+
                     if (ct.PlacedItem.LightColor.HasValue)
                     {
                         writer.Write(true);
@@ -123,6 +123,30 @@ namespace TileMaster.Manager
             }
         }
 
+        /// <summary>
+        /// Loads WorldData metadata only. Does NOT load chunks.
+        /// </summary>
+        public static WorldData LoadGame()
+        {
+            var archivePath = Path.Combine(Global.SaveDataFolderName, "map.tlm");
+            if (!File.Exists(archivePath)) return null;
+
+            using (var fs = File.OpenRead(archivePath))
+            using (var archive = new ZipArchive(fs, ZipArchiveMode.Read, leaveOpen: false))
+            {
+                var worldEntry = archive.GetEntry("worlddata.json");
+                if (worldEntry != null)
+                {
+                    using (var stream = worldEntry.Open())
+                    {
+                        var options = new JsonSerializerOptions { IncludeFields = true };
+                        return JsonSerializer.Deserialize<WorldData>(stream, options);
+                    }
+                }
+            }
+            return null;
+        }
+        #region Player Data
         public static void SavePlayerData(Player player)
         {
             if (Directory.Exists(Global.SaveDataFolderName) == false)
@@ -157,30 +181,6 @@ namespace TileMaster.Manager
             }
         }
 
-        /// <summary>
-        /// Loads WorldData metadata only. Does NOT load chunks.
-        /// </summary>
-        public static WorldData LoadGame()
-        {
-            var archivePath = Path.Combine(Global.SaveDataFolderName, "map.tlm");
-            if (!File.Exists(archivePath)) return null;
-
-            using (var fs = File.OpenRead(archivePath))
-            using (var archive = new ZipArchive(fs, ZipArchiveMode.Read, leaveOpen: false))
-            {
-                var worldEntry = archive.GetEntry("worlddata.json");
-                if (worldEntry != null)
-                {
-                    using (var stream = worldEntry.Open())
-                    {
-                        var options = new JsonSerializerOptions { IncludeFields = true };
-                        return JsonSerializer.Deserialize<WorldData>(stream, options);
-                    }
-                }
-            }
-            return null;
-        }
-
         public static PlayerData LoadPlayerData()
         {
             var archivePath = Path.Combine(Global.SaveDataFolderName, "map.tlm");
@@ -201,6 +201,7 @@ namespace TileMaster.Manager
             }
             return null;
         }
+        #endregion
 
         /// <summary>
         /// Loads a specific chunk asynchronously.
@@ -244,10 +245,16 @@ namespace TileMaster.Manager
 
             // Foreground
             var fgTiles = ReadTileArray(reader, true, chunkId);
-            for(int i=0; i<fgTiles.Length; i++)
+            for (int i = 0; i < fgTiles.Length; i++)
             {
-                if (fgTiles[i] != null) 
+                if (fgTiles[i] != null)
+                {
                     chunk.Tiles[i] = (CollisionTile)fgTiles[i];
+                    if (chunk.Tiles[i].TileId == (int)TileType.Water)
+                    {
+                        chunk.HasWater = true;
+                    }
+                }
             }
 
             // Background
@@ -255,12 +262,14 @@ namespace TileMaster.Manager
             for (int i = 0; i < bgTiles.Length; i++)
             {
                 if (bgTiles[i] != null)
+                {
                     chunk.BackgroundTiles[i] = (BackgroundTile)bgTiles[i];
+                }
             }
 
             chunk.SetRectangles();
             chunk.InitializeTextures();
-            
+
             return chunk;
         }
 
@@ -335,7 +344,7 @@ namespace TileMaster.Manager
                     continue;
                 }
                 ushort tileId = reader.ReadUInt16();
-                
+
                 // NEW: Read textureId directly
                 int textureId = reader.ReadInt32();
 
@@ -343,7 +352,7 @@ namespace TileMaster.Manager
                 float rotation = reader.ReadSingle();
                 bool hasItem = reader.ReadBoolean();
                 int itemId = hasItem ? reader.ReadInt32() : -1;
-                
+
                 // NEW: Read Item Properties (unconditional)
                 Color? itemLightColor = null;
                 if (hasItem)
@@ -414,7 +423,7 @@ namespace TileMaster.Manager
                         // Note: Texture and TextureName might be updated by InitializeTextures later based on textureId
                         TextureName = refTile.TextureName,
                         IsSolid = refTile.IsSolid,
-                        IsOccupied = true,
+                        IsOccupied = refTile.IsOccupied,
                         ColorArgb = colorArgb == -1 ? null : (int?)colorArgb,
                         Rotation = rotation,
                         LocalId = i,
@@ -462,7 +471,7 @@ namespace TileMaster.Manager
                         textureId = textureId, // USE SAVED ID
                         Name = refTile.Name,
                         TextureName = refTile.TextureName,
-                        IsOccupied = true,
+                        IsOccupied = refTile.IsOccupied,
                         ColorArgb = colorArgb == -1 ? null : (int?)colorArgb,
                         Rotation = rotation,
                         LocalId = i,

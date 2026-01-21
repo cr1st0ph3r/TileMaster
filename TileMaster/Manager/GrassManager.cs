@@ -113,8 +113,6 @@ namespace TileMaster.Manager
             }
         }
 
-
-
         /// <summary>
         /// Checks whether a tile can have grass
         /// </summary>
@@ -129,7 +127,11 @@ namespace TileMaster.Manager
             return false;
         }
 
-
+        /// <summary>
+        /// Sets a grass tile based on its eligibility and available grass textures.
+        /// </summary>
+        /// <param name="destinationTile">The tile to set grass on.</param>
+        /// <returns>True if the grass was successfully set, false otherwise.</returns>
         private bool SetGrassTile(Tile destinationTile)
         {
             int mask = GetGrassMask(destinationTile);
@@ -268,6 +270,15 @@ namespace TileMaster.Manager
             return mask;
         }
 
+        /// <summary>
+        /// Calculates a bitmask indicating which inner corners of the specified tile are adjacent to air tiles.
+        /// </summary>
+        /// <remarks>The returned mask uses the following bit positions: 0 (top-left), 1 (top-right), 2 (bottom-left),
+        /// and 3 (bottom-right). This can be used to determine where grass corners should be rendered around the tile.</remarks>
+        /// <param name="tile">The tile for which to determine the grass corner mask.</param>
+        /// <returns>An integer bitmask where each bit represents whether the corresponding corner of the tile is adjacent to an
+        /// air tile: bit 0 for top-left, bit 1 for top-right, bit 2 for bottom-left, and bit 3 for bottom-right. A set bit indicates
+        /// adjacency to an air tile on that corner.</returns>
         private int GetInnerCornerDecorations(Tile tile)
         {
             var neighbors = map.tileInspector.GetNeighboringTiles(tile);

@@ -9,6 +9,7 @@
         Granite = 4,
         TreeTrunk = 5,
         TreeLeaf = 6,
-        TallGrass = 7
+        TallGrass = 7,
+        Water = 8
     }
 }

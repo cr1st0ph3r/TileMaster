@@ -21,6 +21,7 @@ namespace TileMaster.Manager
         public Dictionary<int, CollisionTile> BackgroundMapDictionary { get; set; }
 
         private ConcurrentQueue<(int index, Chunk chunk)> _loadedChunksQueue = new ConcurrentQueue<(int index, Chunk chunk)>();
+       
         private HashSet<int> _loadingChunks = new HashSet<int>();
 
         public MapManager(Map.Map map)
@@ -79,6 +80,15 @@ namespace TileMaster.Manager
                 var playerData = SaveDataManager.LoadPlayerData();
                 if (playerData != null)
                 {
+                    foreach (var item in playerData.Inventory)
+                    {
+                        playerData.Inventory[item.Key].Item = Global.Items[item.Value.ItemId];
+                    }
+                    foreach (var actionBarItem in playerData.ActionBar)
+                    {
+                        playerData.ActionBar[actionBarItem.Key].Item = Global.Items[actionBarItem.Value.ItemId];
+
+                    }
                     player.SetPosition(new Vector2(playerData.X, playerData.Y));
                     player.Layer = playerData.Layer;
                     player.Inventory = playerData.Inventory;
@@ -363,6 +373,10 @@ namespace TileMaster.Manager
 
                             // store into chunk.Tiles using local index
                             chunk.Tiles[localChunkCounter] = tile;
+                            if(tile.TileId == (int)TileType.Water)
+                            {
+                                chunk.HasWater = true;
+                            }
 
                             // Create background tile
                             var bgTile = BackgroundMapDictionary[globalId].ToBackgroundTile();

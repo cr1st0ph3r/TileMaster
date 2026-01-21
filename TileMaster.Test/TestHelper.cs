@@ -56,6 +56,7 @@ namespace TileMaster.Test
                     
                     var airRef = Global.ReferenceTiles[0]; // Assuming 0 is Air
                     map.Chunks[i].Tiles[j] = new CollisionTile(airRef, x, y, j, y * (widthChunks * Global.ChunkSize) + x);
+                    map.Chunks[i].Tiles[j].ChunkId = i + 1; // 1-based
                     map.Chunks[i].Tiles[j].IsOccupied = false; // Air is NOT occupied
                     
                     var bgAirRef = Global.ReferenceTiles[0];
@@ -64,7 +65,8 @@ namespace TileMaster.Test
                         Y = y,
                         GlobalId = y * (widthChunks * Global.ChunkSize) + x,
                         TileId = 0,
-                        IsOccupied = false
+                        IsOccupied = false,
+                        ChunkId = i + 1 // 1-based
                     };
                 }
             }

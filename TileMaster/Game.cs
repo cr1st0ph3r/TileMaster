@@ -266,6 +266,7 @@ namespace TileMaster
             }
 
             map.UpdateModifiedTiles();
+            map.water.Update(gameTime);
         }
         void UpdateEvery100ms(GameTime gameTime)
         {
@@ -321,7 +322,7 @@ namespace TileMaster
                 // forward the event only when the game window is active and GUI doesn't own the input
                 if (this.IsActive && (_desktop?.IsMouseOverGUI == false))
                 {
-                    OnScrollWheelChanged(scrollDelta);
+                    OnScrollWheelChanged(-scrollDelta);
                 }
             }
             //these actions should only be checked if the game windows is active
@@ -663,26 +664,6 @@ namespace TileMaster
             if (commandParts[0] == "tile")
             {
                 AddTile(commandParts.Skip(1).ToArray());
-            }
-        }
-
-        private void RotateTlle(string[] commandParts)
-        {
-            if (commandParts.Length < 3)
-            {
-                LogMessage("Usage: set tile rotation <value> (<x>,<y>)", Color.Red);
-                return;
-            }
-            try
-            {
-                var coordinates = GetCoordinatesFromString(commandParts[1]);
-                var tile = map.GetTileAt(coordinates.Item1, coordinates.Item2);
-                var value = float.Parse(commandParts[0]);
-                tile.Rotation = MathHelper.ToRadians(value);
-            }
-            catch (Exception ex)
-            {
-                LogMessage("Error adding tile: " + ex.Message, Color.Red);
             }
         }
         private void AddTile(string[] commandParts)
