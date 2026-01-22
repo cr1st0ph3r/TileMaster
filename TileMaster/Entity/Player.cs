@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -135,20 +135,47 @@ namespace TileMaster.Entity
             float newX = position.X + velocity.X * dt;
             Rectangle testRectX = new Rectangle((int)newX, (int)position.Y, texture.Width, texture.Height);
 
+            bool ignoreCollisionX = false;
             if (IsRectCollidingWithMap(testRectX, map, out int hitTileX, out int hitTileY, findRightmost: velocity.X < 0))
             {
-                // collided on X axis: clamp to tile edge and stop horizontal velocity
-                if (velocity.X > 0)
+                // Check if we hit a slope that we can climb
+                var hitTile = map.GetTileAt(hitTileX, hitTileY);
+                if (hitTile != null && hitTile.IsSlope)
                 {
-                    // moving right: place player's right edge to the left side of the tile we hit
-                    position.X = hitTileX * Global.TileSize - texture.Width;
+                    int feetTileY = (int)((position.Y + texture.Height - 1) / Global.TileSize);
+                    if (hitTileY == feetTileY)
+                    {
+                        // Allow movement through all slopes at feet level (climbing and descending)
+                        ignoreCollisionX = true;
+                    }
                 }
-                else if (velocity.X < 0)
+
+                if (!ignoreCollisionX)
                 {
-                    // moving left: place player's left edge to the right side of the tile we hit
-                    position.X = (hitTileX + 1) * Global.TileSize;
+                    if (velocity.X > 0)
+                        position.X = hitTileX * Global.TileSize - texture.Width;
+                    else if (velocity.X < 0)
+                        position.X = (hitTileX + 1) * Global.TileSize;
+
+                    velocity.X = 0f;
                 }
-                velocity.X = 0f;
+                else
+                {
+                    position.X = newX;
+                    // Ensure the player climbs OR descends the slope as they move horizontally
+                    float slopeRestY = SlopeCollisionHelper.GetSlopeRestPosition(hitTile, position.Y + texture.Height, position.X, position.X + texture.Width);
+                    
+                    // Always push the player UP to prevent penetration
+                    if (slopeRestY < position.Y + texture.Height)
+                    {
+                        position.Y = slopeRestY - texture.Height;
+                    }
+                    // Snap the player DOWN if they were already grounded to keep them stuck to the slope
+                    else if (isOnSolidBlock)
+                    {
+                        position.Y = slopeRestY - texture.Height;
+                    }
+                }
             }
             else
             {
@@ -159,22 +186,64 @@ namespace TileMaster.Entity
             float newY = position.Y + velocity.Y * dt;
             Rectangle testRectY = new Rectangle((int)position.X, (int)newY, texture.Width, texture.Height);
 
-            if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBottommost: velocity.Y < 0))
+if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBottommost: velocity.Y < 0))
             {
+                // Get the tile we collided with
+                var hitTile = map.GetTileAt(hitTileX, hitTileY);
+                
                 // collided on Y axis: clamp and stop vertical velocity
                 if (velocity.Y > 0)
                 {
-                    // falling: place player's bottom on top of the tile
-                    position.Y = hitTileY * Global.TileSize - texture.Height;
+                    // falling: check if we hit a slope
+                    if (hitTile != null && hitTile.IsSlope)
+                    {
+                        // For slopes, adjust position to rest on the slope surface
+                        float slopeRestY = SlopeCollisionHelper.GetSlopeRestPosition(hitTile, testRectY.Bottom, testRectY.Left, testRectY.Right);
+                        position.Y = slopeRestY - texture.Height;
+                        
+                        // Adjust velocity for slope influence
+                        var adjustedVelocity = SlopeCollisionHelper.AdjustVelocityForSlope(hitTile, velocity.X, true);
+                        velocity.Y = adjustedVelocity.Y;
+                    }
+                    else
+                    {
+                        // Regular tile: place player's bottom on top of the tile
+                        position.Y = hitTileY * Global.TileSize - texture.Height;
+                        velocity.Y = 0f;
+                    }
+                    
                     isOnSolidBlock = true;
                     hasJumped = false;
                 }
                 else if (velocity.Y < 0)
                 {
-                    // rising: place player's top below the tile
-                    position.Y = (hitTileY + 1) * Global.TileSize;
+                    // rising: check if we hit a slope at feet level (climbing) or head level (ceiling)
+                    if (hitTile != null && hitTile.IsSlope)
+                    {
+                        int feetTileY = (int)((position.Y + texture.Height - 1) / Global.TileSize);
+                        if (hitTileY == feetTileY)
+                        {
+                            // If it's a slope at feet level, ignore it when moving up (we are climbing)
+                            position.Y = newY; 
+                        }
+                        else
+                        {
+                            // Actual ceiling collision
+                            position.Y = (hitTileY + 1) * Global.TileSize;
+                            velocity.Y = 0f;
+                        }
+                    }
+                    else
+                    {
+                        // Regular ceiling tile
+                        position.Y = (hitTileY + 1) * Global.TileSize;
+                        velocity.Y = 0f;
+                    }
                 }
-                velocity.Y = 0f;
+                else
+                {
+                    velocity.Y = 0f;
+                }
             }
             else
             {
@@ -190,20 +259,28 @@ namespace TileMaster.Entity
             // small conditional snap to ground to avoid tiny floating above tiles (keeps previous behavior)
             if (isOnSolidBlock)
             {
-                // Snap only when the player's bottom is very near the tile top.
-                // Avoid using GridY (which may be stale or computed differently); compute from rectangle instead.
-                var bottom = position.Y + rectangle.Height;
-                int tileBelow = (int)(bottom / Global.TileSize);
-                float tileTop = tileBelow * Global.TileSize;
-                float delta = tileTop - bottom; // negative if penetrating
+                // check if we are on a slope
+                int feetX = (int)(position.X + rectangle.Width / 2) / Global.TileSize;
+                int feetY = (int)(position.Y + rectangle.Height - 1) / Global.TileSize;
+                var tileBelow = map.GetTileAt(feetX, feetY);
+                bool onSlope = tileBelow != null && tileBelow.IsSlope;
 
-                const float snapTolerance = 3f; // pixels
-                if (Math.Abs(delta) <= snapTolerance)
+                if (!onSlope)
                 {
-                    position.Y = tileTop - rectangle.Height;
-                    velocity.Y = 0f;
-                    hasJumped = false;
-                    rectangle = new Rectangle((int)position.X, (int)position.Y, texture.Width, texture.Height);
+                    // Snap only when the player's bottom is very near the tile top.
+                    var bottom = position.Y + rectangle.Height;
+                    int tileBelowIdx = (int)(bottom / Global.TileSize);
+                    float tileTop = tileBelowIdx * Global.TileSize;
+                    float delta = tileTop - bottom;
+
+                    const float snapTolerance = 3f;
+                    if (Math.Abs(delta) <= snapTolerance)
+                    {
+                        position.Y = tileTop - rectangle.Height;
+                        velocity.Y = 0f;
+                        hasJumped = false;
+                        rectangle = new Rectangle((int)position.X, (int)position.Y, texture.Width, texture.Height);
+                    }
                 }
             }
 

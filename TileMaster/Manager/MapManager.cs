@@ -87,13 +87,11 @@ namespace TileMaster.Manager
                     foreach (var actionBarItem in playerData.ActionBar)
                     {
                         playerData.ActionBar[actionBarItem.Key].Item = Global.Items[actionBarItem.Value.ItemId];
-
                     }
                     player.SetPosition(new Vector2(playerData.X, playerData.Y));
                     player.Layer = playerData.Layer;
                     player.Inventory = playerData.Inventory;
                     player.ActionBar = playerData.ActionBar;
-                    player.ActionBar[3] = new InventoryItem(Global.Items[(int)Items.Hammer], 1);
                 }
                 else
                 {
@@ -101,6 +99,7 @@ namespace TileMaster.Manager
                     player.ActionBar[0] = new InventoryItem(Global.Items[(int)Items.Torch], 99);
                     player.ActionBar[1] = new InventoryItem(Global.Items[(int)Items.Pickaxe], 1);
                     player.ActionBar[2] = new InventoryItem(Global.Items[(int)Items.Dirt], 99);
+                    player.ActionBar[3] = new InventoryItem(Global.Items[(int)Items.Hammer], 1);
                 }
             }
 

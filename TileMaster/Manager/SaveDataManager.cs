@@ -100,6 +100,8 @@ namespace TileMaster.Manager
                 writer.Write(tile.TextureId);
                 writer.Write(tile.ColorArgb ?? -1);
                 writer.Write(tile.Rotation);
+                writer.Write(tile.IsSlope);
+                writer.Write(tile.SlopeRotation);
 
                 if (tile is CollisionTile ct && ct.PlacedItem != null)
                 {
@@ -350,6 +352,9 @@ namespace TileMaster.Manager
 
                 int colorArgb = reader.ReadInt32();
                 float rotation = reader.ReadSingle();
+                bool isSlope = reader.ReadBoolean();
+                int slopeRotation = reader.ReadInt32();
+
                 bool hasItem = reader.ReadBoolean();
                 int itemId = hasItem ? reader.ReadInt32() : -1;
 
@@ -426,6 +431,8 @@ namespace TileMaster.Manager
                         IsOccupied = refTile.IsOccupied,
                         ColorArgb = colorArgb == -1 ? null : (int?)colorArgb,
                         Rotation = rotation,
+                        IsSlope = isSlope,
+                        SlopeRotation = slopeRotation,
                         LocalId = i,
                         GlobalId = globalId,
                         X = globalX,
@@ -474,6 +481,8 @@ namespace TileMaster.Manager
                         IsOccupied = refTile.IsOccupied,
                         ColorArgb = colorArgb == -1 ? null : (int?)colorArgb,
                         Rotation = rotation,
+                        IsSlope = isSlope,
+                        SlopeRotation = slopeRotation,
                         LocalId = i,
                         GlobalId = globalId,
                         X = globalX,

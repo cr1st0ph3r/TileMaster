@@ -170,5 +170,35 @@ namespace TileMaster.Test
             Assert.Equal(0, tile.SlopeRotation);
             Assert.Equal(0f, tile.Rotation);
         }
+        [Fact]
+        public void SaveAndLoad_SlopeTile_PreservesSlopeData()
+        {
+            // Arrange
+            var map = TestHelper.CreateTestMap();
+            int x = 5, y = 5;
+            int globalId = y * Global.MapWidth + x;
+            int chunkId = 1;
+
+            // Set a slope tile manually for testing
+            map.SetTile(chunkId, globalId, (int)TileType.Stone);
+            var tile = map.GetTileAt(x, y);
+            tile.IsSlope = true;
+            tile.SlopeRotation = 2;
+            tile.Rotation = System.MathF.PI;
+
+            var activeChunks = new System.Collections.Generic.Dictionary<int, Chunk> { { chunkId, map.GetChunk(chunkId) } };
+            var worldData = new WorldData { WorldWidth = Global.MapWidth, WorldHeight = Global.MapHeight };
+
+            // Act
+            SaveDataManager.SaveGame(worldData, activeChunks);
+            var loadedChunk = SaveDataManager.LoadChunk(chunkId);
+
+            // Assert
+            Assert.NotNull(loadedChunk);
+            var loadedTile = loadedChunk.Tiles[TileMaster.Map.Map.GlobalToLocalIndex(x, y)];
+            Assert.True(loadedTile.IsSlope, "Loaded tile should be a slope.");
+            Assert.Equal(2, loadedTile.SlopeRotation);
+            Assert.Equal(System.MathF.PI, loadedTile.Rotation);
+        }
     }
 }

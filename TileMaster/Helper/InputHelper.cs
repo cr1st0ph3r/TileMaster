@@ -1,6 +1,7 @@
-﻿using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Input;
 using System;
 using TileMaster.Entity;
+using TileMaster.Entity.Tiles;
 
 namespace TileMaster.Helper
 {
@@ -11,13 +12,12 @@ namespace TileMaster.Helper
             if (keyboardState.IsKeyDown(Keys.D))
             {
                 var tileAt = map.GetTileByGlobalId(player.OnBlock + 1);
-                if (tileAt != null && tileAt.IsOccupied == false)
+                if (tileAt != null && (tileAt.IsOccupied == false || tileAt.IsSlope))
                 {
                     return true;//proceed with the moving
                 }
             }
 
-            player.velocity.X = 0;
             return false;
         }
 
@@ -27,10 +27,9 @@ namespace TileMaster.Helper
             if (keyboardState.IsKeyDown(Keys.A))
             {
                 var tileAt = map.GetTileByGlobalId(player.OnBlock - 1);
-                if (tileAt != null && tileAt.IsOccupied == false)
+                if (tileAt != null && (tileAt.IsOccupied == false || tileAt.IsSlope))
                     return true;//proceed with the moving
             }
-            player.CheckBoundaries();
             return false;
         }
 
@@ -73,13 +72,31 @@ namespace TileMaster.Helper
                 string direction = gx > player.GridX ? "right" : (gx < player.GridX ? "left" : "right");
                 var tile = map.GetTileByGlobalId(globalId);
 
-                // if tile is missing, preserve previous behavior and allow falling
+// if tile is missing, preserve previous behavior and allow falling
                 if (tile == null)
                     return true;
 
                 if (!tile.IsOccupied)
                     continue;
 
+                // Check if this is a slope tile
+                if (tile.IsSlope)
+                {
+                    // For slope tiles, use specialized collision detection
+                    if (SlopeCollisionHelper.IsRectangleSupportedBySlope(tile, pr, supportTolerancePx))
+                    {
+                        // Adjust player position to rest on slope
+                        float slopeRestY = SlopeCollisionHelper.GetSlopeRestPosition(tile, pr.Bottom, pr.Left, pr.Right);
+                        if (Math.Abs(pr.Bottom - slopeRestY) <= supportTolerancePx)
+                        {
+                            // Player is properly supported by slope
+                            return false;
+                        }
+                    }
+                    continue;
+                }
+
+                // Regular tile collision for non-slope tiles
                 // get tile rectangle and check vertical relationship with player's bottom
                 var tileTop = tile.Rectangle.Top;
                 int verticalDelta = tileTop - pr.Bottom; // 0 when perfectly aligned, negative if player penetrates tile

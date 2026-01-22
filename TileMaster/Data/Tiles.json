@@ -15,12 +15,10 @@
     "Id": 1,
     "Name": "Dirt",
     "TextureName": "Dirt",
-    "TileSet": [],
+    "TileSet": ["Dirt1","DirtSlope"],
     "AlternateTextures": [
-      "Dirt1",
       "Dirt2",
-      "Dirt3",
-      "DirtSlope"
+      "Dirt3"    
     ],
     "TextureId": 1,
     "TileId": 1,

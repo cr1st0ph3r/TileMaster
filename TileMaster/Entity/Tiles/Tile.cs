@@ -85,9 +85,19 @@ namespace TileMaster.Entity.Tiles
 
         public void InitializeTexture()
         {
-            if (GlobalId == 8630)
+            if (IsSlope)
             {
-                TextureId = 0;
+                var refTile = Global.ReferenceTiles[TileId];
+                if (refTile.Textures != null)
+                {
+                    var slopeTexture = refTile.Textures.FirstOrDefault(x => x != null && x.Name != null && x.Name.EndsWith("Slope"));
+                    if (slopeTexture != null)
+                    {
+                        Texture = slopeTexture;
+                        TextureName = slopeTexture.Name;
+                        return;
+                    }
+                }
             }
             if (TextureId == 0)
             {
