@@ -49,49 +49,6 @@ namespace TileMaster.Entity
         
         public Item()
         {
-        }
-
-        public static List<Item> LoadItems(ContentManager content)
-        {
-            var json = System.IO.File.ReadAllText(Global.ItemsDataLocation);
-            var items = JsonConvert.DeserializeObject<List<Item>>(json);
-            
-            if (content == null)
-            {
-                return items;
-            }
-
-            var tilePath = "Items";
-
-            //load the texture
-            foreach (var item in items.ToList())
-            {
-                try
-                {
-                    if (item.IsTile)
-                    {
-                        item.Texture = Global.ReferenceTiles[item.TileId].Texture;
-                    }
-                    else
-                    {
-                        item.Texture = content.Load<Texture2D>($"{tilePath}/{item.Name}/{item.TextureName}");
-                    }
-                }
-                catch (Exception)
-                {
-                    // Skip texture loading if it fails (e.g. in test environment)
-                }
-
-                if (!string.IsNullOrEmpty(item.LightColorName))
-                {
-                    var prop = typeof(Color).GetProperty(item.LightColorName);
-                    if (prop != null)
-                    {
-                        item.LightColor = (Color)prop.GetValue(null, null);
-                    }
-                }
-            }
-            return items;
-        }
+        }   
     }
 }

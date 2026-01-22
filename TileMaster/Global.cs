@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
+using TileMaster.Data;
 using TileMaster.Entity;
 using TileMaster.Entity.Tiles;
 
@@ -106,7 +107,8 @@ namespace TileMaster
         public static readonly float LightDecayTiles = 0.25f;
 
         public static List<ReferenceTile> ReferenceTiles { get; set; } = new List<ReferenceTile>();
-        public static List<Item> Items { get; set; } = new List<Item>();
+        public static List<Item> ReferenceItems { get; set; } = new List<Item>();
+        public static List<ReferenceMob> ReferenceMobs { get; set; } = new List<ReferenceMob>();
           
         public static bool UseAlternateTiles = true;
 
@@ -114,6 +116,7 @@ namespace TileMaster
         public static readonly string SaveDataFolderName = "SaveData";
         public static readonly string TileDataLocation = @"Data\Tiles.json";
         public static readonly string ItemsDataLocation = @"Data\Items.json";
+        public static readonly string MobsDataLocation = @"Data\Mobs.json";
         public static readonly string UIIconsLocation = @"content\UI\";
     }
 }

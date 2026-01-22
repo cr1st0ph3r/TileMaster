@@ -442,10 +442,10 @@ namespace TileMaster.Manager
                         Height = Global.TileSize
                     };
 
-                    if (hasItem && itemId != -1 && itemId < Global.Items.Count)
+                    if (hasItem && itemId != -1 && itemId < Global.ReferenceItems.Count)
                     {
                         // NEW: Create a distinct instance of the item to store per-tile data (e.g. LightColor)
-                        var templateItem = Global.Items[itemId];
+                        var templateItem = Global.ReferenceItems[itemId];
                         var newItem = new Item
                         {
                             Name = templateItem.Name,

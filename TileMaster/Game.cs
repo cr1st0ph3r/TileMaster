@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using TileMaster.Data;
 using TileMaster.Entity;
 using TileMaster.Entity.Enums;
 using TileMaster.Entity.MobMovement;
@@ -160,9 +161,11 @@ namespace TileMaster
             mainMenuBackground = Content.Load<Texture2D>("UI/MainMenuBackground");
 
             //load tile data
-            Global.ReferenceTiles = CollisionTile.LoadTilesTypes(Content);
+            Global.ReferenceTiles = DataLoader.LoadTilesTypes(Content);
             //load item data
-            Global.Items = Item.LoadItems(Content);
+            Global.ReferenceItems = DataLoader.LoadItems(Content);
+            //load mob data
+            Global.ReferenceMobs = DataLoader.LoadMobs(Content);
         }
 
         protected override void UnloadContent()
@@ -707,7 +710,7 @@ namespace TileMaster
                 var testTile = map.GetTileAt(coordinates.Item1, coordinates.Item2);
                 if (testTile != null)
                 {
-                    var torch = Global.Items[(int)Items.Torch];
+                    var torch = Global.ReferenceItems[(int)Items.Torch];
                     map.PlaceItem(cursorOnChunk, mouseIsOverBlock, torch);
                 }
 
@@ -725,7 +728,8 @@ namespace TileMaster
             var mob = new Mob();
             var coordinates = GetCoordinatesFromString(commandParts[1]);
             Vector2 position = new Vector2(coordinates.Item1 * Global.TileSize, coordinates.Item2 * Global.TileSize);
-            mob.Load(Content, position, "Slime", 100, new Hop());
+            //mob.Load(Content, position, "Slime", 100, new Hop());
+            mob.Load(Content, position, Global.ReferenceMobs[(int)Mobs.Slime]);
             mobs.Add(mob);
         }
 

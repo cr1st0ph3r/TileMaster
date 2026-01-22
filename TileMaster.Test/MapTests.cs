@@ -12,7 +12,7 @@ namespace TileMaster.Test
         {
             // Arrange
             var map = TestHelper.CreateTestMap();
-            var torch = Global.Items.First(i => i.Name == "Torch");
+            var torch = Global.ReferenceItems.First(i => i.Name == "Torch");
             int x = 5, y = 5;
             int globalId = y * Global.MapWidth + x;
             int chunkId = 1;
@@ -34,7 +34,7 @@ namespace TileMaster.Test
         {
             // Arrange
             var map = TestHelper.CreateTestMap();
-            var torch = Global.Items.First(i => i.Name == "Torch");
+            var torch = Global.ReferenceItems.First(i => i.Name == "Torch");
             int x = 5, y = 5;
             int globalId = y * Global.MapWidth + x;
             int chunkId = 1;
@@ -52,7 +52,7 @@ namespace TileMaster.Test
         {
             // Arrange
             var map = TestHelper.CreateTestMap();
-            var torch = Global.Items.First(i => i.Name == "Torch");
+            var torch = Global.ReferenceItems.First(i => i.Name == "Torch");
             int x = 5, y = 5;
             int globalId = y * Global.MapWidth + x;
             int chunkId = 1;

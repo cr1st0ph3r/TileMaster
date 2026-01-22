@@ -1,3 +1,4 @@
+using TileMaster.Data;
 using TileMaster.Entity;
 using TileMaster.Entity.Tiles;
 using TileMaster.Map;
@@ -19,8 +20,8 @@ namespace TileMaster.Test
             // or the user has set up the project to copy these files.
             
             // initialize global state
-            Global.ReferenceTiles = CollisionTile.LoadTilesTypes(null);
-            Global.Items = Item.LoadItems(null);
+            Global.ReferenceTiles = DataLoader.LoadTilesTypes(null);
+            Global.ReferenceItems = DataLoader.LoadItems(null);
             
             _initialized = true;
         }

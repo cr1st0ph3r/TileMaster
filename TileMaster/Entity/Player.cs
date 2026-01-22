@@ -41,7 +41,7 @@ namespace TileMaster.Entity
             _animationManager = new AnimationManager(_animations["Idle"]);
 
             // Keep reference for base entity logic if needed, though AnimationManager handles drawing now
-            texture = idleTexture;
+            Texture = idleTexture;
         }
 
         public bool IsInWater { get; private set; }
@@ -49,8 +49,8 @@ namespace TileMaster.Entity
         private bool CheckIfInWater(Map.Map map)
         {
             // Check tile at center of player
-            int centerX = (int)(position.X + texture.Width / 2) / Global.TileSize;
-            int centerY = (int)(position.Y + texture.Height / 2) / Global.TileSize;
+            int centerX = (int)(position.X + Texture.Width / 2) / Global.TileSize;
+            int centerY = (int)(position.Y + Texture.Height / 2) / Global.TileSize;
             var tile = map.GetTileAt(centerX, centerY);
             return tile != null && tile.TileId == (int)TileType.Water;
         }
@@ -137,7 +137,7 @@ namespace TileMaster.Entity
             // per-axis integration with collision resolution to avoid tunneling
             // Horizontal movement
             float newX = position.X + velocity.X * dt;
-            Rectangle testRectX = new Rectangle((int)newX, (int)position.Y, texture.Width, texture.Height);
+            Rectangle testRectX = new Rectangle((int)newX, (int)position.Y, Texture.Width, Texture.Height);
 
             bool ignoreCollisionX = false;
             if (IsRectCollidingWithMap(testRectX, map, out int hitTileX, out int hitTileY, findRightmost: velocity.X < 0))
@@ -146,7 +146,7 @@ namespace TileMaster.Entity
                 var hitTile = map.GetTileAt(hitTileX, hitTileY);
                 if (hitTile != null && hitTile.IsSlope)
                 {
-                    int feetTileY = (int)((position.Y + texture.Height - 1) / Global.TileSize);
+                    int feetTileY = (int)((position.Y + Texture.Height - 1) / Global.TileSize);
                     if (hitTileY == feetTileY)
                     {
                         // Allow movement through all slopes at feet level (climbing and descending)
@@ -157,7 +157,7 @@ namespace TileMaster.Entity
                 if (!ignoreCollisionX)
                 {
                     if (velocity.X > 0)
-                        position.X = hitTileX * Global.TileSize - texture.Width;
+                        position.X = hitTileX * Global.TileSize - Texture.Width;
                     else if (velocity.X < 0)
                         position.X = (hitTileX + 1) * Global.TileSize;
 
@@ -167,17 +167,17 @@ namespace TileMaster.Entity
                 {
                     position.X = newX;
                     // Ensure the player climbs OR descends the slope as they move horizontally
-                    float slopeRestY = SlopeCollisionHelper.GetSlopeRestPosition(hitTile, position.Y + texture.Height, position.X, position.X + texture.Width);
+                    float slopeRestY = SlopeCollisionHelper.GetSlopeRestPosition(hitTile, position.Y + Texture.Height, position.X, position.X + Texture.Width);
                     
                     // Always push the player UP to prevent penetration
-                    if (slopeRestY < position.Y + texture.Height)
+                    if (slopeRestY < position.Y + Texture.Height)
                     {
-                        position.Y = slopeRestY - texture.Height;
+                        position.Y = slopeRestY - Texture.Height;
                     }
                     // Snap the player DOWN if they were already grounded to keep them stuck to the slope
                     else if (isOnSolidBlock)
                     {
-                        position.Y = slopeRestY - texture.Height;
+                        position.Y = slopeRestY - Texture.Height;
                     }
                 }
             }
@@ -188,7 +188,7 @@ namespace TileMaster.Entity
 
             // Vertical movement
             float newY = position.Y + velocity.Y * dt;
-            Rectangle testRectY = new Rectangle((int)position.X, (int)newY, texture.Width, texture.Height);
+            Rectangle testRectY = new Rectangle((int)position.X, (int)newY, Texture.Width, Texture.Height);
 
 if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBottommost: velocity.Y < 0))
             {
@@ -203,7 +203,7 @@ if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBotto
                     {
                         // For slopes, adjust position to rest on the slope surface
                         float slopeRestY = SlopeCollisionHelper.GetSlopeRestPosition(hitTile, testRectY.Bottom, testRectY.Left, testRectY.Right);
-                        position.Y = slopeRestY - texture.Height;
+                        position.Y = slopeRestY - Texture.Height;
                         
                         // Adjust velocity for slope influence
                         var adjustedVelocity = SlopeCollisionHelper.AdjustVelocityForSlope(hitTile, velocity.X, true);
@@ -212,7 +212,7 @@ if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBotto
                     else
                     {
                         // Regular tile: place player's bottom on top of the tile
-                        position.Y = hitTileY * Global.TileSize - texture.Height;
+                        position.Y = hitTileY * Global.TileSize - Texture.Height;
                         velocity.Y = 0f;
                     }
                     
@@ -224,7 +224,7 @@ if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBotto
                     // rising: check if we hit a slope at feet level (climbing) or head level (ceiling)
                     if (hitTile != null && hitTile.IsSlope)
                     {
-                        int feetTileY = (int)((position.Y + texture.Height - 1) / Global.TileSize);
+                        int feetTileY = (int)((position.Y + Texture.Height - 1) / Global.TileSize);
                         if (hitTileY == feetTileY)
                         {
                             // If it's a slope at feet level, ignore it when moving up (we are climbing)
@@ -283,7 +283,7 @@ if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBotto
                         position.Y = tileTop - rectangle.Height;
                         velocity.Y = 0f;
                         hasJumped = false;
-                        rectangle = new Rectangle((int)position.X, (int)position.Y, texture.Width, texture.Height);
+                        rectangle = new Rectangle((int)position.X, (int)position.Y, Texture.Width, Texture.Height);
                     }
                 }
             }

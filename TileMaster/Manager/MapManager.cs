@@ -82,11 +82,11 @@ namespace TileMaster.Manager
                 {
                     foreach (var item in playerData.Inventory)
                     {
-                        playerData.Inventory[item.Key].Item = Global.Items[item.Value.ItemId];
+                        playerData.Inventory[item.Key].Item = Global.ReferenceItems[item.Value.ItemId];
                     }
                     foreach (var actionBarItem in playerData.ActionBar)
                     {
-                        playerData.ActionBar[actionBarItem.Key].Item = Global.Items[actionBarItem.Value.ItemId];
+                        playerData.ActionBar[actionBarItem.Key].Item = Global.ReferenceItems[actionBarItem.Value.ItemId];
                     }
                     player.SetPosition(new Vector2(playerData.X, playerData.Y));
                     player.Layer = playerData.Layer;
@@ -96,10 +96,10 @@ namespace TileMaster.Manager
                 else
                 {
                     // Default items
-                    player.ActionBar[0] = new InventoryItem(Global.Items[(int)Items.Torch], 99);
-                    player.ActionBar[1] = new InventoryItem(Global.Items[(int)Items.Pickaxe], 1);
-                    player.ActionBar[2] = new InventoryItem(Global.Items[(int)Items.Dirt], 99);
-                    player.ActionBar[3] = new InventoryItem(Global.Items[(int)Items.Hammer], 1);
+                    player.ActionBar[0] = new InventoryItem(Global.ReferenceItems[(int)Items.Torch], 99);
+                    player.ActionBar[1] = new InventoryItem(Global.ReferenceItems[(int)Items.Pickaxe], 1);
+                    player.ActionBar[2] = new InventoryItem(Global.ReferenceItems[(int)Items.Dirt], 99);
+                    player.ActionBar[3] = new InventoryItem(Global.ReferenceItems[(int)Items.Hammer], 1);
                 }
             }
 

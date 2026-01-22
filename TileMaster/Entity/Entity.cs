@@ -6,7 +6,7 @@ namespace TileMaster.Entity
 {
     public class Entity
     {
-        protected Texture2D texture;
+        protected Texture2D Texture;
         protected Rectangle rectangle;
         protected Vector2 position = new Vector2(Global.MapWidth * Global.TileSize / 2, (Global.GroundLevel - 20) * Global.TileSize);
         public Vector2 velocity;
@@ -42,8 +42,8 @@ namespace TileMaster.Entity
         public void SetPosition(Vector2 newPos)
         {
             position = newPos;
-            if (texture != null)
-                rectangle = new Rectangle((int)position.X, (int)position.Y, texture.Width, texture.Height);
+            if (Texture != null)
+                rectangle = new Rectangle((int)position.X, (int)position.Y, Texture.Width, Texture.Height);
         }
 
         public virtual void Update(GameTime gameTime, Map.Map map)
