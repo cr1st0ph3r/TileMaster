@@ -16,6 +16,7 @@ namespace TileMaster.Entity
     {
         public Layer Layer { get; set; } = Layer.Surface;
         public bool InterruptInput { get; set; }
+        public float UseCooldown { get; set; }
         public int InventoryTier { get; set; }
 
         private Dictionary<string, Animation> _animations;
@@ -60,6 +61,9 @@ namespace TileMaster.Entity
             float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
             IsInWater = CheckIfInWater(map);
+
+            if (UseCooldown > 0)
+                UseCooldown -= (float)gameTime.ElapsedGameTime.TotalMilliseconds;
             
             // set if the player is in motion or not
             // We use a slightly more generous threshold for "stationary" to account for floating point jitter

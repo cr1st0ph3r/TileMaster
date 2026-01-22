@@ -38,7 +38,8 @@
     "StackSize": 1,
     "UIIcon": "UIPickaxe",
     "IsTool": true,
-    "ToolAction": 0
+    "ToolAction": 0,
+    "UseTime": 1000
   },
   {
     "Id": 4,
@@ -47,6 +48,7 @@
     "StackSize": 1,
     "UIIcon": "UIHammer",
     "IsTool": true,
-    "ToolAction": 1
+    "ToolAction": 1,
+    "UseTime": 1000
   }
 ]

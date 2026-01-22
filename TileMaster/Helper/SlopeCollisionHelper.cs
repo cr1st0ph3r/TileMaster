@@ -1,6 +1,5 @@
 using Microsoft.Xna.Framework;
 using System;
-using TileMaster.Entity;
 using TileMaster.Entity.Tiles;
 
 namespace TileMaster.Helper

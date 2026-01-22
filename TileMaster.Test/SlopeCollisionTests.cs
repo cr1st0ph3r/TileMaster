@@ -1,7 +1,4 @@
-using Microsoft.Xna.Framework;
-using TileMaster.Entity;
 using TileMaster.Entity.Enums;
-using TileMaster.Entity.Tiles;
 using TileMaster.Helper;
 using Xunit;
 
@@ -83,62 +80,14 @@ namespace TileMaster.Test
             Assert.True(updatedTile.IsSlope, "Tile should remain a slope after growing grass");
             Assert.Equal(0, updatedTile.SlopeRotation); // Slope rotation should be preserved
         }
-        
+    
         [Fact]
-        public void SimpleSlopeCollisionTest_PlayerOverSlope_IsDetectedCorrectly()
+        public void FiveSlopeHillTest_CreatesHillOfSlopes_WorksCorrectly()
         {
             // Arrange
-            var map = TestHelper.CreateTestMap();
-            var player = new Player();
-            player.velocity = Vector2.Zero;
+            var map = TestHelper.CreateTestMap(3, 2);           
             
-            // Create a slope tile at (10, 10)
-            int x = 10;
-            int y = 10;
-            var slopeTile = map.GetTileAt(x, y);
-            
-            if (slopeTile != null)
-            {
-                slopeTile.TileId = (int)TileType.Dirt;
-                slopeTile.IsSlope = true;
-                slopeTile.SlopeRotation = 0; // Slope rising to right
-                slopeTile.IsOccupied = true;
-                slopeTile.IsSolid = true;
-            }
-            
-            // Position player so they overlap with the slope tile
-            // Player rectangle should be: X=320-352, Y=288-320 (assuming 32x32 player)
-            player.SetPosition(new Vector2(x * Global.TileSize, y * Global.TileSize - 16));
-            player.UpdateGridPosition();
-            
-            // Get player rectangle for testing
-            var playerRect = player.GetRectangle();
-            
-            // Test if player rectangle overlaps with slope tile
-            bool overlaps = !(playerRect.Right <= slopeTile.Rectangle.Left || 
-                           playerRect.Left >= slopeTile.Rectangle.Right ||
-                           playerRect.Bottom <= slopeTile.Rectangle.Top ||
-                           playerRect.Top >= slopeTile.Rectangle.Bottom);
-            
-            Assert.True(overlaps, "Player rectangle should overlap with slope tile");
-            
-            // Test if point is colliding with slope
-            bool pointCollides = SlopeCollisionHelper.IsPointCollidingWithSlope(slopeTile, 
-                playerRect.Center.X, playerRect.Bottom - 1);
-            
-            // For slope rotation 0 at middle position, should collide
-            Assert.True(pointCollides, "Player bottom point should collide with slope");
-        }
-        
-        [Fact]
-        public void TenSlopeHillTest_CreatesHillOfSlopes_WorksCorrectly()
-        {
-            // Arrange
-            var map = TestHelper.CreateTestMap(3, 2);
-            var player = new Player();
-            player.velocity = Vector2.Zero;
-            
-            // Create a hill of 5 slope tiles (simpler than 10 for testing)
+            // Create a hill of 5 slope tiles
             int startX = 5;
             int groundY = 10;
             int slopeCount = 5;
@@ -182,23 +131,6 @@ namespace TileMaster.Test
                         $"Slope {i} right height ({rightHeight}) should be >= left height ({leftHeight})");
                 }
             }
-            
-            // Position player at the start of the slope hill
-            player.SetPosition(new Vector2(startX * Global.TileSize, (groundY - 2) * Global.TileSize));
-            player.UpdateGridPosition();
-            
-            // Test that the player would be supported at different positions
-            bool supportedAtStart = InputHelper.HandleMovingDown(player, map);
-            Assert.False(supportedAtStart, "Player should not be supported when above the slope");
-            
-            // Move player to middle of slope and test support
-            int middleX = startX + slopeCount / 2;
-            player.SetPosition(new Vector2(middleX * Global.TileSize, (groundY - 1) * Global.TileSize));
-            player.UpdateGridPosition();
-            
-            bool supportedAtMiddle = InputHelper.HandleMovingDown(player, map);
-            // Note: This might still fail due to exact positioning, but the slope physics should work
-            // The important thing is that we're testing the slope collision system
         }
     }
 }

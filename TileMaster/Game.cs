@@ -5,7 +5,6 @@ using Myra;
 using Myra.Graphics2D.UI;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using TileMaster.Entity;
@@ -443,51 +442,56 @@ namespace TileMaster
                 if (current_mouse.LeftButton == ButtonState.Pressed && _desktop.IsMouseOverGUI == false)
                 {
                     int itemId = _mainPanel.SelectedItem;
+                    var inventoryItem = player.ActionBar[itemId];
+                    var item = inventoryItem.Item;
 
-                    var item = player.ActionBar[itemId].Item;
-
-                    if (Keyboard.GetState().IsKeyDown(Keys.B))
+                    if (player.UseCooldown <= 0)
                     {
-                        try
+                        if (Keyboard.GetState().IsKeyDown(Keys.B))
                         {
-                            // Only Tiles can be placed as background (walls)
-                            if (item.IsTile)
+                            try
                             {
-                                map.SetBackgroundTile(cursorOnChunk, mouseIsOverBlock, item.TileId);
+                                // Only Tiles can be placed as background (walls)
+                                if (item.IsTile)
+                                {
+                                    map.SetBackgroundTile(cursorOnChunk, mouseIsOverBlock, item.TileId);
+                                    player.UseCooldown = item.UseTime;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                LogMessage("Failed to set background: " + ex.Message, Color.Red);
                             }
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            LogMessage("Failed to set background: " + ex.Message, Color.Red);
+                            try
+                            {
+                                if (item.IsTile)
+                                {
+                                    map.SetTile(cursorOnChunk, mouseIsOverBlock, item.TileId);
+                                    lightingDirty = true;
+                                    player.UseCooldown = item.UseTime;
+                                }
+                                else if (item.IsPlaceable)
+                                {
+                                    map.PlaceItem(cursorOnChunk, mouseIsOverBlock, item);
+                                    lightingDirty = true;
+                                    player.UseCooldown = item.UseTime;
+                                }
+                                else if (item.IsTool)
+                                {
+                                    map.PerformActionOnTile(cursorOnChunk, mouseIsOverBlock, item.ToolAction);
+                                    player.UseCooldown = item.UseTime;
+                                }
+                            }
+                            catch
+                            {
+                                //mouse clicked outside the game context
+                                //for the mean time this can be neglected
+                            }
                         }
                     }
-                    else
-                    {
-                        try
-                        {
-                            if (item.IsTile)
-                            {
-                                map.SetTile(cursorOnChunk, mouseIsOverBlock, item.TileId);
-                                lightingDirty = true;
-                            }
-                            else if (item.IsPlaceable)
-                            {
-                                map.PlaceItem(cursorOnChunk, mouseIsOverBlock, item);
-                                lightingDirty = true;
-                            }
-                            else if (item.IsTool)
-                            {
-                                map.PerformActionOnTile(cursorOnChunk, mouseIsOverBlock, item.ToolAction);
-                            }
-                        }
-                        catch
-                        {
-                            //mouse clicked outside the game context
-                            //for the mean time this can be neglected
-                        }
-                    }
-
-
                 }
                 else if (current_mouse.RightButton == ButtonState.Pressed)
                 {
