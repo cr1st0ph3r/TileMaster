@@ -126,7 +126,8 @@
     "TileSet": [],
     "AlternateTextures": [
       "TallGrass1",
-      "TallGrass2"
+      "TallGrass2",
+      "TallGrass3"
     ],
     "TextureId": 0,
     "TileId": 7,
