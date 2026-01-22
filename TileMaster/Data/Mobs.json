@@ -1,0 +1,9 @@
+[
+  {
+    "Id": 0,
+    "Name": "Slime",
+    "TextureName": "Slime",
+    "WalkTextureName": "Walk",
+    "MoveSpeed": 100
+  }
+]

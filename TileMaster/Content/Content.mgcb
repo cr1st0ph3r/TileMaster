@@ -49,6 +49,30 @@
 /processorParam:TextureFormat=Color
 /build:Entities/Slime/Slime.png
 
+#begin Entities/Slime/Slime.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:Entities/Slime/Slime.png
+
+#begin Entities/Slime/Walk.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:Entities/Slime/Walk.png
+
 #begin Fonts/Font.spritefont
 /importer:FontDescriptionImporter
 /processor:FontDescriptionProcessor

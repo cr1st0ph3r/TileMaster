@@ -725,7 +725,7 @@ namespace TileMaster
             var mob = new Mob();
             var coordinates = GetCoordinatesFromString(commandParts[1]);
             Vector2 position = new Vector2(coordinates.Item1 * Global.TileSize, coordinates.Item2 * Global.TileSize);
-            mob.Load(Content, position, "Entities/Slime/Slime", 100, new Hop());
+            mob.Load(Content, position, "Slime", 100, new Hop());
             mobs.Add(mob);
         }
 
