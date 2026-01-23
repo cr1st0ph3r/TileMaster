@@ -29,6 +29,54 @@ namespace TileMaster.Entity
             this.Height = 3;
         }
 
+        public bool HasAmmo(AmmoType type, out InventoryItem ammoItem)
+        {
+            ammoItem = null;
+            // First check ActionBar
+            foreach (var item in ActionBar.Values)
+            {
+                if (item != null && item.Item != null && item.Item.IsAmmo && item.Item.AmmoType == type && item.Quantity > 0)
+                {
+                    ammoItem = item;
+                    return true;
+                }
+            }
+            // Then check main Inventory
+            foreach (var item in Inventory.Values)
+            {
+                if (item != null && item.Item != null && item.Item.IsAmmo && item.Item.AmmoType == type && item.Quantity > 0)
+                {
+                    ammoItem = item;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public void ConsumeAmmo(AmmoType type)
+        {
+            // Check ActionBar first
+            foreach (var kvp in ActionBar)
+            {
+                var item = kvp.Value;
+                if (item != null && item.Item != null && item.Item.IsAmmo && item.Item.AmmoType == type && item.Quantity > 0)
+                {
+                    item.Quantity--;
+                    return;
+                }
+            }
+            // Check Inventory
+            foreach (var kvp in Inventory)
+            {
+                var item = kvp.Value;
+                if (item != null && item.Item != null && item.Item.IsAmmo && item.Item.AmmoType == type && item.Quantity > 0)
+                {
+                    item.Quantity--;
+                    return;
+                }
+            }
+        }
+
         public void Load(ContentManager content)
         {
             // Load textures (Ideally these are SpriteSheets with multiple frames)

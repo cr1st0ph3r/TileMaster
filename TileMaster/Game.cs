@@ -46,6 +46,7 @@ namespace TileMaster
         private Texture2D mainMenuBackground;
         private float _mainMenuScrollOffset = 0f;
         private const float MainMenuScrollSpeed = 20f; // Pixels per second
+        private List<Projectile> projectiles;
 
         //TODO remover
         private int cursorGridX = 0;
@@ -89,6 +90,7 @@ namespace TileMaster
             Window.IsBorderless = true;
             Window.Position = new Point(50, 50);
             mobs = new List<Mob>();
+            projectiles = new List<Projectile>();
         }
         public static void LogMessage(string message, Color? color, int timeout = 300)
         {
@@ -228,6 +230,16 @@ namespace TileMaster
             {
                 mob.Target = player; // Simple AI test: chase player
                 mob.Update(gameTime, map);
+            }
+
+            //update projectiles
+            foreach (var projectile in projectiles.ToList())
+            {
+                projectile.Update(gameTime, map);
+                if (!projectile.IsActive)
+                {
+                    projectiles.Remove(projectile);
+                }
             }
 
             //update camera
@@ -379,6 +391,11 @@ namespace TileMaster
                     mob.Draw(spriteBatch);
                 }
 
+                foreach (var projectile in projectiles)
+                {
+                    projectile.Draw(spriteBatch);
+                }
+
                 //Cursor info (mouse state is captured in Update)
                 Global.CursorX = current_mouse.Position.X;
                 Global.CursorY = current_mouse.Position.Y;
@@ -484,8 +501,32 @@ namespace TileMaster
                                 }
                                 else if (item.IsTool)
                                 {
-                                    map.PerformActionOnTile(cursorOnChunk, mouseIsOverBlock, item.ToolAction);
-                                    player.UseCooldown = item.UseTime;
+                                    if (item.ToolAction == ToolAction.RangedWeapon)
+                                    {
+                                        if (item.RequiresAmmo)
+                                        {
+                                            if (player.HasAmmo(item.RequiredAmmoType, out var ammoInvItem))
+                                            {
+                                                SpawnProjectile(player, item, ammoInvItem.Item);
+                                                player.ConsumeAmmo(item.RequiredAmmoType);
+                                                player.UseCooldown = item.UseTime;
+                                            }
+                                            else
+                                            {
+                                                LogMessage("No ammunition!", Color.Red, 100);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            SpawnProjectile(player, item, item); // Self as ammo if none required? 
+                                            player.UseCooldown = item.UseTime;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        map.PerformActionOnTile(cursorOnChunk, mouseIsOverBlock, item.ToolAction);
+                                        player.UseCooldown = item.UseTime;
+                                    }
                                 }
                             }
                             catch
@@ -551,6 +592,31 @@ namespace TileMaster
             // raise event for external subscribers
             ScrollWheelChanged?.Invoke(delta);
             _mainPanel.ChangeActionBarSelectedItem(delta > 0 ? 1 : -1);
+        }
+
+        private void SpawnProjectile(Player player, Item weapon, Item ammo)
+        {
+            Vector2 playerCenter = player.GetPosition() + new Vector2(player.GetRectangle().Width / 2f, player.GetRectangle().Height / 2f);
+            Vector2 cursorWorldPos = Vector2.Transform(new Vector2(current_mouse.Position.X, current_mouse.Position.Y), Matrix.Invert(camera.Transform));
+
+            Vector2 direction = cursorWorldPos - playerCenter;
+            if (direction != Vector2.Zero)
+            {
+                direction.Normalize();
+            }
+            else
+            {
+                direction = new Vector2(1, 0); // Default if cursor on player
+            }
+
+            // weapon.RangedVelocity is scaled to match game's pixel-per-second expectations
+            Vector2 initialVelocity = direction * weapon.RangedVelocity * 100f;
+
+            float maxDistance = weapon.RangedDistance * Global.TileSize;
+            if (maxDistance <= 0) maxDistance = 2000f; // Default long distance if not set
+
+            Projectile projectile = new Projectile(ammo, playerCenter, initialVelocity, maxDistance);
+            projectiles.Add(projectile);
         }
         private void OnGameExiting(object sender, EventArgs e)
         {

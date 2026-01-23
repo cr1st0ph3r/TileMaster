@@ -45,3 +45,33 @@
 13-10-2023 Integrated Myra UI elements into the game
 14-10-2023 Added a very rudimentar game state management system
 		   The map now is loaded after starting the game, a progress bar was added to help visualize the time it takes to load the map
+03-01-2026 Upgraded the project to .NET 10
+			Remove all unused code, even experimental code.
+			Optimize how assets are managed. (its still crap, but its better now).
+04-01-2026 Add Primitive lighting to tiles (now there is a global light that comes from up).
+05-01-2026 Remove more old code.
+08-01-2026 Improve player collision with tiles (Its still terrible).
+09-01-2026 Change how the game is saved to disk.
+			Now the whole map is saved to a single file, instead of multiple files (one per chunk).
+11-01-2026 More improvements to the very primitive lighing system, it was costing too much to render, so the procces was refined to run less often and		 also run on a sepparate thread to avoid blocking the main thread.
+12-01-2026 Change the background manager to change the image based on player height.
+12-02-2026 Items now can emit light.
+		   Change texture locations once more.
+15-01-2026 More optimizations to the lighting system.
+16-01-2026 Redesign the chunk loading/saving. There's too much information and json is not appropriate for this.
+			Now chunks are saved/loaded using a binary format, which is way more compact and faster to read/write.
+			Chunk loading now runs asynchronously to speed up the process.
+			Changes made in the world are now saved to the file automatically.
+			Improve the surface generation (with help if AI).
+			Added improvements to the grass spread logic.
+18-01-2026 Placed items are now saved in the chunk data.
+			Add new tile: Tall Grass. It grows on top of grass tiles that are exposed to air tiles.
+19-01-2026 Simlify the proccess of retrieving tiles by its global identifier.
+20-01-2026 Add fluid logic. It doesnt behave like real fluids, but its a start.
+			Add a new mechanic taken from a beloved game, the hammer. It changes the slope of tiles to create ramps.
+			Ths added a new problem: the collision logic did not like the slopes and I had to make changes to make slopes walkable.
+22-01-2026 Improve grass textures (graphical design is not my passion).
+			Add the concept of usage time for tools.
+			Mob entities now support animations.
+			Mob data is now saved in a json file.
+			Add first weapon: The sling shot. Add projectile logic.

@@ -13,5 +13,9 @@
         /// Hammer action to change block slope
         /// </summary>
         TransformBlock = 1,
+        /// <summary>
+        /// Hammer action to change block slope
+        /// </summary>
+        RangedWeapon = 2,
     }
 }

@@ -26,6 +26,42 @@ namespace TileMaster.Entity
         /// </summary>
         public bool IsTool { get; set; }
         /// <summary>
+        /// Identifies whether the item is a weapon.
+        /// </summary>
+        public bool IsWeapon { get; set; }
+        /// <summary>
+        /// Indicates if the weapon is ranged (e.g., bow, gun).
+        /// </summary>
+        public bool IsRangedWeapon { get; set; }
+        /// <summary>
+        /// Wether this weapon requires ammunition.
+        /// </summary>
+        public bool RequiresAmmo { get; set; }
+        /// <summary>
+        /// Th type of ammunition required by this weapon.
+        /// </summary>
+        public AmmoType RequiredAmmoType { get; set; }
+        /// <summary>
+        /// Defines how far the projectiles fired from this weapon can travel.
+        /// </summary>
+        public int RangedDistance { get; set; }
+        /// <summary>
+        /// Defines how fast the projectiles fired from this weapon travel.
+        /// </summary>
+        public int RangedVelocity { get; set; }
+        /// <summary>
+        /// Whether this item is ammunition (e.g., arrows, bullets).
+        /// </summary>
+        public bool IsAmmo { get; set; }
+        /// <summary>
+        /// Should the ammo be affected by gravity when fired.
+        /// </summary>
+        public bool AffectedByGravity { get; set; } = true;
+        /// <summary>
+        /// Defines the type of ammunition this item is (if IsAmmo is true).
+        /// </summary>
+        public AmmoType AmmoType { get; set; }
+        /// <summary>
         /// The action performed by the tool (if IsTool is true).
         /// </summary>
         public ToolAction ToolAction { get; set; }
@@ -39,16 +75,16 @@ namespace TileMaster.Entity
 
         public bool IsPlaceable { get; set; }
         public bool PlaceableOnBackground { get; set; }
-        
+
         // Lighting properties
         public bool IsLightSource { get; set; }
         public bool IsFlickeringLight { get; set; }
         public Color? LightColor { get; set; } = Color.White;
         public float LightIntensity { get; set; } = 0f;
         public float LightRadius { get; set; } = 0f; // Could be used for gradient logic later
-        
+
         public Item()
         {
-        }   
+        }
     }
 }

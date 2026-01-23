@@ -50,5 +50,29 @@
     "IsTool": true,
     "ToolAction": 1,
     "UseTime": 1000
+  },
+  {
+    "Id": 5,
+    "Name": "Slingshot",
+    "TextureName": "Slingshot",
+    "StackSize": 1,
+    "UIIcon": "UISlingshot",
+    "IsTool": true,
+    "IsWeapon": true,
+    "IsRangedWeapon": true,
+    "RequiresAmmo": true,
+    "ToolAction": 2,
+    "RequiredAmmoType": 1,
+    "RangedDistance": 100,
+    "RangedVelocity": 10,
+    "UseTime": 1000
+  },
+  {
+    "Id": 6,
+    "Name": "Pebble",
+    "TextureName": "Pebble",
+    "UIIcon": "UIPebble",
+    "AmmoType": 1,
+    "IsAmmo": true
   }
 ]

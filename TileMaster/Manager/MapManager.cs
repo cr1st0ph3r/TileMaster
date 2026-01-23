@@ -100,6 +100,8 @@ namespace TileMaster.Manager
                     player.ActionBar[1] = new InventoryItem(Global.ReferenceItems[(int)Items.Pickaxe], 1);
                     player.ActionBar[2] = new InventoryItem(Global.ReferenceItems[(int)Items.Dirt], 99);
                     player.ActionBar[3] = new InventoryItem(Global.ReferenceItems[(int)Items.Hammer], 1);
+                    player.ActionBar[4] = new InventoryItem(Global.ReferenceItems[(int)Items.Slingshot], 1);
+                    player.ActionBar[5] = new InventoryItem(Global.ReferenceItems[(int)Items.Pebble], 100);
                 }
             }
 
