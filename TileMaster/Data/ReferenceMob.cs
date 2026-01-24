@@ -1,4 +1,6 @@
-﻿namespace TileMaster.Data
+﻿using TileMaster.Entity.Enums;
+
+namespace TileMaster.Data
 {
     public class ReferenceMob
     {
@@ -6,5 +8,7 @@
         public string Name { get; set; }
         public string Movement { get; set; }
         public int MoveSpeed { get; set; }
+        public int WalkFrames { get; set; }
+        public MobType MobType { get; set; }
     }
 }

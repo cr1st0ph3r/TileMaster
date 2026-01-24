@@ -121,12 +121,12 @@ namespace TileMaster.Entity
             // Skip physics if: Not moving, No movement keys pressed, and already on solid block
             bool moveKeyPressed = keyboardState.IsKeyDown(Keys.A) || keyboardState.IsKeyDown(Keys.D) || keyboardState.IsKeyDown(Keys.Space);
             
-            if (!isMoving && !moveKeyPressed && isOnSolidBlock && !InterruptInput && !IsInWater)
+            if (!isMoving && !moveKeyPressed && IsOnSolidBlock && !InterruptInput && !IsInWater)
             {
                 // We are stationary. We still need a minimal check to see if the block under us was removed.
                 if (InputHelper.HandleMovingDown(this, map))
                 {
-                    isOnSolidBlock = false;
+                    IsOnSolidBlock = false;
                     isMoving = true;
                     // Fall through to gravity/physics logic
                 }
@@ -152,7 +152,7 @@ namespace TileMaster.Entity
             // out of Input() to avoid duplicate snapping logic. HandleMovingDown
             // returns true if the player should fall (no support under feet).
             bool shouldFall = InputHelper.HandleMovingDown(this, map);
-            isOnSolidBlock = !shouldFall;
+            IsOnSolidBlock = !shouldFall;
 
             // gravity (time-based) - applied to velocity before integration
             // Water Physics: Buoyancy and Drag
@@ -175,7 +175,7 @@ namespace TileMaster.Entity
             else
             {
                 // Normal Gravity
-                 if (velocity.Y < MaxFallSpeed && !isOnSolidBlock)
+                 if (velocity.Y < MaxFallSpeed && !IsOnSolidBlock)
                 {
                     velocity.Y += Gravity * dt;
                 }
@@ -223,7 +223,7 @@ namespace TileMaster.Entity
                         position.Y = slopeRestY - Texture.Height;
                     }
                     // Snap the player DOWN if they were already grounded to keep them stuck to the slope
-                    else if (isOnSolidBlock)
+                    else if (IsOnSolidBlock)
                     {
                         position.Y = slopeRestY - Texture.Height;
                     }
@@ -264,7 +264,7 @@ if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBotto
                         velocity.Y = 0f;
                     }
                     
-                    isOnSolidBlock = true;
+                    IsOnSolidBlock = true;
                     hasJumped = false;
                 }
                 else if (velocity.Y < 0)
@@ -301,7 +301,7 @@ if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBotto
             {
                 position.Y = newY;
                 // if we are moving down and didn't hit anything, we are not on solid ground
-                if (velocity.Y > 0) isOnSolidBlock = false;
+                if (velocity.Y > 0) IsOnSolidBlock = false;
             }
 
             // update rectangle after applying resolved position
@@ -309,7 +309,7 @@ if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBotto
             rectangle = new Rectangle((int)position.X, (int)position.Y, _animationManager.CurrentAnimation.FrameWidth, _animationManager.CurrentAnimation.FrameHeight);
 
             // small conditional snap to ground to avoid tiny floating above tiles (keeps previous behavior)
-            if (isOnSolidBlock)
+            if (IsOnSolidBlock)
             {
                 // check if we are on a slope
                 int feetX = (int)(position.X + rectangle.Width / 2) / Global.TileSize;
@@ -423,7 +423,7 @@ if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBotto
 
             // handle player jump (jump impulse is in px/s)
             // only allow a jump when we believe we are on solid ground OR IN WATER (Swimming)
-            if (keyboardState.IsKeyDown(Keys.Space) && hasJumped == false && (isOnSolidBlock || IsInWater))
+            if (keyboardState.IsKeyDown(Keys.Space) && hasJumped == false && (IsOnSolidBlock || IsInWater))
             {
                 // small positional tweak to avoid immediate collision
                 position.Y -= 5F;
@@ -438,7 +438,7 @@ if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBotto
                 }
                
                 hasJumped = true;
-                isOnSolidBlock = false;
+                IsOnSolidBlock = false;
             }
             // Reset jump flag if space is released while in water to allow repeated swim strokes
             if (IsInWater && keyboardState.IsKeyUp(Keys.Space))

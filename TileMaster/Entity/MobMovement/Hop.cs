@@ -41,27 +41,27 @@ namespace TileMaster.Entity.MobMovement
                 }
 
                 // Initiate hop periodically if on ground and moving
-                if (mob.isOnSolidBlock && !isHopping && hopTimer >= HopInterval && mob.velocity.X != 0)
+                if (mob.IsOnSolidBlock && !isHopping && hopTimer >= HopInterval && mob.velocity.X != 0)
                 {
                     mob.velocity.Y = -mob.JumpVelocity;
-                    mob.isOnSolidBlock = false;
+                    mob.IsOnSolidBlock = false;
                     isHopping = true;
                     hopTimer = 0f;
                 }
             }
 
             // Reset hop state when landed
-            if (mob.isOnSolidBlock && isHopping)
+            if (mob.IsOnSolidBlock && isHopping)
             {
                 isHopping = false;
             }
 
             // 1.5 Check Ground (Prevent floating over pits)
             bool shouldFall = InputHelper.HandleMovingDown(mob, map);
-            mob.isOnSolidBlock = !shouldFall;
+            mob.IsOnSolidBlock = !shouldFall;
 
             // 2. Apply Gravity/Vertical Velocity
-            if (!mob.isOnSolidBlock && mob.velocity.Y < mob.MaxFallSpeed)
+            if (!mob.IsOnSolidBlock && mob.velocity.Y < mob.MaxFallSpeed)
             {
                 mob.velocity.Y += Entity.Gravity * dt;
             }
@@ -87,10 +87,10 @@ namespace TileMaster.Entity.MobMovement
                 mob.velocity.X = 0f;
                 
                 // Auto-jump logic for obstacles
-                if (mob.isOnSolidBlock && CanJump && !isHopping) 
+                if (mob.IsOnSolidBlock && CanJump && !isHopping) 
                 {
                     mob.velocity.Y = -mob.JumpVelocity; 
-                    mob.isOnSolidBlock = false;
+                    mob.IsOnSolidBlock = false;
                     isHopping = true;
                     hopTimer = 0f;
                 }
@@ -113,7 +113,7 @@ namespace TileMaster.Entity.MobMovement
                 {
                     // Landed
                     mob.SetPosition(new Vector2(position.X, hitTileY * Global.TileSize - rectangle.Height));
-                    mob.isOnSolidBlock = true;
+                    mob.IsOnSolidBlock = true;
                 }
                 else if (mob.velocity.Y < 0)
                 {
@@ -125,7 +125,7 @@ namespace TileMaster.Entity.MobMovement
             else
             {
                 mob.SetPosition(new Vector2(position.X, newY));
-                if (mob.velocity.Y > 0) mob.isOnSolidBlock = false;
+                if (mob.velocity.Y > 0) mob.IsOnSolidBlock = false;
             }
 
             // 5. Update Grid status

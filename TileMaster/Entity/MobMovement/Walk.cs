@@ -35,10 +35,10 @@ namespace TileMaster.Entity.MobMovement
 
             // 1.5 Check Ground (Prevent floating over pits)
             bool shouldFall = InputHelper.HandleMovingDown(mob, map);
-            mob.isOnSolidBlock = !shouldFall;
+            mob.IsOnSolidBlock = !shouldFall;
 
             // 2. Apply Gravity/Vertical Velocity
-            if (!mob.isOnSolidBlock && mob.velocity.Y < mob.MaxFallSpeed)
+            if (!mob.IsOnSolidBlock && mob.velocity.Y < mob.MaxFallSpeed)
             {
                 mob.velocity.Y += Entity.Gravity * dt;
             }
@@ -63,10 +63,10 @@ namespace TileMaster.Entity.MobMovement
                 }
                 mob.velocity.X = 0f;
                 // Auto-jump logic
-                if (mob.isOnSolidBlock && CanJump) 
+                if (mob.IsOnSolidBlock && CanJump) 
                 {
                      mob.velocity.Y = -mob.JumpVelocity; 
-                     mob.isOnSolidBlock = false;
+                     mob.IsOnSolidBlock = false;
                 }
             }
             else
@@ -87,7 +87,7 @@ namespace TileMaster.Entity.MobMovement
                  {
                      // Landed
                      mob.SetPosition(new Vector2(position.X, hitTileY * Global.TileSize - rectangle.Height));
-                     mob.isOnSolidBlock = true;
+                     mob.IsOnSolidBlock = true;
                  }
                  else if (mob.velocity.Y < 0)
                  {
@@ -99,7 +99,7 @@ namespace TileMaster.Entity.MobMovement
              else
              {
                  mob.SetPosition(new Vector2(position.X, newY));
-                 if (mob.velocity.Y > 0) mob.isOnSolidBlock = false;
+                 if (mob.velocity.Y > 0) mob.IsOnSolidBlock = false;
              }
 
              // 5. Update Grid status

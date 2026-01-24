@@ -106,6 +106,8 @@ namespace TileMaster
         /// </summary>
         public static readonly float LightDecayTiles = 0.25f;
 
+        public static readonly int MobDispawnDistance = 1000;
+
         public static List<ReferenceTile> ReferenceTiles { get; set; } = new List<ReferenceTile>();
         public static List<Item> ReferenceItems { get; set; } = new List<Item>();
         public static List<ReferenceMob> ReferenceMobs { get; set; } = new List<ReferenceMob>();

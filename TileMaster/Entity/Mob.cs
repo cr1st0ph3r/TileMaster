@@ -12,10 +12,11 @@ namespace TileMaster.Entity
 {
     public class Mob : Entity
     {
-
         private Dictionary<string, Animation> _animations;
         public Entity Target { get; set; }
         public Movement Movement { get; set; }
+        public MobType MobType { get; set; }
+        public int WalkFrames { get; set; }
         public void Load(ContentManager content, Vector2 position, ReferenceMob reference)
         {
             // Load textures (Ideally these are SpriteSheets with multiple frames)
@@ -26,20 +27,30 @@ namespace TileMaster.Entity
             rectangle = new Rectangle((int)position.X, (int)position.Y, Texture.Width, Texture.Height);
             this.position = position;
             MoveSpeed = reference.MoveSpeed;
+            WalkFrames = reference.WalkFrames;
+            MobType = reference.MobType;
             Movement = reference.Movement switch
             {
                 "Hop" => new Hop(),
                 "Fly" => new Fly(),
+                "Snail" => new Snail(),
                 _ => new Walk(),
             };
-             
+            if (Movement is Snail)
+            {
+                CanFlip = false;
+            }
+
             _animations = new Dictionary<string, Animation>();
             _animations.Add("Idle", new Animation(idleTexture, 1)); // Assuming 1 frame for now
-            _animations.Add("Walk", new Animation(content.Load<Texture2D>($"Entities/{reference.Name}/Walk"), 4));
+            if (WalkFrames > 1)
+            {
+                _animations.Add("Walk", new Animation(content.Load<Texture2D>($"Entities/{reference.Name}/Walk"), WalkFrames));
+            }
 
             _animationManager = new AnimationManager(_animations["Idle"]);
 
-          
+
 
         }
 
@@ -61,7 +72,7 @@ namespace TileMaster.Entity
                 _animationManager.Play(_animations["Idle"]);
 
             _animationManager.Update(gameTime);
-            _animationManager.Position = position;
+            _animationManager.Position = position + (Origin != Vector2.Zero ? new Vector2(rectangle.Width / 2f, rectangle.Height / 2f) : Vector2.Zero);
         }
     }
 }

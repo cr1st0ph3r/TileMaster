@@ -6,7 +6,7 @@ namespace TileMaster.Entity
 {
     public class Entity
     {
-        protected Texture2D Texture;
+        public Texture2D Texture;
         protected Rectangle rectangle;
         protected Vector2 position = new Vector2(Global.MapWidth * Global.TileSize / 2, (Global.GroundLevel - 20) * Global.TileSize);
         public Vector2 velocity;
@@ -17,7 +17,11 @@ namespace TileMaster.Entity
         public int GridY;
         protected bool hasJumped = false;
         public bool isMoving = false;
-        public bool isOnSolidBlock = false;
+        public bool IsOnSolidBlock = false;
+        /// <summary>
+        /// Some entities can walk on ceilings and we must disable ths texture flipping check.
+        /// </summary>
+        public bool CanFlip = true;
         public int Height { get; protected set; }
 
         // physics constants (units: pixels, seconds)
@@ -129,11 +133,19 @@ namespace TileMaster.Entity
             SteppingOn = OnBlock + Global.MapWidth;
         }
 
+        public float Rotation { get; set; }
+        public Vector2 Origin { get; set; }
+        
         public void Draw(SpriteBatch spriteBatch)
         {
             //spriteBatch.Draw(texture, rectangle, Color.White);
-            var flip = velocity.X < 0 ? SpriteEffects.FlipHorizontally : SpriteEffects.None;
-            _animationManager.Draw(spriteBatch, flip);
+            var flip = ((CanFlip && velocity.X < 0) ? SpriteEffects.FlipHorizontally : SpriteEffects.None);
+            if (_animationManager != null)
+            {
+                _animationManager.Rotation = Rotation;
+                _animationManager.Origin = Origin;
+                _animationManager.Draw(spriteBatch, flip);
+            }
         }
 
         public void CheckBoundaries()

@@ -11,7 +11,7 @@ namespace TileMaster.Entity
         public bool IsActive { get; set; } = true;
         public float DistanceTraveled { get; private set; }
         public float MaxDistance { get; private set; }
-        public float Rotation { get; private set; }
+
 
         public Projectile(Item ammoItem, Vector2 startPosition, Vector2 initialVelocity, float maxDistance)
         {

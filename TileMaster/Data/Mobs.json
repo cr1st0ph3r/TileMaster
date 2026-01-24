@@ -3,6 +3,16 @@
     "Id": 0,
     "Name": "Slime",
     "MoveSpeed": 100,
-    "Movement": "Hop"
+    "WalkFrames": 4,
+    "Movement": "Hop",
+    "MobType": 0
+  },
+  {
+    "Id": 1,
+    "Name": "Snail",
+    "Movement": "Snail",
+    "WalkFrames": 1,
+    "MoveSpeed": 10,
+    "MobType": 1
   }
 ]

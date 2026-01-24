@@ -105,7 +105,7 @@ namespace TileMaster
         {
             return _game;
         }
-      
+
         public void LoadMap()
         {
             //do I have a map to load?
@@ -204,19 +204,19 @@ namespace TileMaster
             }
         }
         void updateRunningState(GameTime gameTime)
-        { 
+        {
             // Update focus point for lighting optimization
             map.FocusPoint = new Point((int)player.GetPosition().X / Global.TileSize, (int)player.GetPosition().Y / Global.TileSize);
-          
+
             // Process pending chunk loads/unloads
             map.mapManager.ProcessPendingChunks();
-          
+
             // Input handling
             UpdateInputHandling(gameTime);
-         
+
             //updates player
             player.Update(gameTime, map);
-          
+
             // Check if player changed chunk to update loaded areas
             if (player.OnChunk != lastPlayerChunk)
             {
@@ -224,11 +224,48 @@ namespace TileMaster
                 lastPlayerChunk = player.OnChunk;
                 LogMessage($"Updated chunks around chunk {player.OnChunk}", Color.LightGreen, 300);
             }
-           
+
             //update mobs
-            foreach (var mob in mobs)
+            for (int i = mobs.Count - 1; i >= 0; i--)
             {
-                mob.Target = player; // Simple AI test: chase player
+                var mob = mobs[i];
+
+                if (mob.MobType == MobType.Critter)
+                {
+                    // Despawn logic
+                    float distance = Vector2.Distance(mob.GetPosition(), player.GetPosition());
+                    if (distance > Global.MobDispawnDistance) // Approx 2 chunks width
+                    {
+                        mobs.RemoveAt(i);
+                        LogMessage("Critter despawned", Color.Yellow, 100);
+                        continue;
+                    }
+
+                    // Movement logic: Move to opposite side
+                    if (mob.Target == null && mob.MobType != MobType.Critter)
+                    {
+                        Entity.Entity target = new Entity.Entity();
+                        Vector2 targetPos;
+
+                        // If on left side, go right. If on right side, go left.
+                        if (mob.GetPosition().X < (map.Width * Global.TileSize) / 2)
+                        {
+                            targetPos = new Vector2(map.Width * Global.TileSize, mob.GetPosition().Y);
+                        }
+                        else
+                        {
+                            targetPos = new Vector2(0, mob.GetPosition().Y);
+                        }
+
+                        target.SetPosition(targetPos);
+                        mob.Target = target;
+                    }
+                }
+                else
+                {
+                    mob.Target = player; // Simple AI test: chase player
+                }
+
                 mob.Update(gameTime, map);
             }
 
@@ -251,12 +288,12 @@ namespace TileMaster
             //timer
             float elapsed = (float)gameTime.ElapsedGameTime.TotalMilliseconds;
             timer5s -= elapsed;
-            timer2s -= elapsed;  
+            timer2s -= elapsed;
             timer100ms -= elapsed;
             if (timer5s < 0)
             {
                 UpdateEvery5000ms(gameTime);
-                timer5s = TIMER5S;           
+                timer5s = TIMER5S;
             }
             if (timer2s < 0)
             {
@@ -267,10 +304,10 @@ namespace TileMaster
             // Lighting update logic: 
             // - Immediate update when a block is placed/removed (lightingDirty)
             // - Periodic background update every 100ms to catch edge cases
-          
+
             if (timer100ms < 0)
             {
-              UpdateEvery100ms(gameTime);
+                UpdateEvery100ms(gameTime);
                 timer100ms = TIMER_LIGHTING;
             }
             // Immediate lighting update if dirty
@@ -287,14 +324,14 @@ namespace TileMaster
             //lighting
             if (!map.tileShadeMgr.IsUpdating)
             {
-                map.tileShadeMgr.UpdateLightingAsync(gameTime, player.Layer, map.FocusPoint);              
+                map.tileShadeMgr.UpdateLightingAsync(gameTime, player.Layer, map.FocusPoint);
                 lightingDirty = false;
             }
             //Frame rate figure
             Global.FrameRate = (Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)).ToString();
             _mainPanel.UpdateFPS((int)(Math.Round(1 / gameTime.ElapsedGameTime.TotalSeconds)));
             //reset timer
-           
+
         }
         void UpdateEvery2000ms(GameTime gameTime)
         {
@@ -317,10 +354,11 @@ namespace TileMaster
                 LogMessage("checking tiles for grass grow", Color.Red);
             }
         }
-        void UpdateLighting(GameTime gameTime) {
+        void UpdateLighting(GameTime gameTime)
+        {
             if (!map.tileShadeMgr.IsUpdating)
             {
-                map.tileShadeMgr.UpdateLightingAsync(gameTime, player.Layer, map.FocusPoint);          
+                map.tileShadeMgr.UpdateLightingAsync(gameTime, player.Layer, map.FocusPoint);
                 lightingDirty = false;
             }
         }
@@ -342,7 +380,7 @@ namespace TileMaster
             //these actions should only be checked if the game windows is active
             HandleMouseEvents();
 
-            HandleKeyboardEvents();                    
+            HandleKeyboardEvents();
             Vector2 cursorPosition = Vector2.Transform(new Vector2(current_mouse.Position.X, current_mouse.Position.Y), Matrix.Invert(camera.Transform));
             var mouseY = (int)((cursorPosition.Y) / Global.TileSize) * Global.MapWidth;
             var mouseX = (int)((cursorPosition.X) / Global.TileSize);
@@ -643,7 +681,7 @@ namespace TileMaster
             string playerOnLayer = player.Layer.ToString();
             string playerSteppingOn = player.SteppingOn.ToString();
             string playerOnChunk = player.OnChunk.ToString();
-            string playerOnSolidGround = player.isOnSolidBlock.ToString();
+            string playerOnSolidGround = player.IsOnSolidBlock.ToString();
             string mouseOnChunk = cursorOnChunk.ToString();
             string mousePos = worldPosition.X + " x " + worldPosition.Y;
             string mouseBlockIn = mouseIsOverBlock.ToString();
@@ -795,13 +833,16 @@ namespace TileMaster
             var coordinates = GetCoordinatesFromString(commandParts[1]);
             Vector2 position = new Vector2(coordinates.Item1 * Global.TileSize, coordinates.Item2 * Global.TileSize);
             //mob.Load(Content, position, "Slime", 100, new Hop());
-            mob.Load(Content, position, Global.ReferenceMobs[(int)Mobs.Slime]);
+            int mobId = Convert.ToInt32(commandParts[0]);
+            mob.Load(Content, position, Global.ReferenceMobs[mobId]);
             mobs.Add(mob);
         }
 
+
+
         (int, int) GetCoordinatesFromString(string coordinates)
         {
-            if (coordinates == "cursor")
+            if (coordinates == "cursor" || coordinates == "cur" || coordinates == "c")
             {
                 return (cursorGridX, cursorGridY);
             }
