@@ -67,19 +67,31 @@ namespace TileMaster.Entity.Tiles
             
             if (PlacedItem != null && PlacedItem.Texture != null)
             {
-                 // Draw the item centered on the tile
-                 var itemTexture = PlacedItem.Texture;
-                 var itemScale = new Vector2(
-                     (float)Rectangle.Width / itemTexture.Width * 0.8f, // Scale to 80% of tile size for padding
-                     (float)Rectangle.Height / itemTexture.Height * 0.8f
-                 );
-                 var itemPosition = new Vector2(
-                     Rectangle.X + Rectangle.Width / 2,
-                     Rectangle.Y + Rectangle.Height / 2
-                 );
-                 var itemOrigin = new Vector2(itemTexture.Width / 2f, itemTexture.Height / 2f);
+                // Draw the item centered on its designated tile area
+                var itemTexture = PlacedItem.Texture;
+                
+                // Calculate total area size in pixels
+                float targetWidth = PlacedItem.Width * Global.TileSize;
+                float targetHeight = PlacedItem.Height * Global.TileSize;
 
-                 spriteBatch.Draw(itemTexture, itemPosition, null, Microsoft.Xna.Framework.Color.White, 0f, itemOrigin, itemScale, SpriteEffects.None, 0f);
+                // Single-tile items often have some padding (80% of tile size), 
+                // but large objects like anvils might need to fill the space more.
+                float padding = (PlacedItem.Width == 1 && PlacedItem.Height == 1) ? 0.8f : 1.0f;
+
+                var itemScale = new Vector2(
+                    (float)targetWidth / itemTexture.Width * padding,
+                    (float)targetHeight / itemTexture.Height * padding
+                );
+
+                // Position is the center of the NxM area
+                var itemPosition = new Vector2(
+                    Rectangle.X + targetWidth / 2f,
+                    Rectangle.Y + targetHeight / 2f
+                );
+                
+                var itemOrigin = new Vector2(itemTexture.Width / 2f, itemTexture.Height / 2f);
+
+                spriteBatch.Draw(itemTexture, itemPosition, null, Microsoft.Xna.Framework.Color.White, 0f, itemOrigin, itemScale, SpriteEffects.None, 0f);
             }
         }
 

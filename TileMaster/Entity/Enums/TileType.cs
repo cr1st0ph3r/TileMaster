@@ -10,6 +10,7 @@
         TreeTrunk = 5,
         TreeLeaf = 6,
         TallGrass = 7,
-        Water = 8
+        Water = 8,
+        Stalactite = 9
     }
 }

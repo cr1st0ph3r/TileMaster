@@ -146,5 +146,20 @@
     "IsOccupied": false,
     "IsSolid": false,
     "Color": "Blue"
+  },
+  {
+    "Id": 9,
+    "Name": "Stalactite",
+    "TextureName": "Stalactite",
+    "TileSet": [],
+    "AlternateTextures": [
+      "Stalactite1",
+      "Stalactite2"
+    ],
+    "TextureId": 0,
+    "TileId": 8,
+    "IsOccupied": false,
+    "IsSolid": false,
+    "Color": "White"
   }
 ]

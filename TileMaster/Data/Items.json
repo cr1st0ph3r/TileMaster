@@ -74,5 +74,13 @@
     "UIIcon": "UIPebble",
     "AmmoType": 1,
     "IsAmmo": true
+  },
+  {
+    "Id": 7,
+    "Name": "Anvil",
+    "TextureName": "Anvil",
+    "UIIcon": "UIAnvil",
+    "IsPlaceable": 1,
+    "Width": 2
   }
 ]

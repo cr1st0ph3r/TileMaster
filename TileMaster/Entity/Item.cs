@@ -69,10 +69,16 @@ namespace TileMaster.Entity
         /// The time (in milliseconds) it takes to use the item (tools).
         /// </summary>
         public int UseTime { get; set; }
+        public int Width { get; set; } = 1;
+
+        public int Height { get; set; } = 1;
 
         [NonSerialized]
         public Texture2D Texture;
 
+        /// <summary>
+        /// Whether the item can be placed in the game world as a block (Ex. Anvil).
+        /// </summary>
         public bool IsPlaceable { get; set; }
         public bool PlaceableOnBackground { get; set; }
 
@@ -82,6 +88,8 @@ namespace TileMaster.Entity
         public Color? LightColor { get; set; } = Color.White;
         public float LightIntensity { get; set; } = 0f;
         public float LightRadius { get; set; } = 0f; // Could be used for gradient logic later
+
+
 
         public Item()
         {

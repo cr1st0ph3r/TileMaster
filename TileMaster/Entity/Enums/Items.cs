@@ -8,5 +8,6 @@
         Hammer = 4,
         Slingshot = 5,
         Pebble = 6,
+        Anvil = 7,
     }
 }

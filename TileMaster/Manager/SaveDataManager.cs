@@ -89,7 +89,10 @@ namespace TileMaster.Manager
             for (int i = 0; i < tiles.Length; i++)
             {                
                 var tile = tiles[i];
-                if (tile == null || tile.TileId == (int)TileType.Air)
+
+                bool hasData = tile != null && (tile.TileId != (int)TileType.Air || (tile is CollisionTile ct && (ct.PlacedItem != null || ct.MultiTileOffset != Point.Zero)));
+
+                if (!hasData)
                 {
                     writer.Write(false); // IsOccupied (as in "Something other than air is here")
                     continue;
@@ -102,16 +105,18 @@ namespace TileMaster.Manager
                 writer.Write(tile.Rotation);
                 writer.Write(tile.IsSlope);
                 writer.Write(tile.SlopeRotation);
+                writer.Write(tile.MultiTileOffset.X);
+                writer.Write(tile.MultiTileOffset.Y);
 
-                if (tile is CollisionTile ct && ct.PlacedItem != null)
+                if (tile is CollisionTile ctl && ctl.PlacedItem != null)
                 {
                     writer.Write(true); // HasItem
-                    writer.Write(ct.PlacedItem.TileId);
+                    writer.Write(ctl.PlacedItem.Id);
 
-                    if (ct.PlacedItem.LightColor.HasValue)
+                    if (ctl.PlacedItem.LightColor.HasValue)
                     {
                         writer.Write(true);
-                        writer.Write(Tile.PackArgb(ct.PlacedItem.LightColor.Value));
+                        writer.Write(Tile.PackArgb(ctl.PlacedItem.LightColor.Value));
                     }
                     else
                     {
@@ -354,6 +359,8 @@ namespace TileMaster.Manager
                 float rotation = reader.ReadSingle();
                 bool isSlope = reader.ReadBoolean();
                 int slopeRotation = reader.ReadInt32();
+                int multiTileOffsetX = reader.ReadInt32();
+                int multiTileOffsetY = reader.ReadInt32();
 
                 bool hasItem = reader.ReadBoolean();
                 int itemId = hasItem ? reader.ReadInt32() : -1;
@@ -439,7 +446,8 @@ namespace TileMaster.Manager
                         Y = globalY,
                         ChunkId = chunkId,
                         Width = Global.TileSize,
-                        Height = Global.TileSize
+                        Height = Global.TileSize,
+                        MultiTileOffset = new Point(multiTileOffsetX, multiTileOffsetY)
                     };
 
                     if (hasItem && itemId != -1 && itemId < Global.ReferenceItems.Count)
@@ -448,6 +456,7 @@ namespace TileMaster.Manager
                         var templateItem = Global.ReferenceItems[itemId];
                         var newItem = new Item
                         {
+                            Id = templateItem.Id,
                             Name = templateItem.Name,
                             Description = templateItem.Description,
                             TextureName = templateItem.TextureName,
@@ -461,7 +470,9 @@ namespace TileMaster.Manager
                             IsFlickeringLight = templateItem.IsFlickeringLight,
                             LightColor = templateItem.LightColor,
                             LightIntensity = templateItem.LightIntensity,
-                            LightRadius = templateItem.LightRadius
+                            LightRadius = templateItem.LightRadius,
+                            Width = templateItem.Width,
+                            Height = templateItem.Height
                         };
 
                         if (itemLightColor.HasValue) newItem.LightColor = itemLightColor;
@@ -489,7 +500,8 @@ namespace TileMaster.Manager
                         Y = globalY,
                         ChunkId = chunkId,
                         Width = Global.TileSize,
-                        Height = Global.TileSize
+                        Height = Global.TileSize,
+                        MultiTileOffset = new Point(multiTileOffsetX, multiTileOffsetY)
                     };
 
                     result[i] = bt;

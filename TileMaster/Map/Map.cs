@@ -210,79 +210,64 @@ namespace TileMaster.Map
         /// </summary>
         public void PlaceItem(int chunkId, int globalId, Item item)
         {
-            var chunk = GetChunk(chunkId);
-            if (chunk == null) return;
-
-            CollisionTile targetTile = null;
-
-            // Find tile by globalId using direct math-based retrieval
-            targetTile = GetTileByGlobalId(globalId);
-
+            var targetTile = GetTileByGlobalId(globalId);
             if (targetTile == null) return;
 
-            // Validation Logic
-            // 1. Check if the target tile is already occupied by a solid block
-            if (targetTile.IsSolid && targetTile.TileId != (int)TileType.Air)
+            int startX = targetTile.X;
+            int startY = targetTile.Y;
+
+            // 1. Validation Logic for the entire NxM area
+            for (int ix = 0; ix < item.Width; ix++)
             {
-                if (Game.GetInstance() != null)
-                    Game.LogMessage("Cannot place item inside a solid block.", Color.Red);
-                return;
+                for (int iy = 0; iy < item.Height; iy++)
+                {
+                    var currentTile = GetTileAt(startX + ix, startY + iy);
+                    if (currentTile == null)
+                    {
+                        if (Game.GetInstance() != null)
+                            Game.LogMessage("Item placement out of bounds.", Color.Red);
+                        return;
+                    }
+
+                    // Check if already occupied by a solid block or another item
+                    if ((currentTile.IsSolid && currentTile.TileId != (int)TileType.Air) || currentTile.PlacedItem != null || currentTile.MultiTileOffset != Point.Zero)
+                    {
+                        if (Game.GetInstance() != null)
+                            Game.LogMessage("Area is already occupied.", Color.Red);
+                        return;
+                    }
+                }
             }
 
-            // 2. Check if the tile already has an item
-            if (targetTile.PlacedItem != null)
-            {
-                if (Game.GetInstance() != null)
-                    Game.LogMessage("Tile already contains an item.", Color.Red);
-                return;
-            }
-
-            // 3. Check for support (Background or other criteria)
+            // 2. Check for support (Background or other criteria)
+            // For multi-tile objects, we check if at least one tile has support? 
+            // Or if the bottom row has support? Usually, multi-tile objects need floor support.
             bool hasSupport = false;
 
-            if (item.PlaceableOnBackground)
+            for (int ix = 0; ix < item.Width; ix++)
             {
-                // Check if there is a background tile behind this
-                var bgTile = GetBackgroundTileAt(targetTile.X, targetTile.Y);
-                if (bgTile != null && bgTile.TileId != (int)TileType.Air)
-                {
-                    hasSupport = true;
-                }
-            }
-
-            // If item is placeable on background but there is no background, we might still allow it if there is floor support?
-            // User requirement: "nothing (when it comes to items) can be placed "on top" of a foreground tile as in "two bodies cannot occupy the same place in space" rule"
-            // This is handled by check #1. 
-
-            // "loadmap assumes that items can only be placed on foreground items" -> user means Items are mistakenly treated as blocks?
-            // "The idea of placeable items is that they can be placed both on foreground tiles as well as on background tiles."
-            // "Control which items can be placed on foreground tiles." -> Maybe they mean stick TO a foreground tile (like a torch on a wall block)?
-            // Assuming simplified logic for now: Item needs EITHER a background wall OR a solid block adjacent/below (if we implement gravity/attachment later).
-            // For now, if PlaceableOnBackground is true, we strictly require a background wall OR a solid attachment point.
-
-            // For this task, let's implement the specific request for Background support.
-            if (item.PlaceableOnBackground && !hasSupport)
-            {
-                // Optionally check for other support types here (like sitting on floor) 
-                // but if the item is *primarily* a wall item (like torch on bg), reject if no bg.
-                // However, torches can also be placed on the floor usually.
-
-                // Let's check for floor support as a fallback
-                var tileBelow = GetTileAt(targetTile.X, targetTile.Y + 1);
+                // Check floor support for the bottom row of the object
+                var tileBelow = GetTileAt(startX + ix, startY + item.Height);
                 if (tileBelow != null && tileBelow.IsSolid)
                 {
                     hasSupport = true;
+                    break;
                 }
-            }
-            else if (!item.PlaceableOnBackground)
-            {
-                // If NOT placeable on background, it MUST have floor support (or be a flying item?)
-                // Assuming standard gravity items need floor.
-                var tileBelow = GetTileAt(targetTile.X, targetTile.Y + 1);
-                if (tileBelow != null && tileBelow.IsSolid)
+
+                // Check background support for ANY tile if item allows it
+                if (item.PlaceableOnBackground)
                 {
-                    hasSupport = true;
+                    for (int iy = 0; iy < item.Height; iy++)
+                    {
+                        var bgTile = GetBackgroundTileAt(startX + ix, startY + iy);
+                        if (bgTile != null && bgTile.TileId != (int)TileType.Air)
+                        {
+                            hasSupport = true;
+                            break;
+                        }
+                    }
                 }
+                if (hasSupport) break;
             }
 
             if (!hasSupport)
@@ -292,45 +277,39 @@ namespace TileMaster.Map
                 return;
             }
 
-            // Placement allowed
-            // We need to 'place' the item inside the Tile object without making the Tile itself solid/occupied by a block
-            // The Tile object acts as a container.
-
-            targetTile.PlacedItem = item;
-            // IMPORTANT: Do NOT set targetTile.IsOccupied = true or IsSolid = true, 
-            // because that would make it act like a Dirt block colliding with player.
-            // Items are usually pass-through unless they are furniture with collision.
-            // Keeping IsOccupied = false explicitly for the Tile itself, but the Item is there.
-            // Wait, existing logic might rely on IsOccupied?
-            // SaveDataManager.cs line 86 checks `if (tile == null || !tile.IsOccupied)`. If IsOccupied is false, it saves as Air.
-            // SO WE MUST SET IsOccupied = true?
-            // If we set IsOccupied = true, is it solid? 
-            // CollisionTile has IsSolid property. We can set IsOccupied=true, IsSolid=false.
-            // Does IsOccupied mean "There is something here"? Yes.
-
-            // Let's modify the tile to hold the item
-            targetTile.IsOccupied = false;
-            targetTile.IsSolid = false; // Items don't block movement usually
-
-            // We also need to set the texture id for the tile to render the item?
-            // Rendering usually checks PlacedItem? 
-            // SaveDataManager uses `writer.Write(true); // HasItem` if PlacedItem != null.
-            // But it also writes a TileId. If we are an item, what acts as the "Base" tile? Air?
-            // If we set TileId to Air, and IsOccupied to true, SaveData might get confused or behave correctly.
-            // Let's check SaveData logic again.
-            // Line 368: `if (hasItem ...)` -> creates Item.
-            // Line 356: `IsOccupied = true`.
-            // So yes, we need IsOccupied = true.
-
-            //targetTile.NeedUpdate = true;
-            var actualChunk = GetChunk(targetTile.ChunkId);
-            if (actualChunk != null)
+            // 3. Placement
+            for (int ix = 0; ix < item.Width; ix++)
             {
-                actualChunk.HasBeenModified = true;
-                actualChunk.NeedUpdate = true;
-            }
+                for (int iy = 0; iy < item.Height; iy++)
+                {
+                    var currentTile = GetTileAt(startX + ix, startY + iy);
+                    
+                    if (ix == 0 && iy == 0)
+                    {
+                        // Master Tile
+                        currentTile.PlacedItem = item;
+                        currentTile.MultiTileOffset = Point.Zero;
+                    }
+                    else
+                    {
+                        // Slave Tile
+                        currentTile.PlacedItem = null;
+                        currentTile.MultiTileOffset = new Point(-ix, -iy);
+                    }
 
-            AddTileToModificationTracker(targetTile);
+                    currentTile.IsOccupied = false; // Item-only tile is not a block
+                    currentTile.IsSolid = false;    // Items don't block movement normally
+
+                    var actualChunk = GetChunk(currentTile.ChunkId);
+                    if (actualChunk != null)
+                    {
+                        actualChunk.HasBeenModified = true;
+                        actualChunk.NeedUpdate = true;
+                    }
+
+                    AddTileToModificationTracker(currentTile);
+                }
+            }
         }
 
         /// <summary>
@@ -339,9 +318,40 @@ namespace TileMaster.Map
         public void PerformActionOnTile(int chunkId, int globalId, ToolAction action)
         {
             var targetTile = GetTileByGlobalId(globalId);
+            if (targetTile == null) return;
+
             if (action == ToolAction.MineBlock)
-            {               
-                // Reset tile to Air
+            {
+                // Check if it's a multi-tile part
+                if (targetTile.MultiTileOffset != Point.Zero || targetTile.PlacedItem != null)
+                {
+                    // Find master tile
+                    var masterTile = GetTileAt(targetTile.X + targetTile.MultiTileOffset.X, targetTile.Y + targetTile.MultiTileOffset.Y);
+                    if (masterTile != null && masterTile.PlacedItem != null)
+                    {
+                        var item = masterTile.PlacedItem;
+                        int mX = masterTile.X;
+                        int mY = masterTile.Y;
+
+                        // Clear all parts
+                        for (int ix = 0; ix < item.Width; ix++)
+                        {
+                            for (int iy = 0; iy < item.Height; iy++)
+                            {
+                                var part = GetTileAt(mX + ix, mY + iy);
+                                if (part != null)
+                                {
+                                    part.PlacedItem = null;
+                                    part.MultiTileOffset = Point.Zero;
+                                    SetTile(part, (int)TileType.Air); // Reset to air/empty
+                                }
+                            }
+                        }
+                        return;
+                    }
+                }
+
+                // Standard block removal
                 SetTile(targetTile, (int)TileType.Air);
             }
             else if (action == ToolAction.TransformBlock)

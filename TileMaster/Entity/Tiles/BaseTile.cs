@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.Xna.Framework;
+using System.Collections.Generic;
 
 namespace TileMaster.Entity.Tiles
 {
@@ -104,5 +105,7 @@ namespace TileMaster.Entity.Tiles
         /// Gets the collection of neighboring tiles represented as key-value pairs of tile coordinates.
         /// </summary>
         public List<KeyValuePair<int, int>> neighboringTiles;
+
+        public Point MultiTileOffset { get; set; }
     }
 }
