@@ -170,8 +170,24 @@ public int Health { get; protected set; }
 
         public virtual void TakeDamage(int damage, Vector2 knockback)
         {
-            Health -= System.Math.Max(0, damage - Defense);
+            int actualDamage = System.Math.Max(0, damage - Defense);
+            if (actualDamage == 0)
+            {
+                actualDamage = 1; // Ensure at least 1 damage is taken
+            }
+            Health -= actualDamage;
             if (Health < 0) Health = 0;
+
+            if (actualDamage > 0)
+            {
+                var game = Game.GetInstance();
+                if (game != null && game.DamageNumberManager != null)
+                {
+                    // Spawn number at top center of entity
+                    Vector2 spawnPos = new Vector2(position.X + (rectangle.Width / 2), position.Y - 10);
+                    game.DamageNumberManager.Add(spawnPos, actualDamage);
+                }
+            }
 
             if (knockback != Vector2.Zero)
             {

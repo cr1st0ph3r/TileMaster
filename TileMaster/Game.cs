@@ -74,6 +74,11 @@ namespace TileMaster
         /// Background manager
         /// </summary>
         BackgroundManager backgroundManager;
+
+        /// <summary>
+        /// Damage number manager
+        /// </summary>
+        public DamageNumberManager DamageNumberManager;
         #endregion
 
         #endregion
@@ -170,6 +175,8 @@ namespace TileMaster
             Global.ReferenceItems = DataLoader.LoadItems(Content);
             //load mob data
             Global.ReferenceMobs = DataLoader.LoadMobs(Content);
+
+            DamageNumberManager = new DamageNumberManager();
         }
 
         protected override void UnloadContent()
@@ -324,6 +331,8 @@ namespace TileMaster
 
             map.UpdateModifiedTiles();
             map.water.Update(gameTime);
+
+            DamageNumberManager.Update(gameTime);
         }
         void UpdateEvery100ms(GameTime gameTime)
         {
@@ -459,6 +468,8 @@ foreach (var mob in mobs)
                 {
                     projectile.Draw(spriteBatch);
                 }
+
+                DamageNumberManager.Draw(spriteBatch, _debugFont);
 
                 //Cursor info (mouse state is captured in Update)
                 Global.CursorX = current_mouse.Position.X;
