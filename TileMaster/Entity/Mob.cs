@@ -17,6 +17,10 @@ namespace TileMaster.Entity
         public Movement Movement { get; set; }
         public MobType MobType { get; set; }
         public int WalkFrames { get; set; }
+        public int DamageFrames { get; set; }
+        private float _damageTimer;
+        private const float DamageAnimationDuration = 0.5f; // half a second animation
+
         public void Load(ContentManager content, Vector2 position, ReferenceMob reference)
         {
             // Load textures (Ideally these are SpriteSheets with multiple frames)
@@ -51,6 +55,10 @@ Health = reference.Health;
             {
                 _animations.Add("Walk", new Animation(content.Load<Texture2D>($"Entities/{reference.Name}/Walk"), WalkFrames));
             }
+            if (reference.DamageFrames > 0)
+            {
+                _animations.Add("Damage", new Animation(content.Load<Texture2D>($"Entities/{reference.Name}/Damage"), reference.DamageFrames, isLooping: false));
+            }
 
             _animationManager = new AnimationManager(_animations["Idle"]);
 
@@ -70,13 +78,30 @@ Health = reference.Health;
 
         private void UpdateAnimation(GameTime gameTime)
         {
-            if (velocity.X != 0)
-                _animationManager.Play(_animations.ContainsKey("Walk") ? _animations["Walk"] : _animations["Idle"]);
+            if (_damageTimer > 0)
+            {
+                _damageTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
+                if (_animations.ContainsKey("Damage"))
+                {
+                    _animationManager.Play(_animations["Damage"]);
+                }
+            }
             else
-                _animationManager.Play(_animations["Idle"]);
+            {
+                if (velocity.X != 0)
+                    _animationManager.Play(_animations.ContainsKey("Walk") ? _animations["Walk"] : _animations["Idle"]);
+                else
+                    _animationManager.Play(_animations["Idle"]);
+            }
 
             _animationManager.Update(gameTime);
             _animationManager.Position = position + (Origin != Vector2.Zero ? new Vector2(rectangle.Width / 2f, rectangle.Height / 2f) : Vector2.Zero);
+        }
+
+        public override void TakeDamage(int damage, Vector2 knockback)
+        {
+            base.TakeDamage(damage, knockback);
+            _damageTimer = DamageAnimationDuration;
         }
 
         public void DrawHealthDisplay(SpriteBatch spriteBatch, SpriteFont font, Vector2 worldPosition)
