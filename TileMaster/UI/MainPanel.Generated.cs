@@ -78,15 +78,9 @@ namespace TileMaster.UI
             horizontalStackPanel1.Widgets.Add(_openInventoryButton);
             horizontalStackPanel1.Widgets.Add(_quitButtonGameplay);
 
-            _labelOverGui = new Label();
-            _labelOverGui.Text = "Is mouse over GUI: true";
-            _labelOverGui.VerticalAlignment = Myra.Graphics2D.UI.VerticalAlignment.Bottom;
-            _labelOverGui.Id = "_labelOverGui";
-
             _gameUIContainer.Widgets.Add(horizontalStackPanel1);
             _gameUIContainer.Widgets.Add(_loadMapProgressBar);
-            _gameUIContainer.Widgets.Add(_progreessLabel);
-            _gameUIContainer.Widgets.Add(_labelOverGui);
+            _gameUIContainer.Widgets.Add(_progreessLabel);            
             _gameUIContainer.Widgets.Add(CommandBox);
 
             // Menu UI
@@ -145,7 +139,6 @@ namespace TileMaster.UI
         public Panel _gameUIContainer;
         public VerticalStackPanel _menuContainer;
         public Label _progreessLabel;
-        public Label _labelOverGui;
         public HorizontalProgressBar _loadMapProgressBar;
         public TextBox CommandBox;
 

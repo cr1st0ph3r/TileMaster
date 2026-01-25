@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Myra;
@@ -42,7 +42,8 @@ namespace TileMaster
         private int cursorOnChunk = 0;
         private int lastPlayerChunk = 0;
         private List<int> ChunksToUpdate;
-        private List<Mob> mobs;
+private List<Mob> mobs;
+        private Mob hoveredMob;
         private Texture2D mainMenuBackground;
         private float _mainMenuScrollOffset = 0f;
         private const float MainMenuScrollSpeed = 20f; // Pixels per second
@@ -386,11 +387,26 @@ namespace TileMaster
             var mouseX = (int)((cursorPosition.X) / Global.TileSize);
             mouseIsOverBlock = (mouseX + mouseY);
 
-            cursorGridX = (int)((cursorPosition.X) / Global.TileSize);
+cursorGridX = (int)((cursorPosition.X) / Global.TileSize);
             cursorGridY = (int)((cursorPosition.Y) / Global.TileSize);
             int cursorChunkX = (cursorGridX / Global.ChunkSize);
             int cursorChunkY = (cursorGridY / Global.ChunkSize);
             cursorOnChunk = (1/*chunks are 1 based*/+ ((cursorChunkY * (Global.MapWidth / Global.ChunkSize)) + cursorChunkX));
+
+            // Check for mob hover detection
+            hoveredMob = null;
+            foreach (var mob in mobs)
+            {
+                Rectangle mobBounds = mob.GetRectangle();
+                Vector2 mobScreenPos = Vector2.Transform(mob.GetPosition(), camera.Transform);
+                Rectangle mobScreenRect = new Rectangle((int)mobScreenPos.X, (int)mobScreenPos.Y, mobBounds.Width, mobBounds.Height);
+                
+                if (mobScreenRect.Contains(current_mouse.Position.X, current_mouse.Position.Y))
+                {
+                    hoveredMob = mob;
+                    break;
+                }
+            }
         }
         #endregion
         protected override void Draw(GameTime gameTime)
@@ -424,9 +440,14 @@ namespace TileMaster
 
                     player.Draw(spriteBatch);
                 }
-                foreach (var mob in mobs)
+foreach (var mob in mobs)
                 {
                     mob.Draw(spriteBatch);
+                }
+
+                if (hoveredMob != null && _state == GameState.Running)
+                {
+                    hoveredMob.DrawHealthDisplay(spriteBatch, _debugFont, hoveredMob.GetPosition());         
                 }
 
                 foreach (var projectile in projectiles)

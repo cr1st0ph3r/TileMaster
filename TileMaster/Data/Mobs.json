@@ -5,7 +5,9 @@
     "MoveSpeed": 100,
     "WalkFrames": 4,
     "Movement": "Hop",
-    "MobType": 0
+    "MobType": 0,
+    "Health": 100,
+    "Defense": 20
   },
   {
     "Id": 1,
@@ -13,6 +15,8 @@
     "Movement": "Snail",
     "WalkFrames": 1,
     "MoveSpeed": 10,
-    "MobType": 1
+    "MobType": 1,
+    "Health": 10,
+    "Defense": 2
   }
 ]

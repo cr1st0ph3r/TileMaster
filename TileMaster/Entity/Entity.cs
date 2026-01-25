@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using TileMaster.Manager;
 
@@ -30,7 +30,10 @@ namespace TileMaster.Entity
         public float JumpVelocity = 350f;   // px/s (initial upward velocity)
         public float MoveSpeed = 300f;      // px/s (horizontal)
         protected const float Friction = 800f;       // px/s^2 (deceleration)
-
+public int Health { get; protected set; }
+        public int MaxHealth { get; protected set; }
+        public int Defense { get; protected set; }
+        public int AttackPower { get; protected set; }
         protected AnimationManager _animationManager;
 
         public Rectangle GetRectangle()
@@ -109,7 +112,7 @@ namespace TileMaster.Entity
                                 tileX = x;
                             }
                         }
-                        
+
                         // if we aren't looking for specific ones, we can exit early
                         if (!findRightmost && !findBottommost) return true;
                     }
@@ -135,7 +138,7 @@ namespace TileMaster.Entity
 
         public float Rotation { get; set; }
         public Vector2 Origin { get; set; }
-        
+
         public void Draw(SpriteBatch spriteBatch)
         {
             //spriteBatch.Draw(texture, rectangle, Color.White);
