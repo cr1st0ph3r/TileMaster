@@ -142,7 +142,7 @@ namespace TileMaster
             // Create a new SpriteBatch, which can be used to draw textures.
             spriteBatch = new SpriteBatch(GraphicsDevice);
             camera = new Camera(GraphicsDevice.Viewport);
-            _debugFont = Content.Load<SpriteFont>("Fonts/Font");
+            _debugFont = Content.Load<SpriteFont>("Fonts/FineFont");
             Messages = new List<Misc.Message>();
             ChunksToUpdate = new List<int>();
 
@@ -730,7 +730,6 @@ foreach (var mob in mobs)
         private void DrawWithShadow(string text, Vector2 position, Color color)
         {
             spriteBatch.DrawString(_debugFont, text, position, Color.White);
-            spriteBatch.DrawString(_debugFont, text, position + Vector2.One, color);
         }
         private void CheckChunkForUpdates()
         {
