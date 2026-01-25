@@ -21,6 +21,7 @@ namespace TileMaster.Entity.MobMovement
             // Update hop timer
             hopTimer += dt;
 
+            float targetVelX = 0;
             if (mob.Target != null)
             {
                 // Calculate direction towards target
@@ -29,25 +30,31 @@ namespace TileMaster.Entity.MobMovement
 
                 if (targetPos.X > mobPos.X + 10) // Tolerance to prevent jitter
                 {
-                    mob.velocity.X = mob.MoveSpeed;
+                    targetVelX = mob.MoveSpeed;
                 }
                 else if (targetPos.X < mobPos.X - 10)
                 {
-                    mob.velocity.X = -mob.MoveSpeed;
-                }
-                else
-                {
-                    mob.velocity.X = 0;
+                    targetVelX = -mob.MoveSpeed;
                 }
 
-                // Initiate hop periodically if on ground and moving
-                if (mob.IsOnSolidBlock && !isHopping && hopTimer >= HopInterval && mob.velocity.X != 0)
+                // Apply acceleration/friction (Lerp toward target velocity)
+                float accel = mob.IsOnSolidBlock ? 10f : 2f; // Faster on ground, slower in air
+                mob.velocity.X = MathHelper.Lerp(mob.velocity.X, targetVelX, accel * dt);
+
+                // Initiate hop periodically if on ground and moving toward target
+                if (mob.IsOnSolidBlock && !isHopping && hopTimer >= HopInterval && targetVelX != 0)
                 {
                     mob.velocity.Y = -mob.JumpVelocity;
                     mob.IsOnSolidBlock = false;
                     isHopping = true;
                     hopTimer = 0f;
                 }
+            }
+            else
+            {
+                // Decelerate if no target
+                float accel = mob.IsOnSolidBlock ? 10f : 2f;
+                mob.velocity.X = MathHelper.Lerp(mob.velocity.X, 0, accel * dt);
             }
 
             // Reset hop state when landed

@@ -27,6 +27,7 @@ namespace TileMaster.Entity
         public Player()
         {   //the height of the player in blocks
             this.Height = 3;
+            this.Health = 100;
         }
 
         public bool HasAmmo(AmmoType type, out InventoryItem ammoItem)

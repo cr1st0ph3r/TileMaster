@@ -29,6 +29,8 @@ namespace TileMaster.Entity
         /// Identifies whether the item is a weapon.
         /// </summary>
         public bool IsWeapon { get; set; }
+        public int WeaponDamage { get; set; }
+        public int WeaponKnockback { get; set; }
         /// <summary>
         /// Indicates if the weapon is ranged (e.g., bow, gun).
         /// </summary>

@@ -42,7 +42,8 @@ namespace TileMaster
         private int cursorOnChunk = 0;
         private int lastPlayerChunk = 0;
         private List<int> ChunksToUpdate;
-private List<Mob> mobs;
+        public List<Mob> Mobs => mobs;
+        private List<Mob> mobs;
         private Mob hoveredMob;
         private Texture2D mainMenuBackground;
         private float _mainMenuScrollOffset = 0f;
@@ -230,7 +231,11 @@ private List<Mob> mobs;
             for (int i = mobs.Count - 1; i >= 0; i--)
             {
                 var mob = mobs[i];
-
+                if (mob.Health < 1) { 
+                    mobs.RemoveAt(i);
+                    LogMessage("Mob defeated", Color.OrangeRed, 100);
+                    continue;
+                }
                 if (mob.MobType == MobType.Critter)
                 {
                     // Despawn logic
@@ -674,7 +679,10 @@ foreach (var mob in mobs)
             float maxDistance = weapon.RangedDistance * Global.TileSize;
             if (maxDistance <= 0) maxDistance = 2000f; // Default long distance if not set
 
-            Projectile projectile = new Projectile(ammo, playerCenter, initialVelocity, maxDistance);
+            int totalDamage = weapon.WeaponDamage + ammo.WeaponDamage;
+            float totalKnockback = weapon.WeaponKnockback + ammo.WeaponKnockback;
+
+            Projectile projectile = new Projectile(ammo, playerCenter, initialVelocity, maxDistance, totalDamage, totalKnockback);
             projectiles.Add(projectile);
         }
         private void OnGameExiting(object sender, EventArgs e)

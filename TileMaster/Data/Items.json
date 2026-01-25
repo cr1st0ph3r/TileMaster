@@ -65,6 +65,8 @@
     "RequiredAmmoType": 1,
     "RangedDistance": 100,
     "RangedVelocity": 10,
+    "WeaponDamage": 5,
+    "WeaponKnockback": 5,
     "UseTime": 1000
   },
   {

@@ -168,5 +168,20 @@ public int Health { get; protected set; }
             }
         }
 
+        public virtual void TakeDamage(int damage, Vector2 knockback)
+        {
+            Health -= System.Math.Max(0, damage - Defense);
+            if (Health < 0) Health = 0;
+
+            if (knockback != Vector2.Zero)
+            {
+                ApplyKnockback(knockback);
+            }
+        }
+
+        public virtual void ApplyKnockback(Vector2 knockback)
+        {
+            velocity += knockback;
+        }
     }
 }

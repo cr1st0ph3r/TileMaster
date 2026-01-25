@@ -53,7 +53,10 @@ namespace TileMaster.Entity.MobMovement
             Vector2 tangentDir = new Vector2(_gravityDir.Y, -_gravityDir.X);
 
             float speed = mob.MoveSpeed * 0.5f;
-            mob.velocity = tangentDir * _lastMoveDir * speed;
+            Vector2 targetVelocity = tangentDir * _lastMoveDir * speed;
+
+            // Lerp towards target velocity to allow knockback to persist
+            mob.velocity = Vector2.Lerp(mob.velocity, targetVelocity, 10f * dt);
 
             Vector2 position = mob.GetPosition();
             Vector2 nextPos = position + mob.velocity * dt;
@@ -164,7 +167,9 @@ namespace TileMaster.Entity.MobMovement
 
                 // Apply Global Gravity
                 mob.velocity.Y += 1000f * dt; // Gravity
-                mob.velocity.X = 0; // No air control
+                
+                // Gradually slow down horizontal movement if in air (friction)
+                mob.velocity.X = MathHelper.Lerp(mob.velocity.X, 0, 2f * dt);
 
                 Vector2 nextPos = mob.GetPosition() + mob.velocity * dt;
 

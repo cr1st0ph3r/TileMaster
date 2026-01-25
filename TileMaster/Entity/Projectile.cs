@@ -11,14 +11,20 @@ namespace TileMaster.Entity
         public bool IsActive { get; set; } = true;
         public float DistanceTraveled { get; private set; }
         public float MaxDistance { get; private set; }
+        public int Damage { get; set; }
+        public float Knockback { get; set; }
 
 
-        public Projectile(Item ammoItem, Vector2 startPosition, Vector2 initialVelocity, float maxDistance)
+
+        public Projectile(Item ammoItem, Vector2 startPosition, Vector2 initialVelocity, float maxDistance, int damage, float knockback)
         {
             AmmunitionItem = ammoItem;
             this.position = startPosition;
             this.velocity = initialVelocity;
             this.MaxDistance = maxDistance;
+            this.Damage = damage;
+            this.Knockback = knockback;
+
             
             if (ammoItem.Texture != null)
             {
@@ -68,11 +74,31 @@ namespace TileMaster.Entity
             else
                  rectangle = new Rectangle((int)position.X, (int)position.Y, rectangle.Width, rectangle.Height);
 
-            // Collision check
+            // Collision check with map
             if (IsRectCollidingWithMap(rectangle, map, out _, out _))
             {
                 IsActive = false;
                 return;
+            }
+
+            // Collision check with mobs
+            var game = Game.GetInstance();
+            if (game != null && game.Mobs != null)
+            {
+                foreach (var mob in game.Mobs)
+                {
+                    if (rectangle.Intersects(mob.GetRectangle()))
+                    {
+                        // Calculate knockback direction (repelled horizontally with a slight upward pop)
+                        Vector2 knockbackDir = new Vector2(System.Math.Sign(velocity.X), -0.4f);
+                        if (knockbackDir.X == 0) knockbackDir.X = (position.X < mob.GetPosition().X) ? 1 : -1;
+                        knockbackDir.Normalize();
+                        
+                        mob.TakeDamage(Damage, knockbackDir * Knockback * 150f); // Scaling knockback
+                        IsActive = false;
+                        return;
+                    }
+                }
             }
 
             // Boundary check

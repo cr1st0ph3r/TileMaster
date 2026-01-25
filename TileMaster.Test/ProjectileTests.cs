@@ -21,7 +21,7 @@ namespace TileMaster.Test
             Vector2 startPos = new Vector2(100, 100);
             Vector2 velocity = new Vector2(100, 0); // 100 px/s right
             float maxDistance = 500;
-            var projectile = new Projectile(ammo, startPos, velocity, maxDistance);
+            var projectile = new Projectile(ammo, startPos, velocity, maxDistance, 0, 0);
             
             // Act
             var gameTime = new GameTime(System.TimeSpan.FromSeconds(1), System.TimeSpan.FromSeconds(1));
@@ -43,7 +43,7 @@ namespace TileMaster.Test
             
             Vector2 startPos = new Vector2(16, 16); // Tile (1,1)
             Vector2 velocity = new Vector2(100, 0); // Moving right
-            var projectile = new Projectile(ammo, startPos, velocity, 1000);
+            var projectile = new Projectile(ammo, startPos, velocity, 1000, 0, 0);
             
             // Place solid block at (2,1)
             int targetX = 2, targetY = 1;
@@ -74,7 +74,7 @@ namespace TileMaster.Test
             
             Vector2 startPos = new Vector2(100, 100);
             Vector2 velocity = new Vector2(100, 0); // Moving right
-            var projectile = new Projectile(ammo, startPos, velocity, 1000);
+            var projectile = new Projectile(ammo, startPos, velocity, 1000, 0, 0);
             
             // Act
             var gameTime = new GameTime(System.TimeSpan.FromSeconds(1), System.TimeSpan.FromSeconds(1));

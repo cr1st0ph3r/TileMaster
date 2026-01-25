@@ -13,6 +13,7 @@ namespace TileMaster.Entity.MobMovement
         {
             float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
+             float targetVelX = 0;
              if (mob.Target != null)
              {
                  // Calculate direction towards target
@@ -21,17 +22,17 @@ namespace TileMaster.Entity.MobMovement
 
                  if (targetPos.X > mobPos.X + 10) // Tolerance to prevent jitter
                  {
-                     mob.velocity.X = mob.MoveSpeed;
+                     targetVelX = mob.MoveSpeed;
                  }
                  else if (targetPos.X < mobPos.X - 10)
                  {
-                     mob.velocity.X = -mob.MoveSpeed;
-                 }
-                 else
-                 {
-                     mob.velocity.X = 0;
+                     targetVelX = -mob.MoveSpeed;
                  }
              }
+
+            // Apply acceleration/friction (Lerp toward target velocity)
+            float accel = mob.IsOnSolidBlock ? 10f : 2f; // Faster on ground, slower in air
+            mob.velocity.X = MathHelper.Lerp(mob.velocity.X, targetVelX, accel * dt);
 
             // 1.5 Check Ground (Prevent floating over pits)
             bool shouldFall = InputHelper.HandleMovingDown(mob, map);
