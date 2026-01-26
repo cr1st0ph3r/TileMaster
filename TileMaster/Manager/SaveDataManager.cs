@@ -299,10 +299,7 @@ namespace TileMaster.Manager
                 int globalX = chunkX * Global.ChunkSize + localX;
                 int globalY = chunkY * Global.ChunkSize + localY;
                 int globalId = globalY * totalMapWidth + globalX;
-                if (globalId == 8773)
-                {
-
-                }
+          
                 bool isOccupied = reader.ReadBoolean();
                 if (!isOccupied)
                 {
@@ -452,12 +449,14 @@ namespace TileMaster.Manager
 
                     if (hasItem && itemId != -1 && itemId < Global.ReferenceItems.Count)
                     {
-                        // NEW: Create a distinct instance of the item to store per-tile data (e.g. LightColor)
+                        //TODO: add a cloning solution to prevent missed new properties
                         var templateItem = Global.ReferenceItems[itemId];
                         var newItem = new Item
                         {
                             Id = templateItem.Id,
                             Name = templateItem.Name,
+                            IsInteractive = templateItem.IsInteractive,
+                            InteractionType = templateItem.InteractionType,
                             Description = templateItem.Description,
                             TextureName = templateItem.TextureName,
                             LightColorName = templateItem.LightColorName,

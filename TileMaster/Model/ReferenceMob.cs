@@ -1,6 +1,6 @@
 ﻿using TileMaster.Entity.Enums;
 
-namespace TileMaster.Data
+namespace TileMaster.Model
 {
     public class ReferenceMob
     {

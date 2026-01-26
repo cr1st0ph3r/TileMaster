@@ -2,8 +2,9 @@
 {
    public enum AmmoType
     {
-        Pebble = 0,
-        Arrow = 1,
-        Bullet = 2,
+        None = 0,
+        Pebble = 1,
+        Arrow = 2,
+        Bullet = 3,
     }
 }

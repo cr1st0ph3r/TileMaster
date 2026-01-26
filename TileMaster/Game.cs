@@ -33,7 +33,7 @@ namespace TileMaster
         private readonly GraphicsDeviceManager graphics;
         private SpriteBatch spriteBatch;
         private Map.Map map;
-        private Player player;
+        public Player player;
         private SpriteFont _debugFont;
         private Desktop _desktop;
         private MouseState current_mouse;
@@ -63,6 +63,7 @@ namespace TileMaster
         const float TIMER_LIGHTING = 100; // 100ms periodic lighting update
         bool lightingDirty = false; // Set to true when tiles are modified
 
+        public CraftingManager CraftingManager { get; private set; }
 
         /// <summary>
         /// messages
@@ -124,6 +125,7 @@ namespace TileMaster
             // Initial chunk update to load area around player
             map.mapManager.UpdateChunks(player.GetPosition());
             _mainPanel.BuildActionBar(player);
+            _mainPanel.BuildInventory(player);
         }
 
         public void SaveMap()
@@ -139,6 +141,7 @@ namespace TileMaster
             player = new Player();
             IsMouseVisible = true;
             this.Exiting += OnGameExiting;
+            CraftingManager = new CraftingManager();
             base.Initialize();
         }
         protected override void LoadContent()
@@ -238,7 +241,8 @@ namespace TileMaster
             for (int i = mobs.Count - 1; i >= 0; i--)
             {
                 var mob = mobs[i];
-                if (mob.Health < 1) { 
+                if (mob.Health < 1)
+                {
                     mobs.RemoveAt(i);
                     LogMessage("Mob defeated", Color.OrangeRed, 100);
                     continue;
@@ -401,7 +405,7 @@ namespace TileMaster
             var mouseX = (int)((cursorPosition.X) / Global.TileSize);
             mouseIsOverBlock = (mouseX + mouseY);
 
-cursorGridX = (int)((cursorPosition.X) / Global.TileSize);
+            cursorGridX = (int)((cursorPosition.X) / Global.TileSize);
             cursorGridY = (int)((cursorPosition.Y) / Global.TileSize);
             int cursorChunkX = (cursorGridX / Global.ChunkSize);
             int cursorChunkY = (cursorGridY / Global.ChunkSize);
@@ -414,7 +418,7 @@ cursorGridX = (int)((cursorPosition.X) / Global.TileSize);
                 Rectangle mobBounds = mob.GetRectangle();
                 Vector2 mobScreenPos = Vector2.Transform(mob.GetPosition(), camera.Transform);
                 Rectangle mobScreenRect = new Rectangle((int)mobScreenPos.X, (int)mobScreenPos.Y, mobBounds.Width, mobBounds.Height);
-                
+
                 if (mobScreenRect.Contains(current_mouse.Position.X, current_mouse.Position.Y))
                 {
                     hoveredMob = mob;
@@ -454,14 +458,14 @@ cursorGridX = (int)((cursorPosition.X) / Global.TileSize);
 
                     player.Draw(spriteBatch);
                 }
-foreach (var mob in mobs)
+                foreach (var mob in mobs)
                 {
                     mob.Draw(spriteBatch);
                 }
 
                 if (hoveredMob != null && _state == GameState.Running)
                 {
-                    hoveredMob.DrawHealthDisplay(spriteBatch, _debugFont, hoveredMob.GetPosition());         
+                    hoveredMob.DrawHealthDisplay(spriteBatch, _debugFont, hoveredMob.GetPosition());
                 }
 
                 foreach (var projectile in projectiles)
@@ -612,7 +616,7 @@ foreach (var mob in mobs)
                         }
                     }
                 }
-                else if (current_mouse.RightButton == ButtonState.Pressed)
+                else if (current_mouse.RightButton == ButtonState.Pressed && previous_mouse.RightButton == ButtonState.Released)
                 {
                     if (Keyboard.GetState().IsKeyDown(Keys.B))
                     {
@@ -627,6 +631,32 @@ foreach (var mob in mobs)
                     }
                     else
                     {
+                        // Check for interactive item first
+                        var targetTile = map.GetTileByGlobalId(mouseIsOverBlock);
+                        if (targetTile != null)
+                        {
+                            // If it's a multi-tile part, find the master tile
+                            if (targetTile.MultiTileOffset != Point.Zero)
+                            {
+                                targetTile = map.GetTileAt(targetTile.X + targetTile.MultiTileOffset.X, targetTile.Y + targetTile.MultiTileOffset.Y);
+                            }
+
+                            if (targetTile != null && targetTile.PlacedItem != null && targetTile.PlacedItem.IsInteractive)
+                            {
+                                // Proximity Check: Player must be close to the item
+                                float distance = Vector2.Distance(player.GetPosition(), new Vector2(targetTile.X * Global.TileSize, targetTile.Y * Global.TileSize));
+                                if (distance <= 5 * Global.TileSize) // 5 tiles range
+                                {
+                                    HandleInteraction(targetTile.PlacedItem);
+                                    return;
+                                }
+                                else
+                                {
+                                    LogMessage("You are too far away!", Color.Yellow, 100);
+                                }
+                            }
+                        }
+
                         if (map.IsBlockOnChunk(cursorOnChunk, mouseIsOverBlock))
                         {
                             map.SetTile(cursorOnChunk, mouseIsOverBlock, (int)TileType.Air);
@@ -637,13 +667,37 @@ foreach (var mob in mobs)
                             LogMessage("Block ID " + mouseIsOverBlock + " was not present at chunk " + cursorOnChunk, Color.Red);
                         }
                     }
-
                 }
                 //leave game
                 if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
                     Exit();
             }
         }
+
+        private void HandleInteraction(Item item)
+        {
+            if (item.InteractionType == InteractionType.Crafting)
+            {
+                // Open Crafting UI
+                if (_craftingWindow == null)
+                {
+                    _craftingWindow = new CraftingWindow();
+                }
+
+                if (!_desktop.Widgets.Contains(_craftingWindow))
+                {
+                    _craftingWindow.Build(player, CraftingManager, "Crafting");
+                    _desktop.Widgets.Add(_craftingWindow);
+                }
+                _craftingWindow.ShowModal(_desktop);
+            }
+            else
+            {
+                LogMessage($"Interaction {item.InteractionType} not implemented yet.", Color.Yellow, 100);
+            }
+        }
+
+        private CraftingWindow _craftingWindow;
         private void HandleKeyboardEvents()
         {
             KeyboardState currentKeyboardState = Keyboard.GetState();

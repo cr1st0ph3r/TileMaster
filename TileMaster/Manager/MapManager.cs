@@ -92,6 +92,7 @@ namespace TileMaster.Manager
                     player.Layer = playerData.Layer;
                     player.Inventory = playerData.Inventory;
                     player.ActionBar = playerData.ActionBar;
+                    player.Inventory[0] = new InventoryItem(Global.ReferenceItems[(int)Items.Dirt], 99);
                 }
                 else
                 {

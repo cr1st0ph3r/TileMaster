@@ -1,8 +1,8 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
-using TileMaster.Data;
 using TileMaster.Entity;
 using TileMaster.Entity.Tiles;
+using TileMaster.Model;
 
 namespace TileMaster
 {

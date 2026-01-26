@@ -15,7 +15,7 @@ namespace TileMaster.UI
     public partial class MainPanel
     {
         private readonly DebugWindow _debugWindow = new DebugWindow();
-        InventoryWindow inventoryWindow;
+        PlayerInventoryWindow inventoryWindow;
         public Panel ActionBarPanel;
         public static CommonComponents CommonComponents = new CommonComponents();
         private int selectedIndex = 0;
@@ -34,17 +34,13 @@ namespace TileMaster.UI
             _quitButtonMenu.Click += (s, e) => _quitButton_PressedChanged(s, e);
             _optionsButton.Click += (s, e) => Game.LogMessage("Options not implemented yet", Color.Yellow);
 
-
             _debugWindow.Closed += (s, a) =>
             {
                 _debugButton.IsPressed = false;
             };
 
-            inventoryWindow = new InventoryWindow();
-
+            inventoryWindow = new PlayerInventoryWindow();
             ActionBarPanel = new Panel();
-
-
         }
 
         public void BuildActionBar(Player player)
@@ -97,7 +93,10 @@ namespace TileMaster.UI
             //set the first action bar button as selected
             ActionBarPanel.Widgets.First(x => x.Id == "ActionBarButton0").Background = new SolidBrush(CommonComponents.ButtonPressedColor);
         }
-
+        public void BuildInventory(Player player)
+        {
+            inventoryWindow.BuildInventory(player);
+        }
         public void UpdateState(Entity.Enums.GameState state)
         {
             if (state == Entity.Enums.GameState.Menu)

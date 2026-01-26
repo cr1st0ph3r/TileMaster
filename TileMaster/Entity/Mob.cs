@@ -2,7 +2,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
-using TileMaster.Data;
 using TileMaster.Entity.Enums;
 using TileMaster.Entity.MobMovement;
 using TileMaster.Manager;

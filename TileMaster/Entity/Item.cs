@@ -93,6 +93,15 @@ namespace TileMaster.Entity
         public bool IsPlaceable { get; set; }
         public bool PlaceableOnBackground { get; set; }
 
+        /// <summary>
+        /// Whether the item can be interacted with when placed (e.g., Anvil, Chest).
+        /// </summary>
+        public bool IsInteractive { get; set; }
+        /// <summary>
+        /// The type of interaction (e.g., "Crafting", "Container").
+        /// </summary>
+        public InteractionType InteractionType { get; set; }
+
         // Lighting properties
         public bool IsLightSource { get; set; }
         public bool IsFlickeringLight { get; set; }

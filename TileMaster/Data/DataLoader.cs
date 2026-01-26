@@ -9,6 +9,7 @@ using System.Text;
 using TileMaster.Entity;
 using TileMaster.Entity.MobMovement;
 using TileMaster.Entity.Tiles;
+using TileMaster.Model;
 
 namespace TileMaster.Data
 {

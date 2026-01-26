@@ -3,19 +3,19 @@ using Myra;
 using Myra.Graphics2D;
 using Myra.Graphics2D.Brushes;
 using Myra.Graphics2D.UI;
-using Myra.Graphics2D.UI.Styles;
 using System.Linq;
 using TileMaster.Entity;
 
 namespace TileMaster.UI
 {
-    public partial class InventoryWindow
+    public partial class PlayerInventoryWindow: Window
     {
         public Panel ItemInfoPanel;
+        public Panel InventoryPanel;
 
-        public InventoryWindow()
-        {
-           
+        public PlayerInventoryWindow()
+        {            
+         
         }
         void HandleHoverOverAItem(Button button)
         {
@@ -66,6 +66,7 @@ namespace TileMaster.UI
         {
             InventoryPanel = new Panel();
             int calculatedHeight = player.InventoryTier / 2 * 100 + 10;
+            int calculatedTier = 1 + player.InventoryTier;
             int minHeight = 60;
             if (calculatedHeight < minHeight) calculatedHeight = minHeight;
             InventoryPanel.Height = calculatedHeight;
@@ -76,43 +77,49 @@ namespace TileMaster.UI
             int buttonWidthHeight = 40;
             for (int i = 0; i < 10; i++)
             {
-                for (int j = 0; j < player.InventoryTier; j++)
+                for (int j = 0; j < calculatedTier; j++)
                 {
-                    var _imageButton = new Myra.Graphics2D.UI.Button();
-                    var style = new ImageButtonStyle();
-                    var image1 = new Image();
-                    if (j % 2 == 0)
-                        image1.Renderable = MyraEnvironment.DefaultAssetManager.LoadTextureRegion("content/UI/UIStone.png");
-                    else
-                        image1.Renderable = MyraEnvironment.DefaultAssetManager.LoadTextureRegion("content/UI/UIDirt.png");
+                    var butt = new ItemButton();
+                    butt.Id = "InventoryButton" + i;
+                    var panel = new Panel();
+                    var image = new Image();
+                    image.Id = "Image";
+                    panel.Widgets.Add(image);
 
-                    var inventoryItemAmount = new Label();
-                    inventoryItemAmount.Text = "99";
-                    inventoryItemAmount.TextAlign = FontStashSharp.RichText.TextHorizontalAlignment.Right;
-
-                    var horizontalStackPanel3 = new HorizontalStackPanel();
-                    horizontalStackPanel3.Widgets.Add(image1);
-                    horizontalStackPanel3.Widgets.Add(inventoryItemAmount);
-
-                    var butt = new Button();
+                    if (player.Inventory.ContainsKey(i+j))
+                    {
+                        var label = new Label();
+                        label.Text = player.Inventory[i+j].Quantity.ToString();
+                        label.TextAlign = FontStashSharp.RichText.TextHorizontalAlignment.Center;
+                        label.VerticalAlignment = VerticalAlignment.Center;
+                        label.HorizontalAlignment = HorizontalAlignment.Center;
+                        label.Id = "Label";
+                        panel.Widgets.Add(label);
+                        image.Renderable = MyraEnvironment.DefaultAssetManager.LoadTextureRegion($"{Global.UIIconsLocation}{player.Inventory[i+j].Item.UIIcon}.png");
+                        butt.Index = i;
+                    }   
+                    
                     butt.Id = "ActionBarButton" + i;
                     butt.Width = buttonWidthHeight;
-                    butt.Padding = new Thickness(5, 5);
                     butt.Background = new SolidBrush(CommonComponents.ActionBarButtonColor);
                     butt.MouseEntered += inventoryItem_HoverIn;
                     butt.MouseLeft += inventoryItem_HoverOut;
-                    butt.Content = horizontalStackPanel3;
 
                     butt.Height = buttonWidthHeight;
                     butt.Top = 10 + (j * buttonWidthHeight) + ((j * buttonWidthHeight) / 4);
                     butt.Left = 10 + (i * buttonWidthHeight) + ((i * buttonWidthHeight) / 4);
+                    butt.Content = panel;
+                    butt.Padding = new Thickness(5, 5);
+                    //butt.PressedChanged += _actionBarButtonPress;
+                    butt.Background = new SolidBrush(CommonComponents.ActionBarButtonColor);
+      
 
                     InventoryPanel.Widgets.Add(butt);
+
+
                 }
             }
-             
-
-        
+                     
             var label1 = new Label();
             label1.Text = "Inventory";
             label1.Top = -30;
@@ -124,6 +131,7 @@ namespace TileMaster.UI
 
             Content = InventoryPanel;
         }
+
 
         #endregion
     }

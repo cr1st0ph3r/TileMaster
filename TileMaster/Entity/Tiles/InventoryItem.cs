@@ -4,6 +4,10 @@ namespace TileMaster.Entity.Tiles
 {
     public class InventoryItem
     {
+        public InventoryItem()
+        {
+                
+        }
         public InventoryItem(Item item,int quantity)
         {
             Item = item;
