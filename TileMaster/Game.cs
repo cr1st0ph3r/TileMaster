@@ -1,8 +1,10 @@
+using AssetManagementBase;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Myra;
 using Myra.Graphics2D.UI;
+using SharpDX.MediaFoundation;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -501,6 +503,23 @@ namespace TileMaster
             }
             base.Draw(gameTime);
             _desktop.Render();
+
+            // Draw Held Item
+            if (Global.HeldItem != null)
+            {
+                spriteBatch.Begin();
+                var heldItem = Global.HeldItem;
+                var texture = MyraEnvironment.DefaultAssetManager.LoadTextureRegion($"{Global.UIIconsLocation}{heldItem.Item.UIIcon}.png");
+                
+                // Draw icon
+                spriteBatch.Draw(texture.Texture, new Rectangle(current_mouse.X - 16, current_mouse.Y - 16, 32, 32), texture.Bounds, Color.White);
+                
+                // Draw quantity
+                string text = heldItem.Quantity.ToString();
+                spriteBatch.DrawString(_debugFont, text, new Vector2(current_mouse.X, current_mouse.Y), Color.White);
+                
+                spriteBatch.End();
+            }
         }
         #endregion
 
@@ -906,19 +925,18 @@ namespace TileMaster
         }
         private void AddTile(string[] commandParts)
         {
-            if (commandParts.Length < 3)
+            if (commandParts.Length < 2)
             {
-                LogMessage("Usage: add tile <tileId> <chunkId> <blockId>", Color.Red);
+                LogMessage("Usage: add tile <tileId> (<x>,<y>)", Color.Red);
                 return;
             }
             try
             {
                 int tileId = int.Parse(commandParts[0]);
-                int chunkId = int.Parse(commandParts[1]);
-                int blockId = int.Parse(commandParts[2]);
-
-                map.SetTile(chunkId, blockId, tileId);
-                LogMessage($"Added tile {tileId} at block {blockId} on chunk {chunkId}", Color.Green);
+                var coordinates = GetCoordinatesFromString(commandParts[1]);
+                var testTile = map.GetTileAt(coordinates.Item1, coordinates.Item2);
+                map.SetTile(testTile.ChunkId, testTile.GlobalId, tileId);
+                LogMessage($"Added tile {tileId} at block {testTile.GlobalId} on chunk {testTile.ChunkId}", Color.Green);
             }
             catch (Exception ex)
             {

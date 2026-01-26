@@ -86,7 +86,10 @@ namespace TileMaster.Manager
                     }
                     foreach (var actionBarItem in playerData.ActionBar)
                     {
-                        playerData.ActionBar[actionBarItem.Key].Item = Global.ReferenceItems[actionBarItem.Value.ItemId];
+                        if(actionBarItem.Value is not null)
+                        {
+                            playerData.ActionBar[actionBarItem.Key].Item = Global.ReferenceItems[actionBarItem.Value.ItemId];
+                        }                      
                     }
                     player.SetPosition(new Vector2(playerData.X, playerData.Y));
                     player.Layer = playerData.Layer;

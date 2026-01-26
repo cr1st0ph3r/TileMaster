@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using TileMaster.Entity;
 
 namespace TileMaster.Manager
@@ -12,6 +13,10 @@ namespace TileMaster.Manager
         {
             if (Containers.TryGetValue(id, out var container))
             {
+                foreach (var item in container.Items.Where(x=>x.Value is not null))
+                {
+                    item.Value.Item = Global.ReferenceItems[item.Value.ItemId]; 
+                }
                 return container;
             }
             return null;

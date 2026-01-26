@@ -120,5 +120,6 @@ namespace TileMaster
         public static readonly string ItemsDataLocation = @"Data\Items.json";
         public static readonly string MobsDataLocation = @"Data\Mobs.json";
         public static readonly string UIIconsLocation = @"content\UI\";
+        public static InventoryItem HeldItem { get; set; }
     }
 }

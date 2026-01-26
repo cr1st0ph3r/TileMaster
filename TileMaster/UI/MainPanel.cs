@@ -69,7 +69,7 @@ namespace TileMaster.UI
                 image.Id = "Image";
                 panel.Widgets.Add(image);
 
-                if (player.ActionBar.ContainsKey(i))
+                if (player.ActionBar.ContainsKey(i) && player.ActionBar[i] is not null)
                 {
                     var label = new Label();
                     label.Text = player.ActionBar[i].Quantity.ToString();
@@ -79,12 +79,20 @@ namespace TileMaster.UI
                     label.Id = "Label";
                     panel.Widgets.Add(label);
                     image.Renderable = MyraEnvironment.DefaultAssetManager.LoadTextureRegion($"{Global.UIIconsLocation}{player.ActionBar[i].Item.UIIcon}.png");
-                    butt.Index = i;
-
-
+                }
+                else
+                {
+                    var label = new Label();
+                    label.Id = "Label";
+                    label.Visible = false;
+                    panel.Widgets.Add(label);
+                    image.Visible = false;
                 }
 
                 butt.Content = panel;
+                butt.Index = i;
+                butt.SourceInventory = player.ActionBar;
+                butt.Click += _actionBarButtonClick;
                 butt.Width = buttonWidth;
                 butt.Padding = new Thickness(5, 5);
                 butt.PressedChanged += _actionBarButtonPress;
@@ -255,6 +263,47 @@ namespace TileMaster.UI
         private void _actionBarButtonPress(object sender, EventArgs e)
         {
             HandleActionBarPress(sender as ItemButton);
+        }
+
+        private void _actionBarButtonClick(object sender, EventArgs e)
+        {
+            var butt = sender as ItemButton;
+            if (butt == null) return;
+
+            var inventory = butt.SourceInventory;
+            int index = butt.Index;
+
+            var heldItem = Global.HeldItem;
+            var slotItem = inventory.ContainsKey(index) ? inventory[index] : null;
+
+            if (heldItem == null && slotItem != null)
+            {
+                Global.HeldItem = slotItem;
+                inventory[index] = null;
+            }
+            else if (heldItem != null)
+            {
+                if (slotItem == null)
+                {
+                    inventory[index] = heldItem;
+                    Global.HeldItem = null;
+                }
+                else
+                {
+                    if (heldItem.ItemId == slotItem.ItemId)
+                    {
+                        slotItem.Quantity += heldItem.Quantity;
+                        Global.HeldItem = null;
+                    }
+                    else
+                    {
+                        inventory[index] = heldItem;
+                        Global.HeldItem = slotItem;
+                    }
+                }
+            }
+
+            butt.RefreshSlot();
         }
 
         private void _button1_PressedChanged(object sender, EventArgs e)

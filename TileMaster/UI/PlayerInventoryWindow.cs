@@ -58,44 +58,47 @@ namespace TileMaster.UI
             {
                 for (int j = 0; j < calculatedTier; j++)
                 {
+                    int index = i + (j * 10);
                     var butt = new ItemButton();
-                    butt.Id = "InventoryButton" + i;
+                    butt.Index = index;
+                    butt.SourceInventory = player.Inventory;
+                    butt.Click += inventoryItem_Click;
+
                     var panel = new Panel();
                     var image = new Image();
                     image.Id = "Image";
                     panel.Widgets.Add(image);
 
-                    if (player.Inventory.ContainsKey(i + j))
+                    var label = new Label();
+                    label.Id = "Label";
+                    label.TextAlign = FontStashSharp.RichText.TextHorizontalAlignment.Center;
+                    label.VerticalAlignment = VerticalAlignment.Center;
+                    label.HorizontalAlignment = HorizontalAlignment.Center;
+                    panel.Widgets.Add(label);
+
+                    if (player.Inventory.ContainsKey(index) && player.Inventory[index] != null)
                     {
-                        var label = new Label();
-                        label.Text = player.Inventory[i + j].Quantity.ToString();
-                        label.TextAlign = FontStashSharp.RichText.TextHorizontalAlignment.Center;
-                        label.VerticalAlignment = VerticalAlignment.Center;
-                        label.HorizontalAlignment = HorizontalAlignment.Center;
-                        label.Id = "Label";
-                        panel.Widgets.Add(label);
-                        image.Renderable = MyraEnvironment.DefaultAssetManager.LoadTextureRegion($"{Global.UIIconsLocation}{player.Inventory[i + j].Item.UIIcon}.png");
-                        butt.Index = i;
+                        var invItem = player.Inventory[index];
+                        label.Text = invItem.Quantity.ToString();
+                        image.Renderable = MyraEnvironment.DefaultAssetManager.LoadTextureRegion($"{Global.UIIconsLocation}{invItem.Item.UIIcon}.png");
+                    }
+                    else
+                    {
+                        image.Visible = false;
+                        label.Visible = false;
                     }
 
-                    butt.Id = "ActionBarButton" + i;
                     butt.Width = buttonWidthHeight;
-                    butt.Background = new SolidBrush(CommonComponents.ActionBarButtonColor);
-                    butt.MouseEntered += inventoryItem_HoverIn;
-                    butt.MouseLeft += inventoryItem_HoverOut;
-
                     butt.Height = buttonWidthHeight;
                     butt.Top = 10 + (j * buttonWidthHeight) + ((j * buttonWidthHeight) / 4);
                     butt.Left = 10 + (i * buttonWidthHeight) + ((i * buttonWidthHeight) / 4);
                     butt.Content = panel;
                     butt.Padding = new Thickness(5, 5);
-                    //butt.PressedChanged += _actionBarButtonPress;
                     butt.Background = new SolidBrush(CommonComponents.ActionBarButtonColor);
-
+                    butt.MouseEntered += inventoryItem_HoverIn;
+                    butt.MouseLeft += inventoryItem_HoverOut;
 
                     InventoryPanel.Widgets.Add(butt);
-
-
                 }
             }
 
@@ -125,6 +128,51 @@ namespace TileMaster.UI
         {
             MainPanel._openInventoryButton.IsPressed = false;
             base.Close();
+        }
+
+        private void inventoryItem_Click(object sender, System.EventArgs e)
+        {
+            var butt = sender as ItemButton;
+            if (butt == null) return;
+
+            var inventory = butt.SourceInventory;
+            int index = butt.Index;
+
+            var heldItem = Global.HeldItem;
+            var slotItem = inventory.ContainsKey(index) ? inventory[index] : null;
+
+            if (heldItem == null && slotItem != null)
+            {
+                // Pick up item
+                Global.HeldItem = slotItem;
+                inventory[index] = null;
+            }
+            else if (heldItem != null)
+            {
+                if (slotItem == null)
+                {
+                    // Drop item into empty slot
+                    inventory[index] = heldItem;
+                    Global.HeldItem = null;
+                }
+                else
+                {
+                    // Item Swap or Stacking
+                    if (heldItem.ItemId == slotItem.ItemId)
+                    {
+                        slotItem.Quantity += heldItem.Quantity;
+                        Global.HeldItem = null;
+                    }
+                    else
+                    {
+                        // Swap
+                        inventory[index] = heldItem;
+                        Global.HeldItem = slotItem;
+                    }
+                }
+            }
+
+            butt.RefreshSlot();
         }
         #endregion
     }

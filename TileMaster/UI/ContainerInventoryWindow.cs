@@ -76,8 +76,19 @@ namespace TileMaster.UI
                         label.Id = "Label";
                         panel.Widgets.Add(label);
                         image.Renderable = MyraEnvironment.DefaultAssetManager.LoadTextureRegion($"{Global.UIIconsLocation}{items[index].Item.UIIcon}.png");
-                        butt.Index = index;
                     }
+                    else
+                    {
+                        var label = new Label();
+                        label.Id = "Label";
+                        label.Visible = false;
+                        panel.Widgets.Add(label);
+                        image.Visible = false;
+                    }
+
+                    butt.Index = index;
+                    butt.SourceInventory = items;
+                    butt.Click += containerItem_Click;
 
                     butt.Width = buttonWidthHeight;
                     butt.Background = new SolidBrush(CommonComponents.ActionBarButtonColor);
@@ -121,6 +132,47 @@ namespace TileMaster.UI
         {
             MainPanel._openInventoryButton.IsPressed = false;
             base.Close();
+        }
+
+        private void containerItem_Click(object sender, System.EventArgs e)
+        {
+            var butt = sender as ItemButton;
+            if (butt == null) return;
+
+            var inventory = butt.SourceInventory;
+            int index = butt.Index;
+
+            var heldItem = Global.HeldItem;
+            var slotItem = inventory.ContainsKey(index) ? inventory[index] : null;
+
+            if (heldItem == null && slotItem != null)
+            {
+                Global.HeldItem = slotItem;
+                inventory[index] = null;
+            }
+            else if (heldItem != null)
+            {
+                if (slotItem == null)
+                {
+                    inventory[index] = heldItem;
+                    Global.HeldItem = null;
+                }
+                else
+                {
+                    if (heldItem.ItemId == slotItem.ItemId)
+                    {
+                        slotItem.Quantity += heldItem.Quantity;
+                        Global.HeldItem = null;
+                    }
+                    else
+                    {
+                        inventory[index] = heldItem;
+                        Global.HeldItem = slotItem;
+                    }
+                }
+            }
+
+            butt.RefreshSlot();
         }
 
         #endregion
