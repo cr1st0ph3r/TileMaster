@@ -278,6 +278,13 @@ namespace TileMaster.Map
             }
 
             // 3. Placement
+            Guid? containerId = null;
+            if (item.IsContainer)
+            {
+                var container = ContainerManager.CreateContainer();
+                containerId = container.Id;
+            }
+
             for (int ix = 0; ix < item.Width; ix++)
             {
                 for (int iy = 0; iy < item.Height; iy++)
@@ -297,6 +304,7 @@ namespace TileMaster.Map
                         currentTile.MultiTileOffset = new Point(-ix, -iy);
                     }
 
+                    currentTile.ContainerId = containerId;
                     currentTile.IsOccupied = false; // Item-only tile is not a block
                     currentTile.IsSolid = false;    // Items don't block movement normally
 
@@ -341,7 +349,12 @@ namespace TileMaster.Map
                                 var part = GetTileAt(mX + ix, mY + iy);
                                 if (part != null)
                                 {
+                                    if (part.ContainerId.HasValue)
+                                    {
+                                        ContainerManager.RemoveContainer(part.ContainerId.Value);
+                                    }
                                     part.PlacedItem = null;
+                                    part.ContainerId = null;
                                     part.MultiTileOffset = Point.Zero;
                                     SetTile(part, (int)TileType.Air); // Reset to air/empty
                                 }

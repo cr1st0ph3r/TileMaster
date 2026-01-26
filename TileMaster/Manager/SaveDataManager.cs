@@ -68,6 +68,18 @@ namespace TileMaster.Manager
                         WriteChunkEntry(writer, kvp.Value);
                     }
                 }
+
+                // 3. Save Containers
+                var containerEntry = archive.GetEntry("containers.json");
+                if (containerEntry != null) containerEntry.Delete();
+
+                containerEntry = archive.CreateEntry("containers.json", CompressionLevel.Optimal);
+                using (var entryStream = containerEntry.Open())
+                {
+                    var options = new JsonSerializerOptions { IncludeFields = true, WriteIndented = true };
+                    var containerBytes = JsonSerializer.SerializeToUtf8Bytes(ContainerManager.Containers, options);
+                    entryStream.Write(containerBytes, 0, containerBytes.Length);
+                }
             }
         }
 
@@ -108,6 +120,16 @@ namespace TileMaster.Manager
                 writer.Write(tile.MultiTileOffset.X);
                 writer.Write(tile.MultiTileOffset.Y);
 
+                if (tile.ContainerId.HasValue)
+                {
+                    writer.Write(true);
+                    writer.Write(tile.ContainerId.Value.ToByteArray());
+                }
+                else
+                {
+                    writer.Write(false);
+                }
+
                 if (tile is CollisionTile ctl && ctl.PlacedItem != null)
                 {
                     writer.Write(true); // HasItem
@@ -141,6 +163,20 @@ namespace TileMaster.Manager
             using (var fs = File.OpenRead(archivePath))
             using (var archive = new ZipArchive(fs, ZipArchiveMode.Read, leaveOpen: false))
             {
+                var containerEntry = archive.GetEntry("containers.json");
+                if (containerEntry != null)
+                {
+                    using (var stream = containerEntry.Open())
+                    {
+                        var options = new JsonSerializerOptions { IncludeFields = true };
+                        var containers = JsonSerializer.Deserialize<Dictionary<System.Guid, Container>>(stream, options);
+                        if (containers != null)
+                        {
+                            ContainerManager.Containers = containers;
+                        }
+                    }
+                }
+
                 var worldEntry = archive.GetEntry("worlddata.json");
                 if (worldEntry != null)
                 {
@@ -150,6 +186,8 @@ namespace TileMaster.Manager
                         return JsonSerializer.Deserialize<WorldData>(stream, options);
                     }
                 }
+
+               
             }
             return null;
         }
@@ -359,6 +397,13 @@ namespace TileMaster.Manager
                 int multiTileOffsetX = reader.ReadInt32();
                 int multiTileOffsetY = reader.ReadInt32();
 
+                bool hasContainer = reader.ReadBoolean();
+                System.Guid? containerId = null;
+                if (hasContainer)
+                {
+                    containerId = new System.Guid(reader.ReadBytes(16));
+                }
+
                 bool hasItem = reader.ReadBoolean();
                 int itemId = hasItem ? reader.ReadInt32() : -1;
 
@@ -444,7 +489,8 @@ namespace TileMaster.Manager
                         ChunkId = chunkId,
                         Width = Global.TileSize,
                         Height = Global.TileSize,
-                        MultiTileOffset = new Point(multiTileOffsetX, multiTileOffsetY)
+                        MultiTileOffset = new Point(multiTileOffsetX, multiTileOffsetY),
+                        ContainerId = containerId
                     };
 
                     if (hasItem && itemId != -1 && itemId < Global.ReferenceItems.Count)
@@ -500,7 +546,8 @@ namespace TileMaster.Manager
                         ChunkId = chunkId,
                         Width = Global.TileSize,
                         Height = Global.TileSize,
-                        MultiTileOffset = new Point(multiTileOffsetX, multiTileOffsetY)
+                        MultiTileOffset = new Point(multiTileOffsetX, multiTileOffsetY),
+                        ContainerId = containerId
                     };
 
                     result[i] = bt;

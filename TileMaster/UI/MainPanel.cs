@@ -5,10 +5,13 @@ using Myra.Graphics2D;
 using Myra.Graphics2D.Brushes;
 using Myra.Graphics2D.UI;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using TileMaster.Entity;
 using TileMaster.Entity.Enums;
+using TileMaster.Entity.Tiles;
+using TileMaster.Manager;
 
 namespace TileMaster.UI
 {
@@ -16,6 +19,8 @@ namespace TileMaster.UI
     {
         private readonly DebugWindow _debugWindow = new DebugWindow();
         PlayerInventoryWindow inventoryWindow;
+        private CraftingWindow _craftingWindow;
+        private ContainerInventoryWindow _containerInventoryWindow;
         public Panel ActionBarPanel;
         public static CommonComponents CommonComponents = new CommonComponents();
         private int selectedIndex = 0;
@@ -40,6 +45,8 @@ namespace TileMaster.UI
             };
 
             inventoryWindow = new PlayerInventoryWindow();
+            _craftingWindow = new CraftingWindow();
+            _containerInventoryWindow = new ContainerInventoryWindow();
             ActionBarPanel = new Panel();
         }
 
@@ -93,9 +100,19 @@ namespace TileMaster.UI
             //set the first action bar button as selected
             ActionBarPanel.Widgets.First(x => x.Id == "ActionBarButton0").Background = new SolidBrush(CommonComponents.ButtonPressedColor);
         }
-        public void BuildInventory(Player player)
+        public void BuildPlayerInventory(Player player)
         {
             inventoryWindow.BuildInventory(player);
+        }
+        public void BuildAndDisplayContainerInventory(Dictionary<int, InventoryItem> items, string title)
+        {
+            _containerInventoryWindow.BuildInventory(items, title);
+            _containerInventoryWindow.Show(Desktop, new Point(Global.WindowWidth / 2 + 200, Global.WindowHeight / 2));
+        }
+        public void BuildAndDisplayCraftingWindow(Player player, CraftingManager cm, string name)
+        {
+            _craftingWindow.Build(player, cm, name);
+            _craftingWindow.Show(Desktop, new Point(Global.WindowWidth / 2 + 200, Global.WindowHeight / 2));
         }
         public void UpdateState(Entity.Enums.GameState state)
         {
@@ -211,6 +228,7 @@ namespace TileMaster.UI
             CommandBox.Visible = false;
             Game.GetInstance().ProccessCommand(command);
         }
+
         #region Debug
         public void UpdateFPS(int value)
         {
@@ -234,8 +252,6 @@ namespace TileMaster.UI
         #endregion
 
         #region Handlers
-
-
         private void _actionBarButtonPress(object sender, EventArgs e)
         {
             HandleActionBarPress(sender as ItemButton);

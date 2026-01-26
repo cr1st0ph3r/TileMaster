@@ -95,6 +95,8 @@
     "UIIcon": "UIChest",
     "IsPlaceable": true,
     "IsInteractive": true,
+    "IsContainer": true,
+    "InteractionType": 1,
     "Width": 2,
     "Height": 2
   }

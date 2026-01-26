@@ -5,6 +5,7 @@ using Myra;
 using Myra.Graphics2D.UI;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 using TileMaster.Data;
@@ -48,8 +49,7 @@ namespace TileMaster
         private Texture2D mainMenuBackground;
         private float _mainMenuScrollOffset = 0f;
         private const float MainMenuScrollSpeed = 20f; // Pixels per second
-        private List<Projectile> projectiles;
-
+        private List<Projectile> projectiles; 
         //TODO remover
         private int cursorGridX = 0;
         private int cursorGridY = 0;
@@ -125,7 +125,7 @@ namespace TileMaster
             // Initial chunk update to load area around player
             map.mapManager.UpdateChunks(player.GetPosition());
             _mainPanel.BuildActionBar(player);
-            _mainPanel.BuildInventory(player);
+            _mainPanel.BuildPlayerInventory(player);
         }
 
         public void SaveMap()
@@ -679,17 +679,51 @@ namespace TileMaster
             if (item.InteractionType == InteractionType.Crafting)
             {
                 // Open Crafting UI
-                if (_craftingWindow == null)
-                {
-                    _craftingWindow = new CraftingWindow();
-                }
+                //if (_craftingWindow == null)
+                //{
+                //    _craftingWindow = new CraftingWindow();
+                //}
 
-                if (!_desktop.Widgets.Contains(_craftingWindow))
+                //if (!_desktop.Widgets.Contains(_craftingWindow))
+                //{
+                //    _craftingWindow.Build(player, CraftingManager, "Crafting");
+                //    _desktop.Widgets.Add(_craftingWindow);
+                //}
+                //_craftingWindow.Show(_desktop);
+                _mainPanel.BuildAndDisplayCraftingWindow(player, CraftingManager, "Crafting");
+            }
+            else if (item.InteractionType == InteractionType.Container)
+            {
+                // Find tile at mouse position to get ContainerId
+                var targetTile = map.GetTileByGlobalId(mouseIsOverBlock);
+                if (targetTile != null)
                 {
-                    _craftingWindow.Build(player, CraftingManager, "Crafting");
-                    _desktop.Widgets.Add(_craftingWindow);
+                    // If it's a multi-tile part, find the master tile
+                    if (targetTile.MultiTileOffset != Point.Zero)
+                    {
+                        targetTile = map.GetTileAt(targetTile.X + targetTile.MultiTileOffset.X, targetTile.Y + targetTile.MultiTileOffset.Y);
+                    }
+
+                    if (targetTile != null && targetTile.ContainerId.HasValue)
+                    {
+                        var container = ContainerManager.GetContainer(targetTile.ContainerId.Value);
+                        if (container != null)
+                        {
+                            //if (_containerInventoryWindow == null)
+                            //{
+                            //    _containerInventoryWindow = new ContainerInventoryWindow();
+                            //}
+
+                            //if (!_desktop.Widgets.Contains(_containerInventoryWindow))
+                            //{
+                            //    _containerInventoryWindow.BuildInventory(container.Items, item.Name);
+                            //    _desktop.Widgets.Add(_containerInventoryWindow);
+                            //}
+                            //_containerInventoryWindow.Show(_desktop);
+                            _mainPanel.BuildAndDisplayContainerInventory(container.Items, item.Name);
+                        }
+                    }
                 }
-                _craftingWindow.ShowModal(_desktop);
             }
             else
             {
@@ -697,7 +731,7 @@ namespace TileMaster
             }
         }
 
-        private CraftingWindow _craftingWindow;
+
         private void HandleKeyboardEvents()
         {
             KeyboardState currentKeyboardState = Keyboard.GetState();

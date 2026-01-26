@@ -107,5 +107,9 @@ namespace TileMaster.Entity.Tiles
         public List<KeyValuePair<int, int>> neighboringTiles;
 
         public Point MultiTileOffset { get; set; }
+        /// <summary>
+        /// The unique identifier of the container associated with this tile.
+        /// </summary>
+        public System.Guid? ContainerId { get; set; }
     }
 }
