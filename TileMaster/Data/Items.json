@@ -81,8 +81,18 @@
     "Id": 7,
     "Name": "Anvil",
     "TextureName": "Anvil",
+    "IsTool": true,
     "UIIcon": "UIAnvil",
     "IsPlaceable": 1,
     "Width": 2
+  },
+  {
+    "Id": 8,
+    "Name": "Chest",
+    "TextureName": "Chest",
+    "UIIcon": "UIChest",
+    "IsPlaceable": 1,
+    "Width": 2,
+    "Height": 2
   }
 ]

@@ -39,7 +39,7 @@ namespace TileMaster.Entity.Tiles
             {
                 if (Rotation == 0)
                 {
-                    spriteBatch.Draw(Texture, Rectangle, getColor());
+                    spriteBatch.Draw(GetTexture(), Rectangle, getColor());
                 }
                 else
                 {
@@ -113,7 +113,7 @@ namespace TileMaster.Entity.Tiles
             }
             if (TextureId == 0)
             {
-                Texture = Global.ReferenceTiles[TileId].Texture;
+                Texture = Global.ReferenceTiles[TileId].GetTexture();
             }
             else {
                 var refTile = Global.ReferenceTiles[TileId];
@@ -156,7 +156,13 @@ namespace TileMaster.Entity.Tiles
             ColorArgb = null;
             ColorFilter = null;
         }
-
+        private Texture2D GetTexture()
+        {
+            if (AltTextures != null &&AltTextures.Any()) { 
+                return AltTextures[new Random().Next(0, AltTextures.Count)];
+            }
+            return Texture;
+        }
         #region Private Methods
         private Color getColor()
         {

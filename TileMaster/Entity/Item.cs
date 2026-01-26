@@ -26,6 +26,10 @@ namespace TileMaster.Entity
         /// </summary>
         public bool IsTool { get; set; }
         /// <summary>
+        /// Indicates if the item functions as a container (e.g., chest).
+        /// </summary>
+        public bool IsContainer { get; set; }
+        /// <summary>
         /// Identifies whether the item is a weapon.
         /// </summary>
         public bool IsWeapon { get; set; }
@@ -71,8 +75,13 @@ namespace TileMaster.Entity
         /// The time (in milliseconds) it takes to use the item (tools).
         /// </summary>
         public int UseTime { get; set; }
+        /// <summary>
+        /// For placeable items, this value should state how many tiles the item occupies in width.
+        /// </summary>
         public int Width { get; set; } = 1;
-
+        /// <summary>
+        /// For placeable items, this value should state how many tiles the item occupies in height.
+        /// </summary>
         public int Height { get; set; } = 1;
 
         [NonSerialized]

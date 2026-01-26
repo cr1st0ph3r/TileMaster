@@ -20,7 +20,7 @@
       "Dirt2",
       "Dirt3"    
     ],
-    "TextureId": 1,
+    "TextureId": 0,
     "TileId": 1,
     "IsOccupied": true,
     "IsSolid": true,

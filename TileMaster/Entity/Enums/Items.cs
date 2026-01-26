@@ -9,5 +9,6 @@
         Slingshot = 5,
         Pebble = 6,
         Anvil = 7,
+        Chest = 8,
     }
 }
