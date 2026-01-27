@@ -20,7 +20,8 @@
     "UIIcon": "UIDirt",
     "IsPlaceable": true,
     "IsTile": true,
-    "TileId": 1
+    "TileId": 1,
+    "UseTime": 200
   },
   {
     "Id": 2,
@@ -29,7 +30,8 @@
     "UIIcon": "UIStone",
     "IsPlaceable": true,
     "IsTile": true,
-    "TileId": 2
+    "TileId": 2,
+    "UseTime": 200
   },
   {
     "Id": 3,

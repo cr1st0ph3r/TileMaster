@@ -198,11 +198,16 @@ namespace TileMaster.Map
         /// <summary>
         /// Sets a tile at a given global ID
         /// </summary>
-        public void SetTile(int chunkId, int globalId, int referenceTileId)
+        public bool SetTile(int chunkId, int globalId, int referenceTileId)
         {
             var targetTile = GetTileByGlobalId(globalId);
-            if (targetTile == null) return;
+            if(targetTile.TileId == referenceTileId)
+            {
+                //its already that tile, no need to change
+                return false;
+            }
             SetTile(targetTile, referenceTileId);
+            return true;
         }
 
         /// <summary>
@@ -323,10 +328,11 @@ namespace TileMaster.Map
         /// <summary>
         /// Performs an action on a tile at a given global ID and action
         /// </summary>
-        public void PerformActionOnTile(int chunkId, int globalId, ToolAction action)
+        public List<Item> PerformActionOnTile(int chunkId, int globalId, ToolAction action)
         {
+            var droppedItems = new List<Item>();
             var targetTile = GetTileByGlobalId(globalId);
-            if (targetTile == null) return;
+            if (targetTile == null) return droppedItems;
 
             if (action == ToolAction.MineBlock)
             {
@@ -338,6 +344,7 @@ namespace TileMaster.Map
                     if (masterTile != null && masterTile.PlacedItem != null)
                     {
                         var item = masterTile.PlacedItem;
+                        droppedItems.Add(item);
                         int mX = masterTile.X;
                         int mY = masterTile.Y;
 
@@ -360,17 +367,27 @@ namespace TileMaster.Map
                                 }
                             }
                         }
-                        return;
+                        return droppedItems;
                     }
                 }
 
                 // Standard block removal
-                SetTile(targetTile, (int)TileType.Air);
+                if (targetTile.TileId != (int)TileType.Air)
+                {
+                    var item = Global.ReferenceItems.FirstOrDefault(i => i.IsTile && i.TileId == targetTile.TileId);
+                    if (item != null)
+                    {
+                        droppedItems.Add(item);
+                    }
+                    SetTile(targetTile, (int)TileType.Air);
+                }
             }
             else if (action == ToolAction.TransformBlock)
             {
                 HammerTile(targetTile);
             }
+
+            return droppedItems;
         }
         public void HammerTile(Tile targetTile)
         {

@@ -74,7 +74,7 @@ namespace TileMaster.Entity
         /// <summary>
         /// The time (in milliseconds) it takes to use the item (tools).
         /// </summary>
-        public int UseTime { get; set; }
+        public int UseTime { get; set; } = 200;
         /// <summary>
         /// For placeable items, this value should state how many tiles the item occupies in width.
         /// </summary>

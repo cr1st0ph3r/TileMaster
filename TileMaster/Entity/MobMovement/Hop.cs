@@ -5,9 +5,9 @@ namespace TileMaster.Entity.MobMovement
 {
     public class Hop : Movement
     {
-        private float hopTimer = 0f;
+        private float hopTimer = 0f; // Timer for hop interval
         private const float HopInterval = 0.8f; // Time between hops
-        private bool isHopping = false;
+        private bool isHopping = false; // Whether the mob is currently hopping
 
         public Hop()
         {

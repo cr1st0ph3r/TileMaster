@@ -4,6 +4,7 @@ using Myra;
 using Myra.Graphics2D;
 using Myra.Graphics2D.Brushes;
 using Myra.Graphics2D.UI;
+using SharpDX.Direct3D11;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -76,14 +77,14 @@ namespace TileMaster.UI
                     label.TextAlign = FontStashSharp.RichText.TextHorizontalAlignment.Center;
                     label.VerticalAlignment = VerticalAlignment.Center;
                     label.HorizontalAlignment = HorizontalAlignment.Center;
-                    label.Id = "Label";
+                    label.Id = "ActionBarLabelItem"+i;
                     panel.Widgets.Add(label);
                     image.Renderable = MyraEnvironment.DefaultAssetManager.LoadTextureRegion($"{Global.UIIconsLocation}{player.ActionBar[i].Item.UIIcon}.png");
                 }
                 else
                 {
                     var label = new Label();
-                    label.Id = "Label";
+                    label.Id = "ActionBarLabelItem" + i;
                     label.Visible = false;
                     panel.Widgets.Add(label);
                     image.Visible = false;
@@ -122,7 +123,7 @@ namespace TileMaster.UI
             _craftingWindow.Build(player, cm, name);
             _craftingWindow.Show(Desktop, new Point(Global.WindowWidth / 2 + 200, Global.WindowHeight / 2));
         }
-        public void UpdateState(Entity.Enums.GameState state)
+        public void UpdateState(GameState state)
         {
             if (state == Entity.Enums.GameState.Menu)
             {
@@ -136,6 +137,27 @@ namespace TileMaster.UI
                 _gameUIContainer.Visible = true;
                 ActionBarPanel.Visible = true;
             }
+        }
+
+        public void UpdateItemCount(int count, int actionBarId)
+        {
+            var button = ActionBarPanel.Widgets.FirstOrDefault(x => x.Id == "ActionBarButton" + actionBarId) as Button;
+            var panel = button.Content as Panel;
+            if (count>0)
+            {            
+                var label = panel.Widgets.FirstOrDefault(x => x.Id == "ActionBarLabelItem" + actionBarId) as Label;
+                label.Text = count.ToString();
+            }
+            else
+            {
+                //we clear the image and set the panel as invisible
+                panel.Widgets.Clear();
+                panel.Visible = false;
+            }     
+        }
+        public void AddItemToSlot()
+        {
+
         }
 
         private void StartGame()

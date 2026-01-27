@@ -42,6 +42,16 @@ namespace TileMaster.Entity.MobMovement
             // 3. Apply Rotation
             mob.Rotation = _currentRotation;     
         }
+
+        /// <summary>
+        /// Handles the movement logic when the mob is attached to a surface.
+        /// </summary>
+        /// <param name="dt"></param>
+        /// <param name="mob"></param>
+        /// <param name="map"></param>
+        /// <param name="bounds"></param>
+        /// <param name="gHitX"></param>
+        /// <param name="gHitY"></param>
         private void HandleAttachedMovement(float dt, Mob mob, Map.Map map, Rectangle bounds, int gHitX, int gHitY)
         {
             // 1. Fixed Direction logic
@@ -84,6 +94,13 @@ namespace TileMaster.Entity.MobMovement
             UpdateRotation(map.GetTileAt(gHitX, gHitY));
         }
 
+        /// <summary>
+        /// Handles the movement logic when the mob is in the air (falling).
+        /// </summary>
+        /// <param name="dt"></param>
+        /// <param name="mob"></param>
+        /// <param name="map"></param>
+        /// <param name="bounds"></param>
         private void HandleAirMovement(float dt, Mob mob, Map.Map map, Rectangle bounds)
         {
             // We are in the air.
@@ -124,9 +141,6 @@ namespace TileMaster.Entity.MobMovement
                         // Snap X to wall face
                         if (_gravityDir.X > 0) newX = cHitX * Global.TileSize - bounds.Width; // Left Face (Grav points Right) -> Wait. Grav points TO Wall.
                                                                                               // If Grav=(1,0), Wall is Right. Snap to Left side of wall.
-                                                                                              // Wait, HitX/Y is the tile.
-                                                                                              // If Grav(1,0), we are on Left side of tile.
-                                                                                              // X = hitX * 16 - Width. CORRECT.
                         else newX = (cHitX + 1) * Global.TileSize; // Right Face (Grav points Left) -> Snap to Right side.
 
                         // Clamp Y to overlap the block
@@ -192,7 +206,11 @@ namespace TileMaster.Entity.MobMovement
             }
         }
 
-        private void UpdateRotation(TileMaster.Entity.Tiles.CollisionTile groundTile)
+        /// <summary>
+        /// Updates the mob's rotation based on the ground tile's slope and current gravity direction.
+        /// </summary>
+        /// <param name="groundTile"></param>
+        private void UpdateRotation(Tiles.CollisionTile groundTile)
         {
             if (groundTile != null && groundTile.IsSlope)
             {
@@ -206,6 +224,15 @@ namespace TileMaster.Entity.MobMovement
             }
         }
 
+        /// <summary>
+        /// Defines how to snap the mob to the wall it has collided with.
+        /// </summary>
+        /// <param name="mob"></param>
+        /// <param name="hitX"></param>
+        /// <param name="hitY"></param>
+        /// <param name="tangentDir"></param>
+        /// <param name="position"></param>
+        /// <param name="bounds"></param>
         private void SnapToWall(Mob mob, int hitX, int hitY, Vector2 tangentDir, Vector2 position, Rectangle bounds)
         {
             if (tangentDir.X > 0.5f) mob.SetPosition(new Vector2(hitX * Global.TileSize - bounds.Width, position.Y));

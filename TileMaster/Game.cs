@@ -51,7 +51,7 @@ namespace TileMaster
         private Texture2D mainMenuBackground;
         private float _mainMenuScrollOffset = 0f;
         private const float MainMenuScrollSpeed = 20f; // Pixels per second
-        private List<Projectile> projectiles; 
+        private List<Projectile> projectiles;
         //TODO remover
         private int cursorGridX = 0;
         private int cursorGridY = 0;
@@ -510,14 +510,14 @@ namespace TileMaster
                 spriteBatch.Begin();
                 var heldItem = Global.HeldItem;
                 var texture = MyraEnvironment.DefaultAssetManager.LoadTextureRegion($"{Global.UIIconsLocation}{heldItem.Item.UIIcon}.png");
-                
+
                 // Draw icon
                 spriteBatch.Draw(texture.Texture, new Rectangle(current_mouse.X - 16, current_mouse.Y - 16, 32, 32), texture.Bounds, Color.White);
-                
+
                 // Draw quantity
                 string text = heldItem.Quantity.ToString();
                 spriteBatch.DrawString(_debugFont, text, new Vector2(current_mouse.X, current_mouse.Y), Color.White);
-                
+
                 spriteBatch.End();
             }
         }
@@ -559,8 +559,13 @@ namespace TileMaster
                 //temporary handlers for the buttons
                 if (current_mouse.LeftButton == ButtonState.Pressed && _desktop.IsMouseOverGUI == false)
                 {
-                    int itemId = _mainPanel.SelectedItem;
-                    var inventoryItem = player.ActionBar[itemId];
+                    int actionBarIndex = _mainPanel.SelectedItem;
+                    var inventoryItem = player.ActionBar[actionBarIndex];
+                    if(inventoryItem is null)
+                    {
+                        //no item selected
+                        return;
+                    }
                     var item = inventoryItem.Item;
 
                     if (player.UseCooldown <= 0)
@@ -587,13 +592,18 @@ namespace TileMaster
                             {
                                 if (item.IsTile)
                                 {
-                                    map.SetTile(cursorOnChunk, mouseIsOverBlock, item.TileId);
-                                    lightingDirty = true;
-                                    player.UseCooldown = item.UseTime;
+                                    if (map.SetTile(cursorOnChunk, mouseIsOverBlock, item.TileId))
+                                    {
+                                        var remaining = player.RemoveItemFromSlot(actionBarIndex, 1);
+                                        _mainPanel.UpdateItemCount(remaining, actionBarIndex);
+                                        lightingDirty = true;
+                                        player.UseCooldown = item.UseTime;
+                                    }
                                 }
                                 else if (item.IsPlaceable)
                                 {
                                     map.PlaceItem(cursorOnChunk, mouseIsOverBlock, item);
+                                    player.RemoveItemFromSlot(actionBarIndex, 1);
                                     lightingDirty = true;
                                     player.UseCooldown = item.UseTime;
                                 }
@@ -622,7 +632,11 @@ namespace TileMaster
                                     }
                                     else
                                     {
-                                        map.PerformActionOnTile(cursorOnChunk, mouseIsOverBlock, item.ToolAction);
+                                        var dropped = map.PerformActionOnTile(cursorOnChunk, mouseIsOverBlock, item.ToolAction);
+                                        foreach (var drop in dropped)
+                                        {
+                                            player.AddItem(drop, 1);
+                                        }
                                         player.UseCooldown = item.UseTime;
                                     }
                                 }
@@ -635,17 +649,21 @@ namespace TileMaster
                         }
                     }
                 }
-                else if (current_mouse.RightButton == ButtonState.Pressed && previous_mouse.RightButton == ButtonState.Released)
+                else if (current_mouse.RightButton == ButtonState.Pressed)
                 {
                     if (Keyboard.GetState().IsKeyDown(Keys.B))
                     {
-                        try
+                        if (player.UseCooldown <= 0)
                         {
-                            map.SetBackgroundTile(cursorOnChunk, mouseIsOverBlock, 0);
-                        }
-                        catch (Exception ex)
-                        {
-                            LogMessage("Failed to set background: " + ex.Message, Color.Red);
+                            try
+                            {
+                                map.SetBackgroundTile(cursorOnChunk, mouseIsOverBlock, 0);
+                                player.UseCooldown = 200;
+                            }
+                            catch (Exception ex)
+                            {
+                                LogMessage("Failed to set background: " + ex.Message, Color.Red);
+                            }
                         }
                     }
                     else
@@ -676,14 +694,22 @@ namespace TileMaster
                             }
                         }
 
-                        if (map.IsBlockOnChunk(cursorOnChunk, mouseIsOverBlock))
+                        if (player.UseCooldown <= 0)
                         {
-                            map.SetTile(cursorOnChunk, mouseIsOverBlock, (int)TileType.Air);
-                            lightingDirty = true;
-                        }
-                        else
-                        {
-                            LogMessage("Block ID " + mouseIsOverBlock + " was not present at chunk " + cursorOnChunk, Color.Red);
+                            if (map.IsBlockOnChunk(cursorOnChunk, mouseIsOverBlock))
+                            {
+                                var dropped = map.PerformActionOnTile(cursorOnChunk, mouseIsOverBlock, ToolAction.MineBlock);
+                                foreach (var drop in dropped)
+                                {
+                                    player.AddItem(drop, 1);
+                                }
+                                lightingDirty = true;
+                                player.UseCooldown = 200; // Standard block mining cooldown
+                            }
+                            else
+                            {
+                                LogMessage("Block ID " + mouseIsOverBlock + " was not present at chunk " + cursorOnChunk, Color.Red);
+                            }
                         }
                     }
                 }

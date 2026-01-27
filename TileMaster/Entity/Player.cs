@@ -63,6 +63,10 @@ namespace TileMaster.Entity
                 if (item != null && item.Item != null && item.Item.IsAmmo && item.Item.AmmoType == type && item.Quantity > 0)
                 {
                     item.Quantity--;
+                    if (item.Quantity <= 0)
+                    {
+                        ActionBar[kvp.Key] = null;
+                    }
                     return;
                 }
             }
@@ -73,9 +77,114 @@ namespace TileMaster.Entity
                 if (item != null && item.Item != null && item.Item.IsAmmo && item.Item.AmmoType == type && item.Quantity > 0)
                 {
                     item.Quantity--;
+                    if (item.Quantity <= 0)
+                    {
+                        Inventory[kvp.Key] = null;
+                    }
                     return;
                 }
             }
+        }
+
+        public void AddItem(Item itemRef, int quantity)
+        {
+            if (itemRef == null) return;
+
+            // Try to add to existing stack in ActionBar
+            foreach (var slot in ActionBar.Values)
+            {
+                if (slot != null && slot.Item != null && slot.Item.Id == itemRef.Id && slot.Quantity < slot.Item.StackSize)
+                {
+                    int canAdd = slot.Item.StackSize - slot.Quantity;
+                    int toAdd = Math.Min(canAdd, quantity);
+                    slot.Quantity += toAdd;
+                    quantity -= toAdd;
+                    if (quantity <= 0) return;
+                }
+            }
+
+            // Try to find empty slot in ActionBar
+            for (int i = 0; i < 10; i++)
+            {
+                if (!ActionBar.ContainsKey(i) || ActionBar[i] == null || ActionBar[i].Item == null)
+                {
+                    ActionBar[i] = new InventoryItem(itemRef, quantity);
+                    return;
+                }
+            }
+
+            // Try to add to existing stack in Inventory
+            foreach (var slot in Inventory.Values)
+            {
+                if (slot != null && slot.Item != null && slot.Item.Id == itemRef.Id && slot.Quantity < slot.Item.StackSize)
+                {
+                    int canAdd = slot.Item.StackSize - slot.Quantity;
+                    int toAdd = Math.Min(canAdd, quantity);
+                    slot.Quantity += toAdd;
+                    quantity -= toAdd;
+                    if (quantity <= 0) return;
+                }
+            }
+
+            // Try to find empty slot in Inventory
+            for (int i = 0; i < 40; i++)
+            {
+                if (!Inventory.ContainsKey(i) || Inventory[i] == null || Inventory[i].Item == null)
+                {
+                    Inventory[i] = new InventoryItem(itemRef, quantity);
+                    return;
+                }
+            }
+
+            // Fallback: Drop on ground or log failure
+            Game.LogMessage($"Inventory full! Could not add {itemRef.Name}", Color.Yellow);
+        }
+
+        public void ConsumeItem(int itemId, int quantity)
+        {
+            int remaining = quantity;
+            // ActionBar first
+            foreach (var kvp in ActionBar)
+            {
+                var item = kvp.Value;
+                if (item != null && item.Item != null && item.Item.Id == itemId)
+                {
+                    int toConsume = Math.Min(remaining, item.Quantity);
+                    item.Quantity -= toConsume;
+                    remaining -= toConsume;
+                    if (item.Quantity <= 0) ActionBar[kvp.Key] = null;
+                    if (remaining <= 0) return;
+                }
+            }
+            // Inventory
+            foreach (var kvp in Inventory)
+            {
+                var item = kvp.Value;
+                if (item != null && item.Item != null && item.Item.Id == itemId)
+                {
+                    int toConsume = Math.Min(remaining, item.Quantity);
+                    item.Quantity -= toConsume;
+                    remaining -= toConsume;
+                    if (item.Quantity <= 0) Inventory[kvp.Key] = null;
+                    if (remaining <= 0) return;
+                }
+            }
+        }
+
+        public int RemoveItemFromSlot(int slotIndex, int quantity, bool fromActionBar = true)
+        {
+            var targetDict = fromActionBar ? ActionBar : Inventory;
+            if (targetDict.TryGetValue(slotIndex, out var item) && item != null)
+            {
+                item.Quantity -= quantity;
+                if (item.Quantity <= 0)
+                {
+                    targetDict[slotIndex] = null;
+                    return 0;
+                }
+                return item.Quantity;
+            }
+            return 0;
         }
 
         public void Load(ContentManager content)

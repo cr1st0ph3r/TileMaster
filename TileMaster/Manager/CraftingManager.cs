@@ -60,11 +60,15 @@ namespace TileMaster.Manager
             // Consume ingredients
             foreach (var ingredient in recipe.Ingredients)
             {
-                ConsumeItem(player, ingredient.ItemId, ingredient.Quantity);
+                player.ConsumeItem(ingredient.ItemId, ingredient.Quantity);
             }
 
             // Add output to player ActionBar (for now) or Inventory
-            AddItemToPlayer(player, recipe.OutputItemId, recipe.OutputQuantity);
+            var itemRef = Global.ReferenceItems.FirstOrDefault(i => i.Id == recipe.OutputItemId);
+            if (itemRef != null)
+            {
+                player.AddItem(itemRef, recipe.OutputQuantity);
+            }
 
             return true;
         }
@@ -83,65 +87,6 @@ namespace TileMaster.Manager
                     total += item.Quantity;
             }
             return total;
-        }
-
-        private void ConsumeItem(Player player, int itemId, int quantity)
-        {
-            int remaining = quantity;
-            // ActionBar first
-            foreach (var item in player.ActionBar.Values)
-            {
-                if (item != null && item.Item != null && item.Item.Id == itemId)
-                {
-                    int toConsume = System.Math.Min(remaining, item.Quantity);
-                    item.Quantity -= toConsume;
-                    remaining -= toConsume;
-                    if (remaining <= 0) return;
-                }
-            }
-            // Inventory
-            foreach (var item in player.Inventory.Values)
-            {
-                if (item != null && item.Item != null && item.Item.Id == itemId)
-                {
-                    int toConsume = System.Math.Min(remaining, item.Quantity);
-                    item.Quantity -= toConsume;
-                    remaining -= toConsume;
-                    if (remaining <= 0) return;
-                }
-            }
-        }
-
-        private void AddItemToPlayer(Player player, int itemId, int quantity)
-        {
-            var itemRef = Global.ReferenceItems.FirstOrDefault(i => i.Id == itemId);
-            if (itemRef == null) return;
-
-            // Try to add to existing stack in ActionBar
-            foreach (var slot in player.ActionBar.Values)
-            {
-                if (slot != null && slot.Item != null && slot.Item.Id == itemId && slot.Quantity < slot.Item.StackSize)
-                {
-                    int canAdd = slot.Item.StackSize - slot.Quantity;
-                    int toAdd = System.Math.Min(canAdd, quantity);
-                    slot.Quantity += toAdd;
-                    quantity -= toAdd;
-                    if (quantity <= 0) return;
-                }
-            }
-
-            // Try to find empty slot in ActionBar
-            for (int i = 0; i < 10; i++)
-            {
-                if (!player.ActionBar.ContainsKey(i) || player.ActionBar[i] == null || player.ActionBar[i].Item == null)
-                {
-                    player.ActionBar[i] = new InventoryItem { Item = itemRef, Quantity = quantity };
-                    return;
-                }
-            }
-
-            // Fallback to Log for now if inventory is full
-            Game.LogMessage($"Crafted {itemRef.Name}, but no space in ActionBar!", Microsoft.Xna.Framework.Color.Yellow);
         }
     }
 }
