@@ -30,15 +30,20 @@ namespace TileMaster.UI
 
         public void UpdateItemInfoPanelLocation()
         {
+            if (ItemInfoPanel == null) return; // safety check
             ItemInfoPanel.Top = Global.CursorY - Top;
             ItemInfoPanel.Left = Global.CursorX - Left;
             ItemInfoPanel.Visible = true;
             var label = ItemInfoPanel.Widgets.FirstOrDefault(x => x.Id == "cursorX") as Label;
-            label.Text = "Cursor X: " + Global.CursorX + " x " + Global.CursorY;
+            if (label != null)
+            {
+                label.Text = "Cursor X: " + Global.CursorX + " x " + Global.CursorY;
+            }
         }
 
         public void HideItemInfoPanelLocation()
         {
+            if (ItemInfoPanel == null) return; // safety check
             ItemInfoPanel.Visible = false;
         }
 
@@ -106,15 +111,13 @@ namespace TileMaster.UI
                 }
             }
 
-            var labelTitle = new Label();
-            labelTitle.Text = title;
-            labelTitle.Top = -30;
-            labelTitle.HorizontalAlignment = HorizontalAlignment.Center;
-            InventoryPanel.Widgets.Add(labelTitle);
-
             Content = InventoryPanel;
+            // Safely retrieve ItemInfoPanel if it exists
             ItemInfoPanel = MainPanel.CommonComponents.Widgets["ItemInfoPanel"] as Panel;
-            InventoryPanel.Widgets.Add(ItemInfoPanel);
+            if (ItemInfoPanel != null)
+            {
+                InventoryPanel.Widgets.Add(ItemInfoPanel);
+            }
 
         }
 

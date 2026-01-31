@@ -26,7 +26,7 @@ namespace TileMaster.Map
         /// The list of modified tiles
         /// </summary>
         public List<CollisionTile> ModifiedTiles { get; set; }
-     
+
         /// <summary>
         /// The tile manager used for tile storage and management
         /// </summary>
@@ -46,6 +46,8 @@ namespace TileMaster.Map
         /// The height of the map
         /// </summary>
         public int Height { get; set; }
+
+        private List<int> _chunksToDraw = new List<int>(9);
 
         public Map()
         {
@@ -201,7 +203,12 @@ namespace TileMaster.Map
         public bool SetTile(int chunkId, int globalId, int referenceTileId)
         {
             var targetTile = GetTileByGlobalId(globalId);
-            if(targetTile.TileId == referenceTileId)
+            if (CheckTileForPlacedItem(targetTile))
+            {
+                //We cannot put tiles on top of placed items
+                return false;
+            }
+            if (targetTile.TileId == referenceTileId)
             {
                 //its already that tile, no need to change
                 return false;
@@ -209,7 +216,23 @@ namespace TileMaster.Map
             SetTile(targetTile, referenceTileId);
             return true;
         }
-
+        public bool CheckTileForPlacedItem(Tile targetTile)
+        {
+            //we cannot place solid tiles over placed items
+            if (targetTile.PlacedItem is not null)
+            {
+                return true;
+            }
+            else if (targetTile.MultiTileOffset != Point.Zero)
+            {
+                targetTile = GetTileAt(targetTile.X + targetTile.MultiTileOffset.X, targetTile.Y + targetTile.MultiTileOffset.Y);
+                if (targetTile.PlacedItem is not null)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
         /// <summary>
         /// Places an item at a given global ID
         /// </summary>
@@ -295,7 +318,7 @@ namespace TileMaster.Map
                 for (int iy = 0; iy < item.Height; iy++)
                 {
                     var currentTile = GetTileAt(startX + ix, startY + iy);
-                    
+
                     if (ix == 0 && iy == 0)
                     {
                         // Master Tile
@@ -399,7 +422,7 @@ namespace TileMaster.Map
                 targetTile.IsSlope = true;
                 targetTile.SlopeRotation = 0;
                 targetTile.Rotation = 0f;
-                
+
                 var slopeTexture = referenceTile.Textures.FirstOrDefault(x => x.Name.EndsWith("Slope"));
                 if (slopeTexture != null)
                 {
@@ -449,19 +472,31 @@ namespace TileMaster.Map
         /// <summary>
         /// Updates a given tile with a new reference tile
         /// </summary>
-        public void SetTile(Tile targetTile, int referenceTileId, float rotation = 0f)
+        public void SetTile(Tile targetTile, int referenceTileId, string textureName = null, float rotation = 0f)
         {
             var referenceTile = Global.ReferenceTiles[referenceTileId];
-
-            if (referenceTile.AlternateTextures != null && referenceTile.AlternateTextures.Any() && referenceTile.AltTextures != null && referenceTile.AltTextures.Any())
+            if (referenceTile.AtlasTexture is not null)
             {
-                // Use a local random if Game instance is not available (headless tests)
                 var random = Game.rnd ?? new Random();
-                targetTile.Texture = referenceTile.AltTextures[random.Next(referenceTile.AltTextures.Count)];
+                if (textureName is null)
+                {
+                    textureName = referenceTile.AlternateTextures[random.Next(referenceTile.AlternateTextures.Count)];
+                }
+                targetTile.SourceRectangle = referenceTile.AtlasMap[textureName];
+                targetTile.AtlasTexture = referenceTile.AtlasTexture;
             }
             else
             {
-                targetTile.Texture = referenceTile.Texture;
+                if (referenceTile.AlternateTextures != null && referenceTile.AlternateTextures.Any() && referenceTile.AltTextures != null && referenceTile.AltTextures.Any())
+                {
+                    // Use a local random if Game instance is not available (headless tests)
+                    var random = Game.rnd ?? new Random();
+                    targetTile.Texture = referenceTile.AltTextures[random.Next(referenceTile.AltTextures.Count)];
+                }
+                else
+                {
+                    targetTile.Texture = referenceTile.Texture;
+                }
             }
 
             targetTile.Name = ((TileType)referenceTileId).ToString();
@@ -622,83 +657,48 @@ namespace TileMaster.Map
             return tile != null && tile.ChunkId == chunkId;
         }
 
-        /// <summary>
-        /// returns a list containing all the tiles near the player so they can be drawn
-        /// </summary>
-        /// <param name="referenceChunk">1-based chunk ID</param>
-        /// <returns></returns>
-        private List<Tile> GetTilesToDraw(int referenceChunk)
+        private void UpdateChunksToDraw(int referenceChunk)
         {
-            //this calculation can take into consideration the current window size, although if zoom is implemented,
-            //it will also have to be taken into account as well.
-            //Currently, for the standard 1920x1080 resolution the approximate value for chunks to be rendered is 2
-            //how many chunks fit on the screen?
-            var chunksOnTheScreenHorizontally = 2;
-            var chunksOnTheScreenVertically = 2;
-
-            //used to access upper and lower row chunks
+            // Simple approach: draw 3x3 grid of chunks around reference
+            _chunksToDraw.Clear();
             var rowMultiplier = Global.MapWidth / Global.ChunkSize;
 
-            var tiles = new List<Tile>();
-            var CTD = new List<int>();
-            //horizontal
-            foreach (var i in Enumerable.Range(1, chunksOnTheScreenHorizontally))
+            for (int y = -1; y <= 1; y++)
             {
-                CTD.Add(referenceChunk - i);
-                CTD.Add(referenceChunk + i);
-            }
-            //vertical
-            foreach (var i in Enumerable.Range(1, chunksOnTheScreenVertically))
-            {
-                CTD.Add(referenceChunk + rowMultiplier + i);
-                CTD.Add(referenceChunk - rowMultiplier + i);
-                CTD.Add(referenceChunk + rowMultiplier - i);
-                CTD.Add(referenceChunk - rowMultiplier - i);
-            }
-            CTD.Add(referenceChunk + rowMultiplier);
-            CTD.Add(referenceChunk - rowMultiplier);
-            CTD.Add(referenceChunk);
-
-            foreach (var c in CTD)
-            {
-                //because of player being on very edge map
-                if (IsChunkPresent(c))
+                for (int x = -2; x <= 2; x++)
                 {
-                    var chunk = GetChunk(c);
-                    if (chunk != null && chunk.Tiles != null)
+                    int chunkId = referenceChunk + (y * rowMultiplier) + x;
+                    if (IsChunkPresent(chunkId))
                     {
-                        tiles.AddRange(chunk.Tiles.Where(t => t != null));
+                        _chunksToDraw.Add(chunkId);
                     }
                 }
             }
-            return tiles;
         }
 
 
 
         public void Draw(SpriteBatch spriteBatch, int chunkId)
         {
-            //draw relevant chunks
-            var tiles = GetTilesToDraw(chunkId);
+            UpdateChunksToDraw(chunkId);
 
-            // Draw background tiles first
-            foreach (var tile in tiles)
+            // Draw background tiles first to ensure they are behind foreground
+            foreach (int cId in _chunksToDraw)
             {
-                var chunk = GetChunk(tile.ChunkId);
-                if (chunk != null && chunk.BackgroundTiles != null)
+                var chunk = GetChunk(cId);
+                if (chunk == null) continue;
+
+                if (chunk.BackgroundTiles != null)
                 {
-                    // Find background tile by matching local index
-                    int localIndex = GlobalToLocalIndex(tile.X, tile.Y);
-                    if (localIndex >= 0 && localIndex < chunk.BackgroundTiles.Length)
+                    for (int i = 0; i < chunk.BackgroundTiles.Length; i++)
                     {
-                        var bgTile = chunk.BackgroundTiles[localIndex];
-                        if (bgTile != null)
+                        var bgTile = chunk.BackgroundTiles[i];
+                        if (bgTile != null && bgTile.TileId != (int)TileType.Air)
                         {
-                            // Ensure background tiles are always drawn with a specific color filter to distinguish them
+                            // Ensure background tiles are visually dimmed if needed
                             if (bgTile.Color == "Gray" && !bgTile.ColorArgb.HasValue && !bgTile.ColorFilter.HasValue)
                             {
-                                // Force a visual dimming if using default
-                                bgTile.ColorFilter = Microsoft.Xna.Framework.Color.Gray;
+                                bgTile.ColorFilter = Color.Gray;
                             }
                             bgTile.Draw(spriteBatch);
                         }
@@ -707,19 +707,24 @@ namespace TileMaster.Map
             }
 
             // Draw foreground tiles
-            foreach (var tile in tiles)
+            foreach (int cId in _chunksToDraw)
             {
-                if (Global.MarkTilesOnTheEdge)
+                var chunk = GetChunk(cId);
+                if (chunk == null || chunk.Tiles == null) continue;
+
+                for (int i = 0; i < chunk.Tiles.Length; i++)
                 {
-                    if (tile.IsEdgeTile)
+                    var tile = chunk.Tiles[i];
+                    if (tile != null && tile.TileId != (int)TileType.Air)
                     {
-                        tile.Color = "Gray";
+                        if (Global.MarkTilesOnTheEdge && tile.IsEdgeTile)
+                        {
+                            tile.Color = "Gray";
+                        }
+                        tile.Draw(spriteBatch);
                     }
                 }
-
-                tile.Draw(spriteBatch);
             }
-
         }
 
         /// <summary>

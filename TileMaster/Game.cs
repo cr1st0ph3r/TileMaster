@@ -3,11 +3,13 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Myra;
+using Myra.Graphics2D.TextureAtlases;
 using Myra.Graphics2D.UI;
 using SharpDX.MediaFoundation;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
 using TileMaster.Data;
@@ -55,6 +57,9 @@ namespace TileMaster
         //TODO remover
         private int cursorGridX = 0;
         private int cursorGridY = 0;
+
+        private TextureRegion _cachedHeldItemTexture;
+        private string _cachedHeldItemIcon;
 
         //timers
         float timer5s = 1000;
@@ -221,16 +226,15 @@ namespace TileMaster
         {
             // Update focus point for lighting optimization
             map.FocusPoint = new Point((int)player.GetPosition().X / Global.TileSize, (int)player.GetPosition().Y / Global.TileSize);
-
+            
             // Process pending chunk loads/unloads
             map.mapManager.ProcessPendingChunks();
-
+            
             // Input handling
             UpdateInputHandling(gameTime);
-
-            //updates player
+            //updates player           
             player.Update(gameTime, map);
-
+                 
             // Check if player changed chunk to update loaded areas
             if (player.OnChunk != lastPlayerChunk)
             {
@@ -287,23 +291,22 @@ namespace TileMaster
 
                 mob.Update(gameTime, map);
             }
-
             //update projectiles
-            foreach (var projectile in projectiles.ToList())
+            for (int i = projectiles.Count - 1; i >= 0; i--)
             {
+                var projectile = projectiles[i];
                 projectile.Update(gameTime, map);
                 if (!projectile.IsActive)
                 {
-                    projectiles.Remove(projectile);
+                    projectiles.RemoveAt(i);
                 }
             }
 
             //update camera
             camera.Update(player.GetPosition(), map.Width, map.Height);
-
+            
             //update background
             backgroundManager.Update(gameTime);
-
             //timer
             float elapsed = (float)gameTime.ElapsedGameTime.TotalMilliseconds;
             timer5s -= elapsed;
@@ -337,7 +340,6 @@ namespace TileMaster
 
             map.UpdateModifiedTiles();
             map.water.Update(gameTime);
-
             DamageNumberManager.Update(gameTime);
         }
         void UpdateEvery100ms(GameTime gameTime)
@@ -441,11 +443,7 @@ namespace TileMaster
                 // SamplerState.LinearWrap will handle the tiling.
                 Rectangle destinationRectangle = new Rectangle(0, 0, graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight);
                 Rectangle sourceRectangle = new Rectangle((int)_mainMenuScrollOffset, 0, mainMenuBackground.Width, mainMenuBackground.Height);
-
-                // If the destination is larger than the source, we might want to scale it or tile it.
-                // Given the original code used a destination rectangle of screen size, I'll keep that.
                 spriteBatch.Draw(mainMenuBackground, destinationRectangle, sourceRectangle, Color.White);
-
                 spriteBatch.End();
             }
             else
@@ -487,8 +485,9 @@ namespace TileMaster
                 }
 
                 //messages
-                foreach (var mess in Messages.ToList())
+                for (int i = Messages.Count - 1; i >= 0; i--)
                 {
+                    var mess = Messages[i];
                     if (mess.Timeout > 0)
                     {
                         DrawWithShadow(mess.Text, new Vector2(camera.Center.X - (((Global.WindowWidth / 2) - 20)), camera.Center.Y + ((Global.WindowHeight / 2) - 40) - (mess.Id * 20)), mess.Color);
@@ -496,7 +495,7 @@ namespace TileMaster
                     }
                     else
                     {
-                        Messages.Remove(mess);
+                        Messages.RemoveAt(i);
                     }
                 }
                 spriteBatch.End();
@@ -509,10 +508,17 @@ namespace TileMaster
             {
                 spriteBatch.Begin();
                 var heldItem = Global.HeldItem;
-                var texture = MyraEnvironment.DefaultAssetManager.LoadTextureRegion($"{Global.UIIconsLocation}{heldItem.Item.UIIcon}.png");
+                if (_cachedHeldItemIcon != heldItem.Item.UIIcon)
+                {
+                    _cachedHeldItemIcon = heldItem.Item.UIIcon;
+                    _cachedHeldItemTexture = MyraEnvironment.DefaultAssetManager.LoadTextureRegion($"{Global.UIIconsLocation}{heldItem.Item.UIIcon}.png");
+                }
 
                 // Draw icon
-                spriteBatch.Draw(texture.Texture, new Rectangle(current_mouse.X - 16, current_mouse.Y - 16, 32, 32), texture.Bounds, Color.White);
+                if (_cachedHeldItemTexture != null)
+                {
+                    spriteBatch.Draw(_cachedHeldItemTexture.Texture, new Rectangle(current_mouse.X - 16, current_mouse.Y - 16, 32, 32), _cachedHeldItemTexture.Bounds, Color.White);
+                }
 
                 // Draw quantity
                 string text = heldItem.Quantity.ToString();
@@ -531,7 +537,7 @@ namespace TileMaster
             //this list must be called and then the messages will be shown
             //also a timeout must be defined to define for how long the messages will be displayed
             //DrawWithShadow(message, new Vector2(camera.Center.X + ((Global.WindowWidth/2)-20), camera.Center.Y + ((Global.WindowHeight / 2) - 20)),color);
-            if (Messages.ToList().Any(x => x.Text == message))
+            if (Messages.Any(x => x.Text == message))
             {
                 var ms = Messages.FirstOrDefault(x => x.Text == message);
                 ms.Timeout = timeout;
@@ -561,7 +567,7 @@ namespace TileMaster
                 {
                     int actionBarIndex = _mainPanel.SelectedItem;
                     var inventoryItem = player.ActionBar[actionBarIndex];
-                    if(inventoryItem is null)
+                    if (inventoryItem is null)
                     {
                         //no item selected
                         return;
@@ -572,19 +578,7 @@ namespace TileMaster
                     {
                         if (Keyboard.GetState().IsKeyDown(Keys.B))
                         {
-                            try
-                            {
-                                // Only Tiles can be placed as background (walls)
-                                if (item.IsTile)
-                                {
-                                    map.SetBackgroundTile(cursorOnChunk, mouseIsOverBlock, item.TileId);
-                                    player.UseCooldown = item.UseTime;
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                LogMessage("Failed to set background: " + ex.Message, Color.Red);
-                            }
+                            PlaceBackgroundTile(item);
                         }
                         else
                         {
@@ -592,59 +586,20 @@ namespace TileMaster
                             {
                                 if (item.IsTile)
                                 {
-                                    if (map.SetTile(cursorOnChunk, mouseIsOverBlock, item.TileId))
-                                    {
-                                        var remaining = player.RemoveItemFromSlot(actionBarIndex, 1);
-                                        _mainPanel.UpdateItemCount(remaining, actionBarIndex);
-                                        lightingDirty = true;
-                                        player.UseCooldown = item.UseTime;
-                                    }
+                                    PlaceTile(item, actionBarIndex);
                                 }
                                 else if (item.IsPlaceable)
                                 {
-                                    map.PlaceItem(cursorOnChunk, mouseIsOverBlock, item);
-                                    player.RemoveItemFromSlot(actionBarIndex, 1);
-                                    lightingDirty = true;
-                                    player.UseCooldown = item.UseTime;
+                                    PlaceItem(item, actionBarIndex);
                                 }
                                 else if (item.IsTool)
                                 {
-                                    if (item.ToolAction == ToolAction.RangedWeapon)
-                                    {
-                                        if (item.RequiresAmmo)
-                                        {
-                                            if (player.HasAmmo(item.RequiredAmmoType, out var ammoInvItem))
-                                            {
-                                                SpawnProjectile(player, item, ammoInvItem.Item);
-                                                player.ConsumeAmmo(item.RequiredAmmoType);
-                                                player.UseCooldown = item.UseTime;
-                                            }
-                                            else
-                                            {
-                                                LogMessage("No ammunition!", Color.Red, 100);
-                                            }
-                                        }
-                                        else
-                                        {
-                                            SpawnProjectile(player, item, item); // Self as ammo if none required? 
-                                            player.UseCooldown = item.UseTime;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        var dropped = map.PerformActionOnTile(cursorOnChunk, mouseIsOverBlock, item.ToolAction);
-                                        foreach (var drop in dropped)
-                                        {
-                                            player.AddItem(drop, 1);
-                                        }
-                                        player.UseCooldown = item.UseTime;
-                                    }
+                                    UseTool(item);
                                 }
                             }
-                            catch
+                            catch (Exception e)
                             {
-                                //mouse clicked outside the game context
-                                //for the mean time this can be neglected
+                                LogMessage($"Error using item:{e.Message}", Color.Red);
                             }
                         }
                     }
@@ -653,18 +608,18 @@ namespace TileMaster
                 {
                     if (Keyboard.GetState().IsKeyDown(Keys.B))
                     {
-                        if (player.UseCooldown <= 0)
-                        {
-                            try
-                            {
-                                map.SetBackgroundTile(cursorOnChunk, mouseIsOverBlock, 0);
-                                player.UseCooldown = 200;
-                            }
-                            catch (Exception ex)
-                            {
-                                LogMessage("Failed to set background: " + ex.Message, Color.Red);
-                            }
-                        }
+                        //if (player.UseCooldown <= 0)
+                        //{
+                        //    try
+                        //    {
+                        //        map.SetBackgroundTile(cursorOnChunk, mouseIsOverBlock, 0);
+                        //        player.UseCooldown = 200;
+                        //    }
+                        //    catch (Exception ex)
+                        //    {
+                        //        LogMessage("Failed to set background: " + ex.Message, Color.Red);
+                        //    }
+                        //}
                     }
                     else
                     {
@@ -694,23 +649,23 @@ namespace TileMaster
                             }
                         }
 
-                        if (player.UseCooldown <= 0)
-                        {
-                            if (map.IsBlockOnChunk(cursorOnChunk, mouseIsOverBlock))
-                            {
-                                var dropped = map.PerformActionOnTile(cursorOnChunk, mouseIsOverBlock, ToolAction.MineBlock);
-                                foreach (var drop in dropped)
-                                {
-                                    player.AddItem(drop, 1);
-                                }
-                                lightingDirty = true;
-                                player.UseCooldown = 200; // Standard block mining cooldown
-                            }
-                            else
-                            {
-                                LogMessage("Block ID " + mouseIsOverBlock + " was not present at chunk " + cursorOnChunk, Color.Red);
-                            }
-                        }
+                        //if (player.UseCooldown <= 0)
+                        //{
+                        //    if (map.IsBlockOnChunk(cursorOnChunk, mouseIsOverBlock))
+                        //    {
+                        //        var dropped = map.PerformActionOnTile(cursorOnChunk, mouseIsOverBlock, ToolAction.MineBlock);
+                        //        foreach (var drop in dropped)
+                        //        {
+                        //            player.AddItem(drop, 1);
+                        //        }
+                        //        lightingDirty = true;
+                        //        player.UseCooldown = 200; // Standard block mining cooldown
+                        //    }
+                        //    else
+                        //    {
+                        //        LogMessage("Block ID " + mouseIsOverBlock + " was not present at chunk " + cursorOnChunk, Color.Red);
+                        //    }
+                        //}
                     }
                 }
                 //leave game
@@ -719,6 +674,76 @@ namespace TileMaster
             }
         }
 
+        private void PlaceBackgroundTile(Item item)
+        {
+            try
+            {
+                // Only Tiles can be placed as background (walls)
+                if (item.IsTile)
+                {
+                    map.SetBackgroundTile(cursorOnChunk, mouseIsOverBlock, item.TileId);
+                    player.UseCooldown = item.UseTime;
+                }
+            }
+            catch (Exception ex)
+            {
+                LogMessage("Failed to set background: " + ex.Message, Color.Red);
+            }
+        }
+
+        private void PlaceTile(Item item, int actionBarIndex)
+        {
+            if (map.SetTile(cursorOnChunk, mouseIsOverBlock, item.TileId))
+            {
+                var remaining = player.RemoveItemFromSlot(actionBarIndex, 1);
+                _mainPanel.UpdateItemCount(remaining, actionBarIndex);
+                lightingDirty = true;
+                player.UseCooldown = item.UseTime;
+            }
+        }
+
+        private void PlaceItem(Item item, int actionBarIndex)
+        {
+            map.PlaceItem(cursorOnChunk, mouseIsOverBlock, item);
+            player.RemoveItemFromSlot(actionBarIndex, 1);
+            lightingDirty = true;
+            player.UseCooldown = item.UseTime;
+        }
+
+        private void UseTool(Item item)
+        {
+            if (item.ToolAction == ToolAction.RangedWeapon)
+            {
+                if (item.RequiresAmmo)
+                {
+                    if (player.HasAmmo(item.RequiredAmmoType, out var ammoInvItem))
+                    {
+                        SpawnProjectile(player, item, ammoInvItem.Item);
+                        player.ConsumeAmmo(item.RequiredAmmoType);
+                        player.UseCooldown = item.UseTime;
+                    }
+                    else
+                    {
+                        LogMessage("No ammunition!", Color.Red, 100);
+                    }
+                }
+                else
+                {
+                    SpawnProjectile(player, item, item); // Self as ammo if none required? 
+                    player.UseCooldown = item.UseTime;
+                }
+            }
+            else
+            {
+                var dropped = map.PerformActionOnTile(cursorOnChunk, mouseIsOverBlock, item.ToolAction);
+                foreach (var drop in dropped)
+                {
+                    player.AddItem(drop, 1);
+                }
+                player.UseCooldown = item.UseTime;
+            }
+        }
+     
         private void HandleInteraction(Item item)
         {
             if (item.InteractionType == InteractionType.Crafting)
@@ -776,7 +801,6 @@ namespace TileMaster
             }
         }
 
-
         private void HandleKeyboardEvents()
         {
             KeyboardState currentKeyboardState = Keyboard.GetState();
@@ -790,6 +814,7 @@ namespace TileMaster
 
             _lastKeyboardState = currentKeyboardState;
         }
+  
         public void GenericAction()
         {
             //map.GrowGrass(player.onChunk);

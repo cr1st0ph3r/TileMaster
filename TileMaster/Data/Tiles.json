@@ -14,12 +14,13 @@
   {
     "Id": 1,
     "Name": "Dirt",
-    "TextureName": "Dirt",
-    "TileSet": ["Dirt1","DirtSlope"],
+    "TextureName": "Dirt1",
+    "TileSet": [ "Dirt1", "DirtSlope" ],
     "AlternateTextures": [
       "Dirt2",
-      "Dirt3"    
+      "Dirt3"
     ],
+    "Atlas": "Atlas",
     "TextureId": 0,
     "TileId": 1,
     "IsOccupied": true,
@@ -47,7 +48,7 @@
   {
     "Id": 3,
     "Name": "DirtWithGrass",
-    "TextureName": "DirtWithGrass",
+    "TextureName": "DirtWithGrass1",
     "TileSet": [
       "DirtWithGrass1",
       "DirtWithGrass2",
@@ -71,6 +72,7 @@
       "DirtWithGrassSlope"
     ],
     "AlternateTextures": [],
+    "Atlas": "Atlas",
     "TextureId": 1,
     "ParentTileId": 0,
     "TileId": 3,

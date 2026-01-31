@@ -4,7 +4,6 @@ using Myra;
 using Myra.Graphics2D;
 using Myra.Graphics2D.Brushes;
 using Myra.Graphics2D.UI;
-using SharpDX.Direct3D11;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,10 +21,11 @@ namespace TileMaster.UI
         PlayerInventoryWindow inventoryWindow;
         private CraftingWindow _craftingWindow;
         private ContainerInventoryWindow _containerInventoryWindow;
+        private Panel ItemInfoPanel;
         public Panel ActionBarPanel;
         public static CommonComponents CommonComponents = new CommonComponents();
         private int selectedIndex = 0;
-        public int SelectedItem = 1;
+        public int SelectedItem = 0;
         public MainPanel()
         {
             BuildUI();
@@ -49,6 +49,8 @@ namespace TileMaster.UI
             _craftingWindow = new CraftingWindow();
             _containerInventoryWindow = new ContainerInventoryWindow();
             ActionBarPanel = new Panel();
+            // Retrieve the shared ItemInfoPanel from CommonComponents
+            ItemInfoPanel = CommonComponents.Widgets["ItemInfoPanel"] as Panel;
         }
 
         public void BuildActionBar(Player player)
@@ -116,22 +118,32 @@ namespace TileMaster.UI
         public void BuildAndDisplayContainerInventory(Dictionary<int, InventoryItem> items, string title)
         {
             _containerInventoryWindow.BuildInventory(items, title);
+            if (!Desktop.Widgets.Contains(_containerInventoryWindow))
+            {
+                Desktop.Widgets.Add(_containerInventoryWindow);
+            }
             _containerInventoryWindow.Show(Desktop, new Point(Global.WindowWidth / 2 + 200, Global.WindowHeight / 2));
         }
         public void BuildAndDisplayCraftingWindow(Player player, CraftingManager cm, string name)
         {
             _craftingWindow.Build(player, cm, name);
+            if (!Desktop.Widgets.Contains(_craftingWindow))
+            {
+                Desktop.Widgets.Add(_craftingWindow);
+            }
+            _craftingWindow.BringToFront();
             _craftingWindow.Show(Desktop, new Point(Global.WindowWidth / 2 + 200, Global.WindowHeight / 2));
         }
+
         public void UpdateState(GameState state)
         {
-            if (state == Entity.Enums.GameState.Menu)
+            if (state == GameState.Menu)
             {
                 _menuContainer.Visible = true;
                 _gameUIContainer.Visible = false;
                 ActionBarPanel.Visible = false;
             }
-            else if (state == Entity.Enums.GameState.Running)
+            else if (state == GameState.Running)
             {
                 _menuContainer.Visible = false;
                 _gameUIContainer.Visible = true;
@@ -235,6 +247,7 @@ namespace TileMaster.UI
         {
             _loadMapProgressBar.Value = value;
         }
+
         public void HideLoadProgress()
         {
             _loadMapProgressBar.Visible = false;

@@ -221,8 +221,10 @@ namespace TileMaster.Entity
             IsInWater = CheckIfInWater(map);
 
             if (UseCooldown > 0)
+            {
                 UseCooldown -= (float)gameTime.ElapsedGameTime.TotalMilliseconds;
-            
+            }
+
             // set if the player is in motion or not
             // We use a slightly more generous threshold for "stationary" to account for floating point jitter
             isMoving = Math.Abs(velocity.X) > 0.1f || Math.Abs(velocity.Y) > 0.5f;
@@ -230,7 +232,7 @@ namespace TileMaster.Entity
             // Check if we can skip physics (Stationary check)
             // Skip physics if: Not moving, No movement keys pressed, and already on solid block
             bool moveKeyPressed = keyboardState.IsKeyDown(Keys.A) || keyboardState.IsKeyDown(Keys.D) || keyboardState.IsKeyDown(Keys.Space);
-            
+
             if (!isMoving && !moveKeyPressed && IsOnSolidBlock && !InterruptInput && !IsInWater)
             {
                 // We are stationary. We still need a minimal check to see if the block under us was removed.
@@ -275,17 +277,17 @@ namespace TileMaster.Entity
                 }
                 else
                 {
-                     velocity.Y -= (Gravity * 0.5f) * dt; // Slow down if falling too fast entering water
+                    velocity.Y -= (Gravity * 0.5f) * dt; // Slow down if falling too fast entering water
                 }
-                
+
                 // Horizontal Drag
-                velocity.X *= 0.9f; 
-                velocity.Y *= 0.9f; 
+                velocity.X *= 0.9f;
+                velocity.Y *= 0.9f;
             }
             else
             {
                 // Normal Gravity
-                 if (velocity.Y < MaxFallSpeed && !IsOnSolidBlock)
+                if (velocity.Y < MaxFallSpeed && !IsOnSolidBlock)
                 {
                     velocity.Y += Gravity * dt;
                 }
@@ -326,7 +328,7 @@ namespace TileMaster.Entity
                     position.X = newX;
                     // Ensure the player climbs OR descends the slope as they move horizontally
                     float slopeRestY = SlopeCollisionHelper.GetSlopeRestPosition(hitTile, position.Y + Texture.Height, position.X, position.X + Texture.Width);
-                    
+
                     // Always push the player UP to prevent penetration
                     if (slopeRestY < position.Y + Texture.Height)
                     {
@@ -348,11 +350,11 @@ namespace TileMaster.Entity
             float newY = position.Y + velocity.Y * dt;
             Rectangle testRectY = new Rectangle((int)position.X, (int)newY, Texture.Width, Texture.Height);
 
-if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBottommost: velocity.Y < 0))
+            if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBottommost: velocity.Y < 0))
             {
                 // Get the tile we collided with
                 var hitTile = map.GetTileAt(hitTileX, hitTileY);
-                
+
                 // collided on Y axis: clamp and stop vertical velocity
                 if (velocity.Y > 0)
                 {
@@ -362,7 +364,7 @@ if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBotto
                         // For slopes, adjust position to rest on the slope surface
                         float slopeRestY = SlopeCollisionHelper.GetSlopeRestPosition(hitTile, testRectY.Bottom, testRectY.Left, testRectY.Right);
                         position.Y = slopeRestY - Texture.Height;
-                        
+
                         // Adjust velocity for slope influence
                         var adjustedVelocity = SlopeCollisionHelper.AdjustVelocityForSlope(hitTile, velocity.X, true);
                         velocity.Y = adjustedVelocity.Y;
@@ -373,7 +375,7 @@ if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBotto
                         position.Y = hitTileY * Global.TileSize - Texture.Height;
                         velocity.Y = 0f;
                     }
-                    
+
                     IsOnSolidBlock = true;
                     hasJumped = false;
                 }
@@ -386,7 +388,7 @@ if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBotto
                         if (hitTileY == feetTileY)
                         {
                             // If it's a slope at feet level, ignore it when moving up (we are climbing)
-                            position.Y = newY; 
+                            position.Y = newY;
                         }
                         else
                         {
@@ -489,7 +491,7 @@ if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBotto
             }
         }
 
-        
+
 
         private void UpdateAnimation(GameTime gameTime)
         {
@@ -537,16 +539,16 @@ if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBotto
             {
                 // small positional tweak to avoid immediate collision
                 position.Y -= 5F;
-                
+
                 if (IsInWater)
                 {
-                     velocity.Y = -JumpVelocity * 0.7f; // Reduced jump strength in water (swimming up)
+                    velocity.Y = -JumpVelocity * 0.7f; // Reduced jump strength in water (swimming up)
                 }
                 else
                 {
-                     velocity.Y = -JumpVelocity;
+                    velocity.Y = -JumpVelocity;
                 }
-               
+
                 hasJumped = true;
                 IsOnSolidBlock = false;
             }
@@ -555,7 +557,7 @@ if (IsRectCollidingWithMap(testRectY, map, out hitTileX, out hitTileY, findBotto
             {
                 hasJumped = false;
             }
-            
+
             if (hasJumped)
             {
                 if (!InputHelper.HandleJump(player, map))

@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
 
 namespace TileMaster.Entity.Tiles
 {
@@ -11,6 +12,7 @@ namespace TileMaster.Entity.Tiles
     {
 
         public Texture2D Texture { get; set; }
+        public Texture2D AtlasTexture { get; set; }
 
         public List<Texture2D> Textures { get; set; }
 
@@ -32,25 +34,35 @@ namespace TileMaster.Entity.Tiles
         /// When present, this takes precedence over the string-based Color name.
         /// </summary>
         public Color? ColorFilter { get; set; } = null;
+
+        private static Dictionary<string, Color> _colorTable = new Dictionary<string, Color>(StringComparer.OrdinalIgnoreCase);
      
         public void Draw(SpriteBatch spriteBatch)
         {
-            if (Texture != null)
+            var drawTexture = (AtlasTexture != null && SourceRectangle != null) ? AtlasTexture : GetTexture();
+
+            if (drawTexture != null)
             {
                 if (Rotation == 0)
                 {
-                    spriteBatch.Draw(GetTexture(), Rectangle, getColor());
+                    spriteBatch.Draw(drawTexture, Rectangle, SourceRectangle, getColor());
                 }
                 else
                 {
                     // draw using the position+scale overload so rotation origin is positioned correctly
-                    var origin = new Vector2(Texture.Width * 0.5f, Texture.Height * 0.5f);
-                    var scale = new Vector2(Rectangle.Width / (float)Texture.Width, Rectangle.Height / (float)Texture.Height);
+                    var origin = SourceRectangle.HasValue 
+                        ? new Vector2(SourceRectangle.Value.Width * 0.5f, SourceRectangle.Value.Height * 0.5f)
+                        : new Vector2(drawTexture.Width * 0.5f, drawTexture.Height * 0.5f);
+                    
+                    var texWidth = SourceRectangle.HasValue ? SourceRectangle.Value.Width : drawTexture.Width;
+                    var texHeight = SourceRectangle.HasValue ? SourceRectangle.Value.Height : drawTexture.Height;
+
+                    var scale = new Vector2(Rectangle.Width / (float)texWidth, Rectangle.Height / (float)texHeight);
                     var position = new Vector2(Rectangle.X + Rectangle.Width * 0.5f, Rectangle.Y + Rectangle.Height * 0.5f);
 
-                    spriteBatch.Draw(Texture,
+                    spriteBatch.Draw(drawTexture,
                                      position,        // center position in screen pixels
-                                     null,            // source rectangle (whole texture)
+                                     SourceRectangle, // source rectangle (part of atlas or whole texture)
                                      getColor(),
                                      Rotation,
                                      origin,          // origin in texture pixels (center)
@@ -97,9 +109,11 @@ namespace TileMaster.Entity.Tiles
 
         public void InitializeTexture()
         {
+            var refTile = Global.ReferenceTiles[TileId];
+            AtlasTexture = refTile.AtlasTexture;
+
             if (IsSlope)
             {
-                var refTile = Global.ReferenceTiles[TileId];
                 if (refTile.Textures != null)
                 {
                     var slopeTexture = refTile.Textures.FirstOrDefault(x => x != null && x.Name != null && x.Name.EndsWith("Slope"));
@@ -107,27 +121,49 @@ namespace TileMaster.Entity.Tiles
                     {
                         Texture = slopeTexture;
                         TextureName = slopeTexture.Name;
+                        if (AtlasTexture != null && refTile.AtlasMap.TryGetValue(TextureName, out var rect))
+                        {
+                            SourceRectangle = rect;
+                        }
                         return;
                     }
                 }
             }
-            if (TextureId == 0)
+            if(AtlasTexture is not null)
             {
-                Texture = Global.ReferenceTiles[TileId].GetTexture();
-            }
-            else {
-                var refTile = Global.ReferenceTiles[TileId];
-                //fatal flaw: we dont save which texture we are reffereing to, we have alternative textures, textures etc
-                if (refTile.Textures.Any())
+                TextureName = TextureName;
+                if (AtlasTexture != null && refTile.AtlasMap != null && refTile.AtlasMap.TryGetValue(TextureName, out var rect))
                 {
-                    Texture = refTile.Textures.FirstOrDefault(x => x.Name.EndsWith($"{Name}{TextureId}"));
+                    SourceRectangle = rect;
+                }
+            }
+            else
+            {
+                if (TextureId == 0)
+                {
+                    if (Global.UseAlternateTiles && refTile.AltTextures.Any())
+                    {
+                        Texture = refTile.AltTextures[Game.rnd.Next(refTile.AltTextures.Count)];
+                    }
+                    else
+                    {
+                        Texture = refTile.GetTexture();
+                    }
                 }
                 else
                 {
-                    Texture = refTile.AltTextures.FirstOrDefault(x => x.Name.EndsWith($"{Name}{TextureId}"));
+                    //fatal flaw: we dont save which texture we are reffereing to, we have alternative textures, textures etc
+                    if (refTile.Textures.Any())
+                    {
+                        Texture = refTile.Textures.FirstOrDefault(x => x.Name.EndsWith($"{Name}{TextureId}"));
+                    }
+                    else
+                    {
+                        Texture = refTile.AltTextures.FirstOrDefault(x => x.Name.EndsWith($"{Name}{TextureId}"));
+                    }
+
                 }
-           
-            }
+            }              
         }
 
         /// <summary>
@@ -158,9 +194,6 @@ namespace TileMaster.Entity.Tiles
         }
         private Texture2D GetTexture()
         {
-            if (AltTextures != null &&AltTextures.Any()) { 
-                return AltTextures[new Random().Next(0, AltTextures.Count)];
-            }
             return Texture;
         }
         #region Private Methods
@@ -177,11 +210,21 @@ namespace TileMaster.Entity.Tiles
                 return ColorFilter.Value;
             }
 
+            if (string.IsNullOrEmpty(Color))
+                return Microsoft.Xna.Framework.Color.White;
+
+            if (_colorTable.TryGetValue(Color, out var cachedColor))
+                return cachedColor;
+
             // Fallback to the existing reflection-based named color lookup so older code/data still works.
             var prop = typeof(Color).GetProperty(Color);
             if (prop != null)
-                return (Color)prop.GetValue(null, null);
-            return default;
+            {
+                var colorValue = (Color)prop.GetValue(null, null);
+                _colorTable[Color] = colorValue;
+                return colorValue;
+            }
+            return Microsoft.Xna.Framework.Color.White;
         }
         /// <summary>
         /// Pack a Color into an int (A<<24 | R<<16 | G<<8 | B).

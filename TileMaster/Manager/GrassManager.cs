@@ -39,8 +39,8 @@ namespace TileMaster.Manager
                         continue;
                     }
 
-// Only consider tiles that might change or influence grass (dirt, dirt-with-grass, or slope dirt)
-                    if (neighbor.TileId == (int)TileType.Dirt || 
+                    // Only consider tiles that might change or influence grass (dirt, dirt-with-grass, or slope dirt)
+                    if (neighbor.TileId == (int)TileType.Dirt ||
                         neighbor.TileId == (int)TileType.DirtWithGrass ||
                         (neighbor.IsSlope && neighbor.TileId == (int)TileType.Dirt))
                     {
@@ -120,20 +120,20 @@ namespace TileMaster.Manager
         /// </summary>
         /// <param name="destTile"></param>
         /// <returns></returns>
-private bool CheckTileEligibilityForGrass(Tile destTile)
+        private bool CheckTileEligibilityForGrass(Tile destTile)
         {
             // Handle regular dirt tiles
             if (destTile.TileId == (int)TileType.Dirt || destTile.TileId == (int)TileType.DirtWithGrass)
             {
                 return SetGrassTile(destTile);
             }
-            
+
             // Handle slope dirt tiles
             if (destTile.IsSlope && destTile.TileId == (int)TileType.Dirt)
             {
                 return SetGrassTile(destTile);
             }
-            
+
             return false;
         }
 
@@ -142,7 +142,7 @@ private bool CheckTileEligibilityForGrass(Tile destTile)
         /// </summary>
         /// <param name="destinationTile">The tile to set grass on.</param>
         /// <returns>True if the grass was successfully set, false otherwise.</returns>
-private bool SetGrassTile(Tile destinationTile)
+        private bool SetGrassTile(Tile destinationTile)
         {
             if (destinationTile.IsSlope)
             {
@@ -212,11 +212,11 @@ private bool SetGrassTile(Tile destinationTile)
                         rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(270f);
                     }
                     var grassTexture = grassDef?.Textures?.FirstOrDefault(x => x.Name.EndsWith(textureToUse));
-                    
+
                     // IF we don't have textures (headless), we just update the metadata
                     if (grassTexture == null)
                     {
-                        map.SetTile(destinationTile, referenceTileId: (int)TileType.DirtWithGrass, rotation: rotation);
+                        map.SetTile(destinationTile, referenceTileId: (int)TileType.DirtWithGrass, textureToUse, rotation: rotation);
                         return true;
                     }
 
@@ -227,7 +227,7 @@ private bool SetGrassTile(Tile destinationTile)
                     map.SetTile(destinationTile, grassTexture, rotation);
                     return true;
                 }
-                
+
                 // If it was grass but now has no air contact and handles no corners, revert to Dirt
                 if (destinationTile.TileId == (int)TileType.DirtWithGrass)
                 {
@@ -243,20 +243,23 @@ private bool SetGrassTile(Tile destinationTile)
                 string textureName = $"DirtWithGrass{mask}";
 
                 var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
-                var grassTexture = grassDef?.Textures?.FirstOrDefault(x => x.Name.EndsWith(textureName));
+                var grassTile = grassDef.AtlasMap[textureName];
+                destinationTile.SourceRectangle = grassDef.AtlasMap[textureName];
                 destinationTile.TextureId = mask;
                 destinationTile.TileId = (int)TileType.DirtWithGrass;
 
-                if (grassTexture == null)
-                {
-                    destinationTile.TextureName = "None";
-                    map.SetTile(destinationTile, referenceTileId: (int)TileType.DirtWithGrass);
-                }
-                else
-                {
-                    destinationTile.TextureName = grassTexture.Name;
-                    map.SetTile(destinationTile, grassTexture);
-                }
+                //map.UpdateTile(destinationTile);
+                map.SetTile(destinationTile, referenceTileId: (int)TileType.DirtWithGrass, textureName);
+                //if (grassTexture == null)
+                //{
+                //    destinationTile.TextureName = "None";
+                //    map.SetTile(destinationTile, referenceTileId: (int)TileType.DirtWithGrass);
+                //}
+                //else
+                //{
+                //    destinationTile.TextureName = grassTexture.Name;
+                //    map.SetTile(destinationTile, grassTexture);
+                //}
                 return true;
             }
 
@@ -315,7 +318,7 @@ private bool SetGrassTile(Tile destinationTile)
             if (neighbors[7].IsSolid && neighbors[5].IsSolid && neighbors[8].TileId == (int)TileType.Air)
                 mask |= 4; // Bottom Right Tuft
 
-return mask;
+            return mask;
         }
 
         /// <summary>
@@ -332,7 +335,7 @@ return mask;
             // Check if the slope has air contact (required for grass growth)
             var neighbors = map.tileInspector.GetNeighboringTiles(destinationTile);
             bool hasAirContact = false;
-            
+
             // Check different sides based on slope rotation
             switch (destinationTile.SlopeRotation)
             {
@@ -356,7 +359,7 @@ return mask;
             // Try to find a slope grass texture
             var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
             var slopeGrassTexture = grassDef?.Textures?.FirstOrDefault(x => x.Name.EndsWith("DirtWithGrassSlope"));
-            
+
             if (slopeGrassTexture != null)
             {
                 // Found the slope grass texture - apply rotation based on slope rotation
@@ -364,7 +367,7 @@ return mask;
                 destinationTile.TextureName = slopeGrassTexture.Name;
                 destinationTile.IsSlope = true; // Maintain slope property
                 destinationTile.SlopeRotation = destinationTile.SlopeRotation; // Maintain rotation
-                
+
                 // Set rotation for the texture
                 float rotation = 0f;
                 switch (destinationTile.SlopeRotation)
@@ -379,7 +382,7 @@ return mask;
                         rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(270f);
                         break;
                 }
-                
+
                 destinationTile.Rotation = rotation;
                 map.SetTile(destinationTile, slopeGrassTexture, rotation);
                 return true;
@@ -390,7 +393,7 @@ return mask;
                 destinationTile.TileId = (int)TileType.DirtWithGrass;
                 destinationTile.IsSlope = true; // Maintain slope property
                 destinationTile.SlopeRotation = destinationTile.SlopeRotation; // Maintain rotation
-                
+
                 // Use the first available grass texture as fallback
                 var fallbackTexture = grassDef?.Textures?.FirstOrDefault();
                 if (fallbackTexture != null)

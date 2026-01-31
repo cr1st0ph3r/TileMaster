@@ -5,9 +5,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using TileMaster.Entity;
-using TileMaster.Entity.MobMovement;
 using TileMaster.Entity.Tiles;
 using TileMaster.Model;
 
@@ -37,19 +35,68 @@ namespace TileMaster.Data
             {
                 try
                 {
-                    tile.Texture = content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{tile.TextureName}");
+                    
                     tile.Textures = new List<Texture2D>();
                     tile.AltTextures = new List<Texture2D>();
-                    foreach (var subTiles in tile.TileSet)
+               
+                    if(tile.Atlas != null)
                     {
-                        tile.Textures.Add(content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{subTiles}"));
+                        tile.AtlasTexture = content.Load<Texture2D>($"{tilePath}/{tile.Name}/{tile.Atlas}");
+                        
+                        // Populate AtlasMap with sub-tile names and their rectangles
+                        // Assuming a standard grid for now where each sub-texture in the list corresponds to a slot in the atlas
+                        // DirtWithGrass has 21 sub-tiles in TileSet + slope
+                        int x = 0;
+                        int y = 0;
+                        int tileSize = Global.TileSize;
+                        
+                        if (tile.Textures != null)
+                        {
+                            foreach (var tex in tile.TileSet)
+                            {
+                                if (tex != null)
+                                {
+                                    tile.AtlasMap[tex] = new Rectangle(x * tileSize, y * tileSize, tileSize, tileSize);
+                                    x++;
+                                    if (x * tileSize >= tile.AtlasTexture.Width)
+                                    {
+                                        x = 0;
+                                        y++;
+                                    }
+                                }
+                            }
+                        }
+                        if (tile.AltTextures != null)
+                        {
+                            foreach (var tex in tile.AlternateTextures)
+                            {
+                                if (tex != null)
+                                {
+                                    tile.AtlasMap[tex] = new Rectangle(x * tileSize, y * tileSize, tileSize, tileSize);
+                                    x++;
+                                    if (x * tileSize >= tile.AtlasTexture.Width)
+                                    {
+                                        x = 0;
+                                        y++;
+                                    }
+                                }
+                            }
+                        }
                     }
-                    foreach (var alt in tile.AlternateTextures)
+                    else
                     {
-                        tile.AltTextures.Add(content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{alt}"));
+                        tile.Texture = content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{tile.TextureName}");
+                        foreach (var subTiles in tile.TileSet)
+                        {
+                            tile.Textures.Add(content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{subTiles}"));
+                        }
+                        foreach (var alt in tile.AlternateTextures)
+                        {
+                            tile.AltTextures.Add(content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{alt}"));
+                        }
                     }
                 }
-                catch (ContentLoadException)
+                catch (ContentLoadException exc)
                 {
                     // If content loading fails (e.g. in a test environment), we just skip textures
                     System.Diagnostics.Debug.WriteLine($"Failed to load textures for tile: {tile.Name}");

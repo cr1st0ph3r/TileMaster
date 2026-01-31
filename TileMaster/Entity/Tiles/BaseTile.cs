@@ -66,6 +66,10 @@ namespace TileMaster.Entity.Tiles
         /// </summary>
         public int SlopeRotation { get; set; } = 0;
         /// <summary>
+        /// The source rectangle if the texture is an atlas
+        /// </summary>
+        public Rectangle? SourceRectangle { get; set; }
+        /// <summary>
         /// Whether the tile is collectable if mined.
         /// </summary>
         public bool Collectable { get; set; }

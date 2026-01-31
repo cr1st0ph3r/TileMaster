@@ -339,6 +339,18 @@
 /processorParam:TextureFormat=Color
 /build:Tiles/Air/Air.png
 
+#begin Tiles/Dirt/Atlas.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:Tiles/Dirt/Atlas.png
+
 #begin Tiles/Dirt/Dirt.png
 /importer:TextureImporter
 /processor:TextureProcessor
@@ -398,6 +410,18 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:Tiles/Dirt/DirtSlope.png
+
+#begin Tiles/DirtWithGrass/Atlas.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:Tiles/DirtWithGrass/Atlas.png
 
 #begin Tiles/DirtWithGrass/DirtWithGrass.png
 /importer:TextureImporter
