@@ -422,12 +422,12 @@ namespace TileMaster.Map
                 targetTile.IsSlope = true;
                 targetTile.SlopeRotation = 0;
                 targetTile.Rotation = 0f;
+                var SlopeTextureRectangle = referenceTile.AtlasMap.FirstOrDefault(x => x.Key.Contains("Slope"));
 
-                var slopeTexture = referenceTile.Textures.FirstOrDefault(x => x.Name.EndsWith("Slope"));
-                if (slopeTexture != null)
+                if (SlopeTextureRectangle.Key is not null)
                 {
-                    targetTile.Texture = slopeTexture;
-                    targetTile.TextureName = slopeTexture.Name;
+                    targetTile.SourceRectangle = SlopeTextureRectangle.Value;
+                    targetTile.TextureName = SlopeTextureRectangle.Key;
                 }
                 else
                 {

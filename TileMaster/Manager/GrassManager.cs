@@ -358,55 +358,33 @@ namespace TileMaster.Manager
 
             // Try to find a slope grass texture
             var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
-            var slopeGrassTexture = grassDef?.Textures?.FirstOrDefault(x => x.Name.EndsWith("DirtWithGrassSlope"));
+            //var slopeGrassTexture = grassDef?.Textures?.FirstOrDefault(x => x.Name.EndsWith("DirtWithGrassSlope"));
+            var slopeGrassTextureRectangle = grassDef.AtlasMap["DirtWithGrassSlope"];
 
-            if (slopeGrassTexture != null)
+            // Found the slope grass texture - apply rotation based on slope rotation
+            destinationTile.TileId = (int)TileType.DirtWithGrass;
+            destinationTile.TextureName = "DirtWithGrassSlope";
+            destinationTile.IsSlope = true; // Maintain slope property
+            destinationTile.SlopeRotation = destinationTile.SlopeRotation; // Maintain rotation
+
+            // Set rotation for the texture
+            float rotation = 0f;
+            switch (destinationTile.SlopeRotation)
             {
-                // Found the slope grass texture - apply rotation based on slope rotation
-                destinationTile.TileId = (int)TileType.DirtWithGrass;
-                destinationTile.TextureName = slopeGrassTexture.Name;
-                destinationTile.IsSlope = true; // Maintain slope property
-                destinationTile.SlopeRotation = destinationTile.SlopeRotation; // Maintain rotation
-
-                // Set rotation for the texture
-                float rotation = 0f;
-                switch (destinationTile.SlopeRotation)
-                {
-                    case 1:
-                        rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(90f);
-                        break;
-                    case 2:
-                        rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(180f);
-                        break;
-                    case 3:
-                        rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(270f);
-                        break;
-                }
-
-                destinationTile.Rotation = rotation;
-                map.SetTile(destinationTile, slopeGrassTexture, rotation);
-                return true;
+                case 1:
+                    rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(90f);
+                    break;
+                case 2:
+                    rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(180f);
+                    break;
+                case 3:
+                    rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(270f);
+                    break;
             }
-            else
-            {
-                // Fallback: use regular grass texture but maintain slope properties
-                destinationTile.TileId = (int)TileType.DirtWithGrass;
-                destinationTile.IsSlope = true; // Maintain slope property
-                destinationTile.SlopeRotation = destinationTile.SlopeRotation; // Maintain rotation
 
-                // Use the first available grass texture as fallback
-                var fallbackTexture = grassDef?.Textures?.FirstOrDefault();
-                if (fallbackTexture != null)
-                {
-                    destinationTile.TextureName = fallbackTexture.Name;
-                    map.SetTile(destinationTile, fallbackTexture);
-                }
-                else
-                {
-                    map.SetTile(destinationTile, referenceTileId: (int)TileType.DirtWithGrass);
-                }
-                return true;
-            }
+            destinationTile.Rotation = rotation;
+            map.SetTile(destinationTile, (int)TileType.DirtWithGrass, "DirtWithGrassSlope", rotation);
+            return true;
         }
     }
 }

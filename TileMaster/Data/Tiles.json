@@ -18,7 +18,8 @@
     "TileSet": [ "Dirt1", "DirtSlope" ],
     "AlternateTextures": [
       "Dirt2",
-      "Dirt3"
+      "Dirt3",
+      "Dirt4"
     ],
     "Atlas": "Atlas",
     "TextureId": 0,

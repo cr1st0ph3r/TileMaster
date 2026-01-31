@@ -437,7 +437,7 @@ namespace TileMaster
 
             if (_state == GameState.Menu)
             {
-                spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearWrap, null, null);
+                spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, null, null);
 
                 // Draw the background using a source rectangle that is offset by _mainMenuScrollOffset.
                 // SamplerState.LinearWrap will handle the tiling.
@@ -448,7 +448,7 @@ namespace TileMaster
             }
             else
             {
-                spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, null, null, null, null, camera.Transform);
+                spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, camera.Transform);
 
                 backgroundManager.Draw(gameTime, spriteBatch);
 

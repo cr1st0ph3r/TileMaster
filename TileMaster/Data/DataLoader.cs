@@ -50,25 +50,10 @@ namespace TileMaster.Data
                         int y = 0;
                         int tileSize = Global.TileSize;
                         
-                        if (tile.Textures != null)
+                        var combined = tile.TileSet.Concat(tile.AlternateTextures).ToList();
+                        if (combined != null)
                         {
-                            foreach (var tex in tile.TileSet)
-                            {
-                                if (tex != null)
-                                {
-                                    tile.AtlasMap[tex] = new Rectangle(x * tileSize, y * tileSize, tileSize, tileSize);
-                                    x++;
-                                    if (x * tileSize >= tile.AtlasTexture.Width)
-                                    {
-                                        x = 0;
-                                        y++;
-                                    }
-                                }
-                            }
-                        }
-                        if (tile.AltTextures != null)
-                        {
-                            foreach (var tex in tile.AlternateTextures)
+                            foreach (var tex in combined.OrderBy(x=>x))
                             {
                                 if (tex != null)
                                 {
