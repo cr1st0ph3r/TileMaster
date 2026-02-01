@@ -48,6 +48,8 @@ namespace TileMaster.UI
             inventoryWindow = new PlayerInventoryWindow();
             _craftingWindow = new CraftingWindow();
             _containerInventoryWindow = new ContainerInventoryWindow();
+            _containerInventoryWindow.Visible = false;
+            _craftingWindow.Visible = false;
             ActionBarPanel = new Panel();
             // Retrieve the shared ItemInfoPanel from CommonComponents
             ItemInfoPanel = CommonComponents.Widgets["ItemInfoPanel"] as Panel;
@@ -117,21 +119,16 @@ namespace TileMaster.UI
         }
         public void BuildAndDisplayContainerInventory(Dictionary<int, InventoryItem> items, string title)
         {
+            if (_containerInventoryWindow.Visible) return;
+
             _containerInventoryWindow.BuildInventory(items, title);
-            if (!Desktop.Widgets.Contains(_containerInventoryWindow))
-            {
-                Desktop.Widgets.Add(_containerInventoryWindow);
-            }
             _containerInventoryWindow.Show(Desktop, new Point(Global.WindowWidth / 2 + 200, Global.WindowHeight / 2));
         }
         public void BuildAndDisplayCraftingWindow(Player player, CraftingManager cm, string name)
         {
+            if (_craftingWindow.Visible) return;
+
             _craftingWindow.Build(player, cm, name);
-            if (!Desktop.Widgets.Contains(_craftingWindow))
-            {
-                Desktop.Widgets.Add(_craftingWindow);
-            }
-            _craftingWindow.BringToFront();
             _craftingWindow.Show(Desktop, new Point(Global.WindowWidth / 2 + 200, Global.WindowHeight / 2));
         }
 

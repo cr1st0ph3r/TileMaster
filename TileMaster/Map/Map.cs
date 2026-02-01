@@ -342,7 +342,7 @@ namespace TileMaster.Map
                         actualChunk.HasBeenModified = true;
                         actualChunk.NeedUpdate = true;
                     }
-
+                    UpdateTile(currentTile);
                     AddTileToModificationTracker(currentTile);
                 }
             }
@@ -710,12 +710,11 @@ namespace TileMaster.Map
             foreach (int cId in _chunksToDraw)
             {
                 var chunk = GetChunk(cId);
-                if (chunk == null || chunk.Tiles == null) continue;
 
                 for (int i = 0; i < chunk.Tiles.Length; i++)
                 {
                     var tile = chunk.Tiles[i];
-                    if (tile != null && tile.TileId != (int)TileType.Air)
+                    if (tile.TileId != (int)TileType.Air || tile.PlacedItem is not null)
                     {
                         if (Global.MarkTilesOnTheEdge && tile.IsEdgeTile)
                         {

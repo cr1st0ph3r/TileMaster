@@ -12,6 +12,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using TileMaster.Data;
 using TileMaster.Entity;
 using TileMaster.Entity.Enums;
@@ -604,7 +606,7 @@ namespace TileMaster
                         }
                     }
                 }
-                else if (current_mouse.RightButton == ButtonState.Pressed)
+                else if (current_mouse.RightButton == ButtonState.Pressed && _desktop.IsMouseOverGUI == false && previous_mouse.RightButton == ButtonState.Released)
                 {
                     if (Keyboard.GetState().IsKeyDown(Keys.B))
                     {

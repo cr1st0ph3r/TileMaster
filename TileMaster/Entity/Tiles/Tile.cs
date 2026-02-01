@@ -75,9 +75,14 @@ namespace TileMaster.Entity.Tiles
                 Game.LogMessage($"Tile {GlobalId} of type {Name} has no texture!!!", null);
             }
 
-
-            if (PlacedItem != null && PlacedItem.Texture != null)
+          
+            if (PlacedItem != null)
             {
+                if(PlacedItem.Texture is null)
+                {
+                    Game.LogMessage($"Placed item {PlacedItem.Name} has no texture!!!", null);
+                    return;
+                }
                 // Draw the item centered on its designated tile area
                 var itemTexture = PlacedItem.Texture;
 

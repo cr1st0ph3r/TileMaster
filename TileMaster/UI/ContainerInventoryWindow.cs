@@ -3,6 +3,7 @@ using Myra;
 using Myra.Graphics2D;
 using Myra.Graphics2D.Brushes;
 using Myra.Graphics2D.UI;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using TileMaster.Entity.Tiles;
@@ -15,8 +16,12 @@ namespace TileMaster.UI
         public Panel InventoryPanel;
 
         public ContainerInventoryWindow()
-        {            
-         
+        {
+            this.Closed += (sender, args) =>
+            {
+                Console.WriteLine("Window has been closed!");
+                this.Visible = false;
+            };
         }
         void HandleHoverOverAItem(Button button)
         {
@@ -111,6 +116,7 @@ namespace TileMaster.UI
                 }
             }
 
+            Title = title;
             Content = InventoryPanel;
             // Safely retrieve ItemInfoPanel if it exists
             ItemInfoPanel = MainPanel.CommonComponents.Widgets["ItemInfoPanel"] as Panel;
@@ -133,7 +139,6 @@ namespace TileMaster.UI
 
         public override void Close()
         {
-            MainPanel._openInventoryButton.IsPressed = false;
             base.Close();
         }
 

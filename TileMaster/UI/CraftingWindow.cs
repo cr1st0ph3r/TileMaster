@@ -1,6 +1,7 @@
-using Myra.Graphics2D.UI;
-using Myra.Graphics2D.Brushes;
 using Microsoft.Xna.Framework;
+using Myra.Graphics2D.Brushes;
+using Myra.Graphics2D.UI;
+using System;
 using System.Linq;
 using TileMaster.Entity;
 using TileMaster.Manager;
@@ -20,6 +21,11 @@ namespace TileMaster.UI
             Title = "Crafting";
             Width = 400;
             Height = 500;
+            this.Closed += (sender, args) =>
+            {
+                Console.WriteLine("Window has been closed!");
+               this.Visible = false;
+            };
         }
 
         public void Build(Player player, CraftingManager craftingManager, string stationType)
@@ -47,7 +53,7 @@ namespace TileMaster.UI
 
             mainPanel.Widgets.Add(scrollViewer);
             Content = mainPanel;
-
+            
             RefreshRecipes();
         }
 
