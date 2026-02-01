@@ -208,13 +208,29 @@ namespace TileMaster.Map
                 //We cannot put tiles on top of placed items
                 return false;
             }
-            if (targetTile.TileId == referenceTileId)
+            if (CheckIFTargetTileIsOfTheSameBaseType(targetTile, Global.ReferenceTiles[referenceTileId]))
             {
                 //its already that tile, no need to change
                 return false;
             }
             SetTile(targetTile, referenceTileId);
             return true;
+        }
+        private bool CheckIFTargetTileIsOfTheSameBaseType(Tile sourceTile, Tile destinationTile)
+        {
+            if (sourceTile.TileId == (int)TileType.Dirt || sourceTile.TileId == (int)TileType.DirtWithGrass)
+            {
+                if (destinationTile.TileId == (int)TileType.Dirt || destinationTile.TileId == (int)TileType.DirtWithGrass)
+                {
+                    //dirt and dirt with grass are considered the same base type
+                    return true;
+                }
+            }
+            if (sourceTile.TileId == destinationTile.TileId)
+            {
+                return true;
+            }
+            return false;
         }
         public bool CheckTileForPlacedItem(Tile targetTile)
         {
@@ -335,6 +351,8 @@ namespace TileMaster.Map
                     currentTile.ContainerId = containerId;
                     currentTile.IsOccupied = false; // Item-only tile is not a block
                     currentTile.IsSolid = false;    // Items don't block movement normally
+                    currentTile.Hardness = item.Hardness;
+                    currentTile.MiningProgress = 0;
 
                     var actualChunk = GetChunk(currentTile.ChunkId);
                     if (actualChunk != null)
@@ -351,7 +369,7 @@ namespace TileMaster.Map
         /// <summary>
         /// Performs an action on a tile at a given global ID and action
         /// </summary>
-        public List<Item> PerformActionOnTile(int chunkId, int globalId, ToolAction action)
+        public List<Item> PerformActionOnTile(int chunkId, int globalId, ToolAction action, Item tool = null)
         {
             var droppedItems = new List<Item>();
             var targetTile = GetTileByGlobalId(globalId);
@@ -359,11 +377,38 @@ namespace TileMaster.Map
 
             if (action == ToolAction.MineBlock)
             {
+                // Multi-hit logic: resolve master tile
+                var masterTile = targetTile;
+                if (targetTile.MultiTileOffset != Point.Zero)
+                {
+                    masterTile = GetTileAt(targetTile.X + targetTile.MultiTileOffset.X, targetTile.Y + targetTile.MultiTileOffset.Y);
+                }
+
+                // Special Case: DirtWithGrass transforms to Dirt on first action
+                if (masterTile != null && masterTile.TileId == (int)TileType.DirtWithGrass)
+                {
+                    SetTile(masterTile, (int)TileType.Dirt);
+                    return droppedItems;
+                }
+
+                // Apply damage if tile is not air or is a placed item
+                if (masterTile != null && (masterTile.TileId != (int)TileType.Air || masterTile.PlacedItem != null))
+                {
+                    int damage = tool?.ToolPower ?? 100;
+                    masterTile.MiningProgress += damage;
+
+                    if (masterTile.MiningProgress < masterTile.Hardness)
+                    {
+                        Game.LogMessage($"{masterTile.Name}: {masterTile.MiningProgress}/{masterTile.Hardness}", Color.White, 50);
+                        return droppedItems;
+                    }
+                    masterTile.MiningProgress = 0;
+                }
+
                 // Check if it's a multi-tile part
                 if (targetTile.MultiTileOffset != Point.Zero || targetTile.PlacedItem != null)
                 {
-                    // Find master tile
-                    var masterTile = GetTileAt(targetTile.X + targetTile.MultiTileOffset.X, targetTile.Y + targetTile.MultiTileOffset.Y);
+                    // masterTile is already resolved above
                     if (masterTile != null && masterTile.PlacedItem != null)
                     {
                         var item = masterTile.PlacedItem;
@@ -386,6 +431,7 @@ namespace TileMaster.Map
                                     part.PlacedItem = null;
                                     part.ContainerId = null;
                                     part.MultiTileOffset = Point.Zero;
+                                    part.MiningProgress = 0;
                                     SetTile(part, (int)TileType.Air); // Reset to air/empty
                                 }
                             }
@@ -402,6 +448,7 @@ namespace TileMaster.Map
                     {
                         droppedItems.Add(item);
                     }
+                    targetTile.MiningProgress = 0;
                     SetTile(targetTile, (int)TileType.Air);
                 }
             }
@@ -506,6 +553,8 @@ namespace TileMaster.Map
             targetTile.IsSolid = referenceTile.IsSolid;
             targetTile.TextureId = referenceTile.TextureId;
             targetTile.Rotation = rotation;
+            targetTile.Hardness = referenceTile.Hardness;
+            targetTile.MiningProgress = 0;
             var chunk = GetChunk(targetTile.ChunkId);
             if (chunk != null)
             {
@@ -587,6 +636,8 @@ namespace TileMaster.Map
             targetTile.TextureName = targetTile.Texture?.Name ?? "None";
             targetTile.TileId = referenceTileId;
             targetTile.Rotation = rotation;
+            targetTile.Hardness = referenceTile.Hardness;
+            targetTile.MiningProgress = 0;
             targetTile.Color = "Gray"; // Ensure background tiles stay dark/dimmed
 
             var chunk = GetChunk(targetTile.ChunkId);

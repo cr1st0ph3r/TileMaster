@@ -490,7 +490,8 @@ namespace TileMaster.Manager
                         Width = Global.TileSize,
                         Height = Global.TileSize,
                         MultiTileOffset = new Point(multiTileOffsetX, multiTileOffsetY),
-                        ContainerId = containerId
+                        ContainerId = containerId,
+                        Hardness = refTile.Hardness
                     };
 
                     if (hasItem && itemId != -1 && itemId < Global.ReferenceItems.Count)
@@ -517,7 +518,9 @@ namespace TileMaster.Manager
                             LightIntensity = templateItem.LightIntensity,
                             LightRadius = templateItem.LightRadius,
                             Width = templateItem.Width,
-                            Height = templateItem.Height
+                            Height = templateItem.Height,
+                            ToolPower = templateItem.ToolPower,
+                            IsTool = templateItem.IsTool,
                         };
 
                         if (itemLightColor.HasValue) newItem.LightColor = itemLightColor;

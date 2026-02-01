@@ -5,20 +5,13 @@ using Microsoft.Xna.Framework.Input;
 using Myra;
 using Myra.Graphics2D.TextureAtlases;
 using Myra.Graphics2D.UI;
-using SharpDX.MediaFoundation;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using TileMaster.Data;
 using TileMaster.Entity;
 using TileMaster.Entity.Enums;
-using TileMaster.Entity.MobMovement;
-using TileMaster.Entity.Tiles;
 using TileMaster.Manager;
 using TileMaster.Map;
 using TileMaster.UI;
@@ -697,8 +690,7 @@ namespace TileMaster
         {
             if (map.SetTile(cursorOnChunk, mouseIsOverBlock, item.TileId))
             {
-                var remaining = player.RemoveItemFromSlot(actionBarIndex, 1);
-                _mainPanel.UpdateItemCount(remaining, actionBarIndex);
+                player.RemoveItemFromSlot(actionBarIndex, 1);
                 lightingDirty = true;
                 player.UseCooldown = item.UseTime;
             }
@@ -737,7 +729,7 @@ namespace TileMaster
             }
             else
             {
-                var dropped = map.PerformActionOnTile(cursorOnChunk, mouseIsOverBlock, item.ToolAction);
+                var dropped = map.PerformActionOnTile(cursorOnChunk, mouseIsOverBlock, item.ToolAction, item);
                 foreach (var drop in dropped)
                 {
                     player.AddItem(drop, 1);

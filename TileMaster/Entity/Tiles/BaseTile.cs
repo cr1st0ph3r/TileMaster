@@ -54,6 +54,14 @@ namespace TileMaster.Entity.Tiles
         /// </summary>
         public bool IsSolid { get; set; }
         /// <summary>
+        /// Gets or sets the hardness value.
+        /// </summary>
+        public int Hardness { get; set; } = 100;
+        /// <summary>
+        /// Gets or sets the mining progress.
+        /// </summary>
+        public int MiningProgress { get; set; } = 0;
+        /// <summary>
         /// Denotes if this tile is on the edge of a chunk
         /// </summary>
         public bool IsEdgeTile { get; set; }

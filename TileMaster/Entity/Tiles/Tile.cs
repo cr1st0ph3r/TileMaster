@@ -113,7 +113,7 @@ namespace TileMaster.Entity.Tiles
 
         public void InitializeTexture()
         {
-            var refTile = Global.ReferenceTiles[TileId];
+            var refTile = Global.ReferenceTiles[(int)TileId];
             AtlasTexture = refTile.AtlasTexture;
 
             if (IsSlope)

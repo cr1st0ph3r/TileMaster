@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -22,6 +23,7 @@ namespace TileMaster.Entity
         private Dictionary<string, Animation> _animations;
         public Dictionary<int, InventoryItem> Inventory { get; set; } = new Dictionary<int, InventoryItem>(40);
         public Dictionary<int, InventoryItem> ActionBar { get; set; } = new Dictionary<int, InventoryItem>(10);
+        public event Action<int, bool> OnInventoryChanged;
 
 
         public Player()
@@ -91,6 +93,7 @@ namespace TileMaster.Entity
             if (itemRef == null) return;
 
             // Try to add to existing stack in ActionBar
+
             foreach (var slot in ActionBar.Values)
             {
                 if (slot != null && slot.Item != null && slot.Item.Id == itemRef.Id && slot.Quantity < slot.Item.StackSize)
@@ -99,7 +102,11 @@ namespace TileMaster.Entity
                     int toAdd = Math.Min(canAdd, quantity);
                     slot.Quantity += toAdd;
                     quantity -= toAdd;
-                    if (quantity <= 0) return;
+                    if (quantity <= 0)
+                    {
+                        OnInventoryChanged?.Invoke(ActionBar.Keys.First(k => ActionBar[k] == slot), true);
+                        return;
+                    }
                 }
             }
 
@@ -109,6 +116,7 @@ namespace TileMaster.Entity
                 if (!ActionBar.ContainsKey(i) || ActionBar[i] == null || ActionBar[i].Item == null)
                 {
                     ActionBar[i] = new InventoryItem(itemRef, quantity);
+                    OnInventoryChanged?.Invoke(i, true);
                     return;
                 }
             }
@@ -122,7 +130,11 @@ namespace TileMaster.Entity
                     int toAdd = Math.Min(canAdd, quantity);
                     slot.Quantity += toAdd;
                     quantity -= toAdd;
-                    if (quantity <= 0) return;
+                    if (quantity <= 0)
+                    {
+                        OnInventoryChanged?.Invoke(Inventory.Keys.First(k => Inventory[k] == slot), false);
+                        return;
+                    }
                 }
             }
 
@@ -132,6 +144,7 @@ namespace TileMaster.Entity
                 if (!Inventory.ContainsKey(i) || Inventory[i] == null || Inventory[i].Item == null)
                 {
                     Inventory[i] = new InventoryItem(itemRef, quantity);
+                    OnInventoryChanged?.Invoke(i, false);
                     return;
                 }
             }
@@ -153,6 +166,7 @@ namespace TileMaster.Entity
                     item.Quantity -= toConsume;
                     remaining -= toConsume;
                     if (item.Quantity <= 0) ActionBar[kvp.Key] = null;
+                    OnInventoryChanged?.Invoke(kvp.Key, true);
                     if (remaining <= 0) return;
                 }
             }
@@ -166,6 +180,7 @@ namespace TileMaster.Entity
                     item.Quantity -= toConsume;
                     remaining -= toConsume;
                     if (item.Quantity <= 0) Inventory[kvp.Key] = null;
+                    OnInventoryChanged?.Invoke(kvp.Key, false);
                     if (remaining <= 0) return;
                 }
             }
@@ -177,11 +192,12 @@ namespace TileMaster.Entity
             if (targetDict.TryGetValue(slotIndex, out var item) && item != null)
             {
                 item.Quantity -= quantity;
+                OnInventoryChanged?.Invoke(slotIndex, fromActionBar);
                 if (item.Quantity <= 0)
-                {
+                {    
                     targetDict[slotIndex] = null;
                     return 0;
-                }
+                }                 
                 return item.Quantity;
             }
             return 0;

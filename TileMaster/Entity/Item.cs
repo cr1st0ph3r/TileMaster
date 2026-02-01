@@ -76,6 +76,14 @@ namespace TileMaster.Entity
         /// </summary>
         public int UseTime { get; set; } = 200;
         /// <summary>
+        /// The power level of the tool.
+        /// </summary>
+        public int ToolPower { get; set; } = 100;
+        /// <summary>
+        /// The hardness of the item (if it's a placeable tile or object).
+        /// </summary>
+        public int Hardness { get; set; } = 100;
+        /// <summary>
         /// For placeable items, this value should state how many tiles the item occupies in width.
         /// </summary>
         public int Width { get; set; } = 1;

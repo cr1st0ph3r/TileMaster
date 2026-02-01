@@ -81,14 +81,14 @@ namespace TileMaster.UI
                     label.TextAlign = FontStashSharp.RichText.TextHorizontalAlignment.Center;
                     label.VerticalAlignment = VerticalAlignment.Center;
                     label.HorizontalAlignment = HorizontalAlignment.Center;
-                    label.Id = "ActionBarLabelItem"+i;
+                    label.Id = "Label";
                     panel.Widgets.Add(label);
                     image.Renderable = MyraEnvironment.DefaultAssetManager.LoadTextureRegion($"{Global.UIIconsLocation}{player.ActionBar[i].Item.UIIcon}.png");
                 }
                 else
                 {
                     var label = new Label();
-                    label.Id = "ActionBarLabelItem" + i;
+                    label.Id = "Label";
                     label.Visible = false;
                     panel.Widgets.Add(label);
                     image.Visible = false;
@@ -108,6 +108,16 @@ namespace TileMaster.UI
 
                 ActionBarPanel.Widgets.Add(butt);
             }
+
+            player.OnInventoryChanged += (index, isActionBar) =>
+            {
+                if (isActionBar)
+                {
+                    var button = ActionBarPanel.Widgets.FirstOrDefault(x => x.Id == "ActionBarButton" + index) as ItemButton;
+                    button?.RefreshSlot();
+                }
+            };
+
             Widgets.Add(ActionBarPanel);
 
             //set the first action bar button as selected
@@ -148,22 +158,6 @@ namespace TileMaster.UI
             }
         }
 
-        public void UpdateItemCount(int count, int actionBarId)
-        {
-            var button = ActionBarPanel.Widgets.FirstOrDefault(x => x.Id == "ActionBarButton" + actionBarId) as Button;
-            var panel = button.Content as Panel;
-            if (count>0)
-            {            
-                var label = panel.Widgets.FirstOrDefault(x => x.Id == "ActionBarLabelItem" + actionBarId) as Label;
-                label.Text = count.ToString();
-            }
-            else
-            {
-                //we clear the image and set the panel as invisible
-                panel.Widgets.Clear();
-                panel.Visible = false;
-            }     
-        }
         public void AddItemToSlot()
         {
 

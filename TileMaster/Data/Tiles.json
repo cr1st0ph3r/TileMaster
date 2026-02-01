@@ -27,7 +27,8 @@
     "IsOccupied": true,
     "IsSolid": true,
     "Color": "White",
-    "Collectable": true
+    "Collectable": true,
+    "Hardness": 30
   },
   {
     "Id": 2,
@@ -44,7 +45,8 @@
     "IsOccupied": true,
     "IsSolid": true,
     "Color": "White",
-    "Collectable": true
+    "Collectable": true,
+    "Hardness": 50
   },
   {
     "Id": 3,
@@ -80,7 +82,8 @@
     "IsOccupied": true,
     "IsSolid": true,
     "Color": "White",
-    "Collectable": true
+    "Collectable": true,
+    "Hardness": 30
   },
   {
     "Id": 4,
@@ -94,7 +97,8 @@
     "IsOccupied": true,
     "IsSolid": true,
     "Color": "White",
-    "Collectable": true
+    "Collectable": true,
+    "Hardness": 40
   },
   {
     "Id": 5,
@@ -108,7 +112,8 @@
     "IsOccupied": false,
     "IsSolid": false,
     "Color": "White",
-    "Collectable": true
+    "Collectable": true,
+    "Hardness": 20
   },
   {
     "Id": 6,
@@ -120,7 +125,8 @@
     "TileId": 6,
     "IsOccupied": true,
     "IsSolid": true,
-    "Color": "White"
+    "Color": "White",
+    "Hardness": 10
   },
   {
     "Id": 7,
@@ -136,7 +142,8 @@
     "TileId": 7,
     "IsOccupied": false,
     "IsSolid": false,
-    "Color": "White"
+    "Color": "White",
+    "Hardness": 5
   },
   {
     "Id": 8,
@@ -148,7 +155,8 @@
     "TileId": 8,
     "IsOccupied": false,
     "IsSolid": false,
-    "Color": "Blue"
+    "Color": "Blue",
+    "Hardness": 1
   },
   {
     "Id": 9,
@@ -163,6 +171,7 @@
     "TileId": 8,
     "IsOccupied": false,
     "IsSolid": false,
-    "Color": "White"
+    "Color": "White",
+    "Hardness": 5
   }
 ]

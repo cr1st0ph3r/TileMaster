@@ -41,7 +41,8 @@
     "UIIcon": "UIPickaxe",
     "IsTool": true,
     "ToolAction": 0,
-    "UseTime": 1000
+    "UseTime": 1000,
+    "ToolPower": 10
   },
   {
     "Id": 4,

@@ -115,6 +115,12 @@ namespace TileMaster.Data
                     if (item.IsTile)
                     {
                         item.Texture = Global.ReferenceTiles[item.TileId].Texture;
+                        
+                        // Sync hardness from item to reference tile if provided in Items.json
+                        if (item.Hardness != 100)
+                        {
+                            Global.ReferenceTiles[item.TileId].Hardness = item.Hardness;
+                        }
                     }
                     else
                     {

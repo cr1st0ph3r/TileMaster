@@ -21,16 +21,25 @@ namespace TileMaster.UI
             if (SourceInventory != null && SourceInventory.ContainsKey(Index) && SourceInventory[Index] != null)
             {
                 var invItem = SourceInventory[Index];
-                if (image != null)
+                if(invItem.Quantity < 1)
                 {
-                    image.Renderable = Myra.MyraEnvironment.DefaultAssetManager.LoadTextureRegion($"{Global.UIIconsLocation}{invItem.Item.UIIcon}.png");
-                    image.Visible = true;
+                    label.Visible = false;
+                    image.Visible = false;                                      
                 }
-                if (label != null)
+                else
                 {
-                    label.Text = invItem.Quantity.ToString();
-                    label.Visible = true;
+                    if (image != null)
+                    {
+                        image.Renderable = Myra.MyraEnvironment.DefaultAssetManager.LoadTextureRegion($"{Global.UIIconsLocation}{invItem.Item.UIIcon}.png");
+                        image.Visible = true;
+                    }
+                    if (label != null)
+                    {
+                        label.Text = invItem.Quantity.ToString();
+                        label.Visible = true;
+                    }
                 }
+              
             }
             else
             {
