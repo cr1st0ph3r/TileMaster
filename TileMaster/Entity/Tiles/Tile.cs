@@ -135,20 +135,12 @@ namespace TileMaster.Entity.Tiles
             }
             if (AtlasTexture is not null)
             {
-                if (TextureName.Contains("irt")&&!TextureName.Contains("ass"))
-                {
-
-                }
-                if (TextureName.Contains("lope"))
-                {
-
-                }
                 if (refTile.AlternateTextures.Any() && !TextureName.Contains("Slope"))
                 {
-                    TextureName = refTile.AlternateTextures[Game.rnd.Next(refTile.AlternateTextures.Count)];
+                    var rnd = Game.rnd ?? new Random();
+                    TextureName = refTile.AlternateTextures[rnd.Next(refTile.AlternateTextures.Count)];
                 }
                
-
                 if (AtlasTexture != null && refTile.AtlasMap != null && refTile.AtlasMap.TryGetValue(TextureName, out var rect))
                 {
                     SourceRectangle = rect;
@@ -160,7 +152,8 @@ namespace TileMaster.Entity.Tiles
                 {
                     if (Global.UseAlternateTiles && refTile.AltTextures.Any())
                     {
-                        Texture = refTile.AltTextures[Game.rnd.Next(refTile.AltTextures.Count)];
+                        var rnd = Game.rnd ?? new Random();
+                        Texture = refTile.AltTextures[rnd.Next(refTile.AltTextures.Count)];
                     }
                     else
                     {

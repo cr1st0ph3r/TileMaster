@@ -360,7 +360,6 @@ namespace TileMaster.Map
                         actualChunk.HasBeenModified = true;
                         actualChunk.NeedUpdate = true;
                     }
-                    UpdateTile(currentTile);
                     AddTileToModificationTracker(currentTile);
                 }
             }
@@ -432,7 +431,7 @@ namespace TileMaster.Map
                                     part.ContainerId = null;
                                     part.MultiTileOffset = Point.Zero;
                                     part.MiningProgress = 0;
-                                    SetTile(part, (int)TileType.Air); // Reset to air/empty
+                                    SetTileAsAir(targetTile);
                                 }
                             }
                         }
@@ -449,7 +448,7 @@ namespace TileMaster.Map
                         droppedItems.Add(item);
                     }
                     targetTile.MiningProgress = 0;
-                    SetTile(targetTile, (int)TileType.Air);
+                    SetTileAsAir(targetTile);
                 }
             }
             else if (action == ToolAction.TransformBlock)
@@ -514,7 +513,6 @@ namespace TileMaster.Map
             }
 
             AddTileToModificationTracker(targetTile);
-            UpdateTile(targetTile);
         }
         /// <summary>
         /// Updates a given tile with a new reference tile
@@ -524,9 +522,10 @@ namespace TileMaster.Map
             var referenceTile = Global.ReferenceTiles[referenceTileId];
             if (referenceTile.AtlasTexture is not null)
             {
-                var random = Game.rnd ?? new Random();
+
                 if (textureName is null)
                 {
+                    var random = Game.rnd ?? new Random();
                     textureName = referenceTile.AlternateTextures[random.Next(referenceTile.AlternateTextures.Count)];
                 }
                 targetTile.SourceRectangle = referenceTile.AtlasMap[textureName];
@@ -547,7 +546,7 @@ namespace TileMaster.Map
             }
 
             targetTile.Name = ((TileType)referenceTileId).ToString();
-            targetTile.TextureName = targetTile.Texture?.Name ?? "None";
+            targetTile.TextureName = targetTile.Texture?.Name ?? targetTile.TextureName;
             targetTile.TileId = referenceTileId;
             targetTile.IsOccupied = referenceTile.IsOccupied;
             targetTile.IsSolid = referenceTile.IsSolid;
@@ -566,8 +565,25 @@ namespace TileMaster.Map
                 }
             }
             AddTileToModificationTracker(targetTile);
-
-            UpdateTile(targetTile);
+        }
+        /// <summary>
+        /// Set a tile as air (empty)
+        /// </summary>
+        public void SetTileAsAir(Tile targetTile)
+        {
+            var referenceTile = Global.ReferenceTiles[0];
+            targetTile.Name = referenceTile.Name;
+            targetTile.TextureName = referenceTile.TextureName;
+            targetTile.TileId = 0;
+            targetTile.IsOccupied = referenceTile.IsOccupied;
+            targetTile.IsSolid = referenceTile.IsSolid;
+            targetTile.TextureId = referenceTile.TextureId;
+            targetTile.Rotation = 0;
+            targetTile.Hardness = referenceTile.Hardness;
+            targetTile.MiningProgress = 0;
+            Chunks[targetTile.ChunkId].NeedUpdate = true;
+            Chunks[targetTile.ChunkId].HasBeenModified = true;
+            AddTileToModificationTracker(targetTile);
         }
         public void SetTile(Tile targetTile, Texture2D texture = default, float rotation = 0f)
         {
@@ -580,31 +596,6 @@ namespace TileMaster.Map
                 chunk.NeedUpdate = true;
                 chunk.HasBeenModified = true;
             }
-
-            UpdateTile(targetTile);
-        }
-        /// <summary>
-        /// Updates a tile in the map
-        /// </summary>
-        public void UpdateTile(Tile updated)
-        {
-            int globalX = updated.X;
-            int globalY = updated.Y;
-            int chunkIndex = GlobalToChunkIndex(globalX, globalY);
-
-            if (Chunks != null && chunkIndex >= 0 && chunkIndex < Chunks.Length)
-            {
-                var chunk = Chunks[chunkIndex];
-                if (chunk != null && chunk.Tiles != null)
-                {
-                    int localIndex = GlobalToLocalIndex(globalX, globalY);
-                    if (localIndex >= 0 && localIndex < chunk.Tiles.Length)
-                    {
-                        chunk.Tiles[localIndex] = (CollisionTile)updated;
-                    }
-                }
-            }
-            //Chunks[updated.ChunkId].Tiles[updated.LocalId] = (CollisionTile)updated;
         }
         /// <summary>
         /// Sets a background tile at a given global ID
@@ -746,6 +737,13 @@ namespace TileMaster.Map
                         var bgTile = chunk.BackgroundTiles[i];
                         if (bgTile != null && bgTile.TileId != (int)TileType.Air)
                         {
+                            // Optimization: Skip drawing background tile if obscured by a solid opaque foreground tile
+                            var fgTile = chunk.Tiles[i];
+                            if (fgTile != null && fgTile.IsSolid && !fgTile.IsSlope && fgTile.PlacedItem == null)
+                            {
+                                continue;
+                            }
+
                             // Ensure background tiles are visually dimmed if needed
                             if (bgTile.Color == "Gray" && !bgTile.ColorArgb.HasValue && !bgTile.ColorFilter.HasValue)
                             {

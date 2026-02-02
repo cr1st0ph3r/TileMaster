@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using TileMaster.Entity;
 using TileMaster.Entity.Tiles;
 using TileMaster.Model;
@@ -53,7 +54,7 @@ namespace TileMaster.Data
                         var combined = tile.TileSet.Concat(tile.AlternateTextures).ToList();
                         if (combined != null)
                         {
-                            foreach (var tex in combined.OrderBy(x=>x))
+                            foreach (var tex in combined.OrderBy(t => NaturalSortKey(t)))
                             {
                                 if (tex != null)
                                 {
@@ -88,6 +89,12 @@ namespace TileMaster.Data
                 }
             }
             return Tiles;
+        }
+        // Natural sort key: zero-pad numeric runs so lexicographic comparison matches numeric order.
+        // Example: "file2" -> "file0000000002", "file10" -> "file0000000010"
+        private static string NaturalSortKey(string s)
+        {
+            return Regex.Replace(s ?? string.Empty, @"\d+", m => m.Value.PadLeft(10, '0'));
         }
 
         /// <summary>

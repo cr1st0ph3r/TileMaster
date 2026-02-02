@@ -9,6 +9,27 @@ namespace TileMaster.Manager
     {
         private Map.Map map;
 
+        // Map from inner-corner mask -> (texture name, rotation degrees)
+        private static readonly IReadOnlyDictionary<int, (string Texture, float RotationDegrees)> InnerCornerMap =
+            new Dictionary<int, (string, float)>
+            {
+                // single-corner cases (use Corner1, rotated)
+                { 1,  ("DirtWithGrassCorner1",   0f) },
+                { 2,  ("DirtWithGrassCorner1",  90f) },
+                { 4,  ("DirtWithGrassCorner1", 180f) },
+                { 8,  ("DirtWithGrassCorner1", 270f) },
+
+                // two-corner cases (Corner2)
+                { 5,  ("DirtWithGrassCorner2",   0f) },
+                { 10, ("DirtWithGrassCorner2",  90f) },
+
+                // multi-corner cases (Corner3, rotated as needed)
+                { 7,  ("DirtWithGrassCorner3",   0f) },
+                { 11, ("DirtWithGrassCorner3",  90f) },
+                { 13, ("DirtWithGrassCorner3", 180f) },
+                { 14, ("DirtWithGrassCorner3", 270f) }
+            };
+
         public GrassManager(Map.Map map)
         {
             this.map = map;
@@ -55,7 +76,10 @@ namespace TileMaster.Manager
             foreach (var candidate in candidates.Values)
             {
                 bool tileChanged = CheckTileEligibilityForGrass(candidate);
-                if (tileChanged) System.Console.WriteLine($"Tile {candidate.GlobalId} changed to grass.");
+                if (tileChanged)
+                {
+                    Game.LogMessage($"Tile {candidate.GlobalId} changed to grass.", null);
+                }
                 hasChanged |= tileChanged;
             }
 
@@ -160,72 +184,40 @@ namespace TileMaster.Manager
                 var res = GetInnerCornerDecorations(destinationTile);
                 if (res > 0)
                 {
-                    // determine rotation (radians) for single-corner cases (values from GetInnerCornerDecorations)
+                    // determine texture and rotation using a lookup map (reduces branching)
                     float rotation = 0f;
-                    var textureToUse = "DirtWithGrassCorner4";
+                    string textureToUse = "DirtWithGrassCorner4"; // default (all solid, no single/multi corner match)
                     var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
-                    if (res == 1)
-                    {
-                        textureToUse = "DirtWithGrassCorner1";
-                    }
-                    if (res == 2)
-                    {
-                        rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(90f);
-                        textureToUse = "DirtWithGrassCorner1";
-                    }
-                    if (res == 4)
-                    {
-                        rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(180f);
-                        textureToUse = "DirtWithGrassCorner1";
-                    }
-                    if (res == 8)
-                    {
-                        rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(270f);
-                        textureToUse = "DirtWithGrassCorner1";
-                    }
-                    else if (res == 5)
-                    {
-                        textureToUse = "DirtWithGrassCorner2";
-                    }
-                    else if (res == 10)
-                    {
-                        rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(90f);
-                        textureToUse = "DirtWithGrassCorner2";
-                    }
-                    else if (res == 7)
-                    {
-                        textureToUse = "DirtWithGrassCorner3";
-                    }
-                    else if (res == 11)
-                    {
-                        textureToUse = "DirtWithGrassCorner3";
-                        rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(90f);
-                    }
-                    else if (res == 13)
-                    {
-                        textureToUse = "DirtWithGrassCorner3";
-                        rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(1800f);
-                    }
-                    else if (res == 14)
-                    {
-                        textureToUse = "DirtWithGrassCorner3";
-                        rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(270f);
-                    }
-                    var grassTexture = grassDef?.Textures?.FirstOrDefault(x => x.Name.EndsWith(textureToUse));
 
-                    // IF we don't have textures (headless), we just update the metadata
-                    if (grassTexture == null)
+                    if (InnerCornerMap.TryGetValue(res, out var cfg))
                     {
-                        map.SetTile(destinationTile, referenceTileId: (int)TileType.DirtWithGrass, textureToUse, rotation: rotation);
-                        return true;
+                        textureToUse = cfg.Texture;
+                        rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(cfg.RotationDegrees);
                     }
-
-                    // Optimization: Check if already set
-                    if (destinationTile.TextureName == grassTexture.Name && System.Math.Abs(destinationTile.Rotation - rotation) < 0.01f)
+                    if(textureToUse== destinationTile.TextureName)
+                    {
                         return false;
+                    }
 
-                    map.SetTile(destinationTile, grassTexture, rotation);
+                    destinationTile.AtlasTexture = grassDef.AtlasTexture;
+                    destinationTile.TextureName = textureToUse;
+                    destinationTile.SourceRectangle = grassDef.AtlasMap[textureToUse];
+                    destinationTile.Rotation = rotation;
                     return true;
+                }
+                else
+                {
+                    //tile might not have any contact with air
+                    //set back to dirt
+                    // Mapping the mask value to "TileX" naming convention                
+                    var dirtDef = Global.ReferenceTiles[(int)TileType.Dirt];
+                    destinationTile.AtlasTexture = dirtDef.AtlasTexture;
+                    destinationTile.SourceRectangle = dirtDef.AtlasMap.First().Value;
+                    destinationTile.TextureId = mask;
+                    destinationTile.TileId = (int)TileType.Dirt;
+                    destinationTile.TextureName = dirtDef.AtlasMap.First().Key;
+                    destinationTile.Rotation = 0;
+                    return false;
                 }
 
                 // If it was grass but now has no air contact and handles no corners, revert to Dirt
@@ -241,25 +233,14 @@ namespace TileMaster.Manager
             {
                 // Mapping the mask value to "TileX" naming convention
                 string textureName = $"DirtWithGrass{mask}";
-
                 var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
                 var grassTile = grassDef.AtlasMap[textureName];
+                destinationTile.AtlasTexture = grassDef.AtlasTexture;
                 destinationTile.SourceRectangle = grassDef.AtlasMap[textureName];
                 destinationTile.TextureId = mask;
                 destinationTile.TileId = (int)TileType.DirtWithGrass;
-
-                //map.UpdateTile(destinationTile);
-                map.SetTile(destinationTile, referenceTileId: (int)TileType.DirtWithGrass, textureName);
-                //if (grassTexture == null)
-                //{
-                //    destinationTile.TextureName = "None";
-                //    map.SetTile(destinationTile, referenceTileId: (int)TileType.DirtWithGrass);
-                //}
-                //else
-                //{
-                //    destinationTile.TextureName = grassTexture.Name;
-                //    map.SetTile(destinationTile, grassTexture);
-                //}
+                destinationTile.TextureName = textureName;
+                destinationTile.Rotation = 0;
                 return true;
             }
 
