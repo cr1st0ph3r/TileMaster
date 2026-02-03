@@ -82,6 +82,7 @@ namespace TileMaster
         /// Damage number manager
         /// </summary>
         public DamageNumberManager DamageNumberManager;
+        public PickupManager PickupManager;
         #endregion
 
         #endregion
@@ -182,6 +183,7 @@ namespace TileMaster
             Global.ReferenceMobs = DataLoader.LoadMobs(Content);
 
             DamageNumberManager = new DamageNumberManager();
+            PickupManager = new PickupManager(this);
         }
 
         protected override void UnloadContent()
@@ -336,6 +338,7 @@ namespace TileMaster
             map.UpdateModifiedTiles();
             map.water.Update(gameTime);
             DamageNumberManager.Update(gameTime);
+            PickupManager.Update(gameTime);
         }
         void UpdateEvery100ms(GameTime gameTime)
         {
@@ -469,6 +472,7 @@ namespace TileMaster
                 }
 
                 DamageNumberManager.Draw(spriteBatch, _debugFont);
+                PickupManager.Draw(spriteBatch);
 
                 //Cursor info (mouse state is captured in Update)
                 Global.CursorX = current_mouse.Position.X;
@@ -732,7 +736,21 @@ namespace TileMaster
                 var dropped = map.PerformActionOnTile(cursorOnChunk, mouseIsOverBlock, item.ToolAction, item);
                 foreach (var drop in dropped)
                 {
-                    player.AddItem(drop, 1);
+                    // Calculate start position for the pickup (center of the block)
+                    // If multiple items drop, we might want to scatter them slightly, but for now exact center is fine.
+                    // We need to re-fetch the tile coordinates because PerformActionOnTile might have removed the tile info from the map if it was destroyed?
+                    // actually GetTileByGlobalId might fail if it's already gone/air? 
+                    // PerformActionOnTile usually changes the tile ID to 0 (Air) but the object remains in the array.
+                    
+                    // We can use mouseIsOverBlock to get X/Y
+                    // mouseIsOverBlock = (mouseX + mouseY) is wrong in the original code logic comment?
+                    // Actually checking usage: map.GetTileByGlobalId(mouseIsOverBlock)
+                    // Let's rely on the cursorGridX/Y which we saw in UpdateInputHandling:
+                    // cursorGridX = (int)((cursorPosition.X) / Global.TileSize);
+                    
+                    Vector2 startPos = new Vector2(cursorGridX * Global.TileSize + Global.TileSize/2, cursorGridY * Global.TileSize + Global.TileSize/2);
+
+                    PickupManager.Spawn(startPos, drop, 1, player);
                 }
                 player.UseCooldown = item.UseTime;
             }

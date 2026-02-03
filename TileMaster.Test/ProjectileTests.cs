@@ -2,9 +2,6 @@ using Xunit;
 using Microsoft.Xna.Framework;
 using TileMaster.Entity;
 using TileMaster.Entity.Enums;
-using TileMaster.Map;
-using System.Linq;
-using TileMaster.Data;
 
 namespace TileMaster.Test
 {

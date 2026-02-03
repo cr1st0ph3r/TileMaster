@@ -1,8 +1,6 @@
 using Xunit;
 using TileMaster.Entity;
 using TileMaster.Entity.Tiles;
-using TileMaster.Map;
-using System.Linq;
 using TileMaster.Entity.Enums;
 
 namespace TileMaster.Test

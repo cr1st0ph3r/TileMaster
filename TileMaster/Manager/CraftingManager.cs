@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using TileMaster.Entity;
-using TileMaster.Entity.Tiles;
 using TileMaster.Model;
 
 namespace TileMaster.Manager

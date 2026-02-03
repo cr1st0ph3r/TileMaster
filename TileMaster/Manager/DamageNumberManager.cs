@@ -1,7 +1,6 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
-using System.Linq;
 using TileMaster.Misc;
 
 namespace TileMaster.Manager
@@ -19,6 +18,11 @@ namespace TileMaster.Manager
             Color color = Color.Lerp(Color.White, Color.Red, t);
 
             _damageNumbers.Add(new DamageNumber(position, damage.ToString(), color, 1.2f));
+        }
+
+        public void Add(Vector2 position, string text, Color color)
+        {
+            _damageNumbers.Add(new DamageNumber(position, text, color, 1.2f));
         }
 
         public void Update(GameTime gameTime)

@@ -2,12 +2,7 @@ using Xunit;
 using Microsoft.Xna.Framework;
 using TileMaster.Entity;
 using TileMaster.Entity.MobMovement;
-using TileMaster.Entity.Tiles;
 using TileMaster.Entity.Enums;
-using TileMaster.Map;
-using System.Linq;
-using TileMaster.Data;
-using System.Collections.Generic;
 
 namespace TileMaster.Test
 {
