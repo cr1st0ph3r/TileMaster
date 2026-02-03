@@ -1,5 +1,7 @@
-using System.Linq;
+using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using TileMaster.Entity.Enums;
 using TileMaster.Entity.Tiles;
 
@@ -14,20 +16,45 @@ namespace TileMaster.Manager
             new Dictionary<int, (string, float)>
             {
                 // single-corner cases (use Corner1, rotated)
-                { 1,  ("DirtWithGrassCorner1",   0f) },
-                { 2,  ("DirtWithGrassCorner1",  90f) },
-                { 4,  ("DirtWithGrassCorner1", 180f) },
-                { 8,  ("DirtWithGrassCorner1", 270f) },
+                { 1,  ("DirtWithGrass6",   0f) },
+                { 2,  ("DirtWithGrass6",  90f) },
+                { 4,  ("DirtWithGrass6", 180f) },
+                { 8,  ("DirtWithGrass6", 270f) },
 
                 // two-corner cases (Corner2)
-                { 5,  ("DirtWithGrassCorner2",   0f) },
-                { 10, ("DirtWithGrassCorner2",  90f) },
+                { 5,  ("DirtWithGrass7",   0f) },
+                { 10, ("DirtWithGrass7",  90f) },
 
                 // multi-corner cases (Corner3, rotated as needed)
-                { 7,  ("DirtWithGrassCorner3",   0f) },
-                { 11, ("DirtWithGrassCorner3",  90f) },
-                { 13, ("DirtWithGrassCorner3", 180f) },
-                { 14, ("DirtWithGrassCorner3", 270f) }
+                { 7,  ("DirtWithGrass8",   0f) },
+                { 11, ("DirtWithGrass8",  90f) },
+                { 13, ("DirtWithGrass8", 180f) },
+                { 14, ("DirtWithGrass8", 270f) }
+            };
+        private static readonly IReadOnlyDictionary<int, (string Texture, float RotationDegrees)> GrassSurfaceMap =
+            new Dictionary<int, (string, float)>
+            {
+                // One surface with grass
+                { 1,  ("DirtWithGrass1",   0f) },
+                { 2,  ("DirtWithGrass1",  90f) },
+                { 4,  ("DirtWithGrass1", 180f) },
+                { 8,  ("DirtWithGrass1", 270f) },
+
+                //top and down or left and right
+                { 5, ("DirtWithGrass3",   0f) },
+                { 10,("DirtWithGrass3",  90f) },
+
+                // Two surfaces with grass
+                { 3, ("DirtWithGrass2",   0f) },
+                { 6, ("DirtWithGrass2",  90f) },
+                { 9, ("DirtWithGrass2",  270f) },
+                { 12,("DirtWithGrass2",  180f) },
+
+                // Three surfaces with grass
+                { 7,  ("DirtWithGrass4",   0f) },
+                { 11, ("DirtWithGrass4",  90f) },
+                { 13, ("DirtWithGrass4", 180f) },
+                { 14, ("DirtWithGrass4", 270f) }
             };
 
         public GrassManager(Map.Map map)
@@ -173,7 +200,7 @@ namespace TileMaster.Manager
                 return SetSlopeGrassTile(destinationTile);
             }
             int mask = GetGrassMask(destinationTile);
-            if (destinationTile.TextureName.EndsWith($"DirtWithGrass{mask.ToString()}"))
+            if (IsTileAlreadCorrectyGrass(destinationTile, mask))
             {
                 return false;
             }
@@ -186,7 +213,7 @@ namespace TileMaster.Manager
                 {
                     // determine texture and rotation using a lookup map (reduces branching)
                     float rotation = 0f;
-                    string textureToUse = "DirtWithGrassCorner4"; // default (all solid, no single/multi corner match)
+                    string textureToUse = "DirtWithGrass9"; // default (all solid, no single/multi corner match)
                     var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
 
                     if (InnerCornerMap.TryGetValue(res, out var cfg))
@@ -194,14 +221,13 @@ namespace TileMaster.Manager
                         textureToUse = cfg.Texture;
                         rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(cfg.RotationDegrees);
                     }
-                    if(textureToUse== destinationTile.TextureName)
+                    if (textureToUse == destinationTile.TextureName)
                     {
                         return false;
                     }
 
-                    destinationTile.AtlasTexture = grassDef.AtlasTexture;
                     destinationTile.TextureName = textureToUse;
-                    destinationTile.SourceRectangle = grassDef.AtlasMap[textureToUse];
+                    destinationTile.SourceRectangle = Global.AtlasMap[textureToUse].Rectangle;
                     destinationTile.Rotation = rotation;
                     return true;
                 }
@@ -211,39 +237,62 @@ namespace TileMaster.Manager
                     //set back to dirt
                     // Mapping the mask value to "TileX" naming convention                
                     var dirtDef = Global.ReferenceTiles[(int)TileType.Dirt];
-                    destinationTile.AtlasTexture = dirtDef.AtlasTexture;
-                    destinationTile.SourceRectangle = dirtDef.AtlasMap.First().Value;
+                    destinationTile.SourceRectangle = Global.AtlasMap[dirtDef.TextureName].Rectangle;
                     destinationTile.TextureId = mask;
                     destinationTile.TileId = (int)TileType.Dirt;
-                    destinationTile.TextureName = dirtDef.AtlasMap.First().Key;
+                    destinationTile.TextureName = dirtDef.TextureName;
                     destinationTile.Rotation = 0;
                     return false;
                 }
-
-                // If it was grass but now has no air contact and handles no corners, revert to Dirt
-                if (destinationTile.TileId == (int)TileType.DirtWithGrass)
-                {
-                    map.SetTile(destinationTile, (int)TileType.Dirt);
-                    return true;
-                }
-
-                return false;
             }
             else
             {
-                // Mapping the mask value to "TileX" naming convention
-                string textureName = $"DirtWithGrass{mask}";
+                (var textureName, var rotation) = getTextureNameForMask(mask);
                 var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
-                var grassTile = grassDef.AtlasMap[textureName];
-                destinationTile.AtlasTexture = grassDef.AtlasTexture;
-                destinationTile.SourceRectangle = grassDef.AtlasMap[textureName];
+                var grassTile = Global.AtlasMap[textureName];
+                destinationTile.SourceRectangle = grassTile.Rectangle;
                 destinationTile.TextureId = mask;
                 destinationTile.TileId = (int)TileType.DirtWithGrass;
                 destinationTile.TextureName = textureName;
-                destinationTile.Rotation = 0;
+                destinationTile.Rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(rotation);
                 return true;
             }
 
+        }
+
+
+        /// <summary>
+        /// Performs a check to see if the tile is already set to the correct grass texture and rotation
+        /// </summary>
+        /// <param name="tile"></param>
+        /// <param name="mask"></param>
+        /// <returns></returns>
+        bool IsTileAlreadCorrectyGrass(Tile tile, int mask)
+        {
+            (var textureName, var rotation) = getTextureNameForMask(mask);
+            if (tile.Rotation == Microsoft.Xna.Framework.MathHelper.ToRadians(rotation) &&
+               tile.TextureName == textureName)
+            {
+                return true;
+            }
+            return false;
+        }
+        /// <summary>
+        /// Retrieves the texture name and rotation angle associated with the specified grass mask value.
+        /// </summary>
+        /// <remarks>If the provided mask does not exist in the configuration, the method returns a
+        /// default texture and rotation representing grass on all sides.</remarks>
+        /// <param name="mask">An integer representing the grass mask. Determines which texture and rotation are selected based on the mask
+        /// configuration.</param>
+        /// <returns>A tuple containing the texture name as a string and the rotation angle in degrees as a float. Returns
+        /// ("DirtWithGrass5", 0f) if the mask is not found.</returns>
+        (string, float) getTextureNameForMask(int mask)
+        {
+            if (GrassSurfaceMap.TryGetValue(mask, out var cfg))
+            {
+                return (cfg.Texture, cfg.RotationDegrees);
+            }
+            return ("DirtWithGrass5", 0f);// default (grass on all sides)
         }
 
         /// <summary>
@@ -284,19 +333,19 @@ namespace TileMaster.Manager
 
             // Condition: Cardinal neighbors are Solid, but Diagonal is Air
             // Top-Left Tuft
-            if (neighbors[1].IsSolid && neighbors[3].IsSolid && neighbors[0].TileId == (int)TileType.Air)
+            if (neighbors[1].IsSolid && neighbors[3].IsSolid && !neighbors[0].IsSolid)
                 mask |= 1;  // Top Left Tuft
 
             // Top-Right Tuft
-            if (neighbors[1].IsSolid && neighbors[5].IsSolid && neighbors[2].TileId == (int)TileType.Air)
+            if (neighbors[1].IsSolid && neighbors[5].IsSolid && !neighbors[2].IsSolid)
                 mask |= 2; // Top Right Tuft
 
             // Bottom-Left Tuft
-            if (neighbors[7].IsSolid && neighbors[3].IsSolid && neighbors[6].TileId == (int)TileType.Air)
+            if (neighbors[7].IsSolid && neighbors[3].IsSolid && !neighbors[6].IsSolid)
                 mask |= 8; // Bottom Left Tuft
 
             // Bottom-Right Tuft
-            if (neighbors[7].IsSolid && neighbors[5].IsSolid && neighbors[8].TileId == (int)TileType.Air)
+            if (neighbors[7].IsSolid && neighbors[5].IsSolid && !neighbors[8].IsSolid)
                 mask |= 4; // Bottom Right Tuft
 
             return mask;
@@ -340,7 +389,7 @@ namespace TileMaster.Manager
             // Try to find a slope grass texture
             var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
             //var slopeGrassTexture = grassDef?.Textures?.FirstOrDefault(x => x.Name.EndsWith("DirtWithGrassSlope"));
-            var slopeGrassTextureRectangle = grassDef.AtlasMap["DirtWithGrassSlope"];
+            var slopeGrassTextureRectangle = Global.AtlasMap["DirtWithGrassSlope"];
 
             // Found the slope grass texture - apply rotation based on slope rotation
             destinationTile.TileId = (int)TileType.DirtWithGrass;

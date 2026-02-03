@@ -468,19 +468,21 @@ namespace TileMaster.Map
                 targetTile.IsSlope = true;
                 targetTile.SlopeRotation = 0;
                 targetTile.Rotation = 0f;
-                var SlopeTextureRectangle = referenceTile.AtlasMap.FirstOrDefault(x => x.Key.Contains("Slope"));
+                
+                throw new NotImplementedException("Fix this");
+                //var SlopeTextureRectangle = referenceTile.AtlasMap.FirstOrDefault(x => x.Key.Contains("Slope"));
 
-                if (SlopeTextureRectangle.Key is not null)
-                {
-                    targetTile.SourceRectangle = SlopeTextureRectangle.Value;
-                    targetTile.TextureName = SlopeTextureRectangle.Key;
-                }
-                else
-                {
-                    // If no slope texture found, don't convert to slope
-                    targetTile.IsSlope = false;
-                    return;
-                }
+                //if (SlopeTextureRectangle.Key is not null)
+                //{
+                //    targetTile.SourceRectangle = SlopeTextureRectangle.Value;
+                //    targetTile.TextureName = SlopeTextureRectangle.Key;
+                //}
+                //else
+                //{
+                //    // If no slope texture found, don't convert to slope
+                //    targetTile.IsSlope = false;
+                //    return;
+                //}
             }
             else
             {
@@ -499,15 +501,9 @@ namespace TileMaster.Map
                     targetTile.SlopeRotation = 0;
                     targetTile.Rotation = 0f;
 
-                    if (referenceTile.AlternateTextures != null && referenceTile.AlternateTextures.Any() && referenceTile.AltTextures != null && referenceTile.AltTextures.Any())
-                    {
-                        var random = Game.rnd ?? new Random();
-                        targetTile.Texture = referenceTile.AltTextures[random.Next(referenceTile.AltTextures.Count)];
-                    }
-                    else
-                    {
-                        targetTile.Texture = referenceTile.Texture;
-                    }
+                    //TODO apply random for alternative tiles
+                    targetTile.Texture = referenceTile.Texture;
+
                     targetTile.TextureName = targetTile.Texture?.Name ?? "None";
                 }
             }
@@ -520,30 +516,11 @@ namespace TileMaster.Map
         public void SetTile(Tile targetTile, int referenceTileId, string textureName = null, float rotation = 0f)
         {
             var referenceTile = Global.ReferenceTiles[referenceTileId];
-            if (referenceTile.AtlasTexture is not null)
-            {
 
-                if (textureName is null)
-                {
-                    var random = Game.rnd ?? new Random();
-                    textureName = referenceTile.AlternateTextures[random.Next(referenceTile.AlternateTextures.Count)];
-                }
-                targetTile.SourceRectangle = referenceTile.AtlasMap[textureName];
-                targetTile.AtlasTexture = referenceTile.AtlasTexture;
-            }
-            else
-            {
-                if (referenceTile.AlternateTextures != null && referenceTile.AlternateTextures.Any() && referenceTile.AltTextures != null && referenceTile.AltTextures.Any())
-                {
-                    // Use a local random if Game instance is not available (headless tests)
-                    var random = Game.rnd ?? new Random();
-                    targetTile.Texture = referenceTile.AltTextures[random.Next(referenceTile.AltTextures.Count)];
-                }
-                else
-                {
-                    targetTile.Texture = referenceTile.Texture;
-                }
-            }
+            //TODO apply random for alternative tiles
+            targetTile.Texture = referenceTile.Texture;
+
+
 
             targetTile.Name = ((TileType)referenceTileId).ToString();
             targetTile.TextureName = targetTile.Texture?.Name ?? targetTile.TextureName;
@@ -614,14 +591,10 @@ namespace TileMaster.Map
         {
             var referenceTile = Global.ReferenceTiles.FirstOrDefault(x => x.TileId == referenceTileId);
 
-            if (referenceTile.AlternateTextures.Any())
-            {
-                targetTile.Texture = referenceTile.AltTextures[Game.rnd.Next(referenceTile.AltTextures.Count)];
-            }
-            else
-            {
-                targetTile.Texture = referenceTile.Texture;
-            }
+
+            //TODO apply random for alternative tiles
+            targetTile.Texture = referenceTile.Texture;
+
 
             targetTile.Name = ((TileType)referenceTileId).ToString();
             targetTile.TextureName = targetTile.Texture?.Name ?? "None";

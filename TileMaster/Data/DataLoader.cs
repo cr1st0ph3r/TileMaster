@@ -5,7 +5,6 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using TileMaster.Entity;
 using TileMaster.Entity.Tiles;
 using TileMaster.Model;
@@ -36,51 +35,9 @@ namespace TileMaster.Data
             {
                 try
                 {
-                    
-                    tile.Textures = new List<Texture2D>();
-                    tile.AltTextures = new List<Texture2D>();
-               
-                    if(tile.Atlas != null)
-                    {
-                        tile.AtlasTexture = content.Load<Texture2D>($"{tilePath}/{tile.Name}/{tile.Atlas}");
-                        
-                        // Populate AtlasMap with sub-tile names and their rectangles
-                        // Assuming a standard grid for now where each sub-texture in the list corresponds to a slot in the atlas
-                        // DirtWithGrass has 21 sub-tiles in TileSet + slope
-                        int x = 0;
-                        int y = 0;
-                        int tileSize = Global.TileSize;
-                        
-                        var combined = tile.TileSet.Concat(tile.AlternateTextures).ToList();
-                        if (combined != null)
-                        {
-                            foreach (var tex in combined.OrderBy(t => NaturalSortKey(t)))
-                            {
-                                if (tex != null)
-                                {
-                                    tile.AtlasMap[tex] = new Rectangle(x * tileSize, y * tileSize, tileSize, tileSize);
-                                    x++;
-                                    if (x * tileSize >= tile.AtlasTexture.Width)
-                                    {
-                                        x = 0;
-                                        y++;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        tile.Texture = content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{tile.TextureName}");
-                        foreach (var subTiles in tile.TileSet)
-                        {
-                            tile.Textures.Add(content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{subTiles}"));
-                        }
-                        foreach (var alt in tile.AlternateTextures)
-                        {
-                            tile.AltTextures.Add(content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{alt}"));
-                        }
-                    }
+                    //we shall not store the texture on the reference tiles
+                    //tile.Texture = content.Load<Texture2D>($"{tilePath}/{tile.TextureName}/{tile.TextureName}");
+
                 }
                 catch (ContentLoadException exc)
                 {
@@ -89,12 +46,6 @@ namespace TileMaster.Data
                 }
             }
             return Tiles;
-        }
-        // Natural sort key: zero-pad numeric runs so lexicographic comparison matches numeric order.
-        // Example: "file2" -> "file0000000002", "file10" -> "file0000000010"
-        private static string NaturalSortKey(string s)
-        {
-            return Regex.Replace(s ?? string.Empty, @"\d+", m => m.Value.PadLeft(10, '0'));
         }
 
         /// <summary>
@@ -122,7 +73,7 @@ namespace TileMaster.Data
                     if (item.IsTile)
                     {
                         item.Texture = Global.ReferenceTiles[item.TileId].Texture;
-                        
+
                         // Sync hardness from item to reference tile if provided in Items.json
                         if (item.Hardness != 100)
                         {
@@ -151,7 +102,11 @@ namespace TileMaster.Data
             return items;
         }
 
-
+        /// <summary>
+        /// Loads a list of reference mob definitions from the data source.
+        /// </summary>
+        /// <param name="content">The content manager to use for loading additional resources, or null if no content loading is required.</param>
+        /// <returns>A list of reference mobs loaded from the data source. The list may be empty if no mobs are defined.</returns>
         public static List<ReferenceMob> LoadMobs(ContentManager content)
         {
             var json = System.IO.File.ReadAllText(Global.MobsDataLocation);
@@ -161,8 +116,43 @@ namespace TileMaster.Data
             {
                 return mobs;
             }
-             
+
             return mobs;
+        }
+
+        /// <summary>
+        /// Loads tile map data from the file specified by the global tile map data location and constructs a dictionary
+        /// mapping tile names to their corresponding rectangle data.
+        /// </summary>
+        /// <remarks>The method reads and deserializes tile map data from the file path specified by <see
+        /// cref="Global.TileMapDataLocation"/>. Each tile entry is mapped by its name. If a tile has alternative
+        /// rectangles defined, they are included in the <see cref="RectangleData.AlternativeRectangles"/> property. The
+        /// method will throw an exception if the file cannot be read or the data is invalid.</remarks>
+        /// <returns>A dictionary where each key is a tile name and each value is a <see cref="RectangleData"/> representing the
+        /// tile's rectangle and any alternative rectangles. The dictionary will be empty if no tile data is found.</returns>
+        public static Dictionary<string, RectangleData> LoadTileMap()
+        {
+            var tileMap = new Dictionary<string, RectangleData>();
+            var json = System.IO.File.ReadAllText(Global.TileMapDataLocation);
+            var tilemap = JsonConvert.DeserializeObject<List<TileMap>>(json);
+
+            foreach (var tile in tilemap)
+            {
+                var rectData = new RectangleData() { Rectangle = new Rectangle(tile.X * Global.TileSize, tile.Y * Global.TileSize, Global.TileSize, Global.TileSize) };
+                if (tile.Alt is not null && tile.Alt.Length > 0)
+                {
+                    rectData.AlternativeRectangles = new List<Rectangle>();
+                    foreach (var item in tile.Alt)
+                    {
+                        var altTile = tilemap.FirstOrDefault(x=>x.Id==item);
+
+                        rectData.AlternativeRectangles.Add(new Rectangle(altTile.X * Global.TileSize, altTile.Y * Global.TileSize, Global.TileSize, Global.TileSize));
+                    }
+                }
+                tileMap.Add(tile.Name,rectData);
+            }
+
+            return tileMap;
         }
     }
 }

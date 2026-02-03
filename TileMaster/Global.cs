@@ -111,7 +111,8 @@ namespace TileMaster
         public static List<ReferenceTile> ReferenceTiles { get; set; } = new List<ReferenceTile>();
         public static List<Item> ReferenceItems { get; set; } = new List<Item>();
         public static List<ReferenceMob> ReferenceMobs { get; set; } = new List<ReferenceMob>();
-          
+        public static Dictionary<string, RectangleData> AtlasMap { get; set; } = new Dictionary<string, RectangleData>();
+        public static Texture2D Atlas { get; set; }
         public static bool UseAlternateTiles = true;
 
         //Files and folders locations
@@ -119,6 +120,7 @@ namespace TileMaster
         public static readonly string TileDataLocation = @"Data\Tiles.json";
         public static readonly string ItemsDataLocation = @"Data\Items.json";
         public static readonly string MobsDataLocation = @"Data\Mobs.json";
+        public static readonly string TileMapDataLocation = @"Data\TileMap.json";
         public static readonly string UIIconsLocation = @"content\UI\";
         public static InventoryItem HeldItem { get; set; }
     }

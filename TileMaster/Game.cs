@@ -181,6 +181,9 @@ namespace TileMaster
             Global.ReferenceItems = DataLoader.LoadItems(Content);
             //load mob data
             Global.ReferenceMobs = DataLoader.LoadMobs(Content);
+            //load atlas map
+            Global.AtlasMap = DataLoader.LoadTileMap();
+            Global.Atlas = Content.Load<Texture2D>("Atlas");
 
             DamageNumberManager = new DamageNumberManager();
             PickupManager = new PickupManager(this);

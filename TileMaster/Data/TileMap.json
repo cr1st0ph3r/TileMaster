@@ -1,0 +1,180 @@
+[
+  {
+    "Id": 1,
+    "Name": "Dirt1",
+    "X": 0,
+    "Y": 0,
+    "Alt": [ 2, 3, 4 ]
+  },
+  {
+    "Id": 2,
+    "Name": "Dirt2",
+    "X": 1,
+    "Y": 0,
+    "Alt": [ 1, 3, 4 ]
+  },
+  {
+    "Id": 3,
+    "Name": "Dirt3",
+    "X": 2,
+    "Y": 0,
+    "Alt": [ 1, 2, 4 ]
+  },
+  {
+    "Id": 4,
+    "Name": "Dirt4",
+    "X": 3,
+    "Y": 0,
+    "Alt": [ 1, 2, 3 ]
+  },
+  {
+    "Id": 5,
+    "Name": "DirtSlope",
+    "X": 4,
+    "Y": 0
+  },
+  {
+    "Id": 6,
+    "Name": "DirtWithGrass1",
+    "X": 5,
+    "Y": 0
+  },
+  {
+    "Id": 7,
+    "Name": "DirtWithGrass2",
+    "X": 0,
+    "Y": 1
+  },
+  {
+    "Id": 8,
+    "Name": "DirtWithGrass3",
+    "X": 1,
+    "Y": 1
+  },
+  {
+    "Id": 9,
+    "Name": "DirtWithGrass4",
+    "X": 2,
+    "Y": 1
+  },
+  {
+    "Id": 10,
+    "Name": "DirtWithGrass5",
+    "X": 3,
+    "Y": 1
+  },
+  {
+    "Id": 11,
+    "Name": "DirtWithGrass6",
+    "X": 4,
+    "Y": 1
+  },
+  {
+    "Id": 12,
+    "Name": "DirtWithGrass7",
+    "X": 5,
+    "Y": 1
+  },
+  {
+    "Id": 13,
+    "Name": "DirtWithGrass8",
+    "X": 0,
+    "Y": 2
+  },
+  {
+    "Id": 14,
+    "Name": "DirtWithGrass9",
+    "X": 1,
+    "Y": 2
+  },
+  {
+    "Id": 15,
+    "Name": "DirtWithGrassSlope",
+    "X": 2,
+    "Y": 2
+  },
+  {
+    "Id": 16,
+    "Name": "Granite1",
+    "X": 3,
+    "Y": 2
+  },
+  {
+    "Id": 17,
+    "Name": "Stalactite1",
+    "X": 4,
+    "Y": 2
+  },
+  {
+    "Id": 18,
+    "Name": "Stalactite2",
+    "X": 5,
+    "Y": 2
+  },
+  {
+    "Id": 19,
+    "Name": "Stone1",
+    "X": 0,
+    "Y": 3
+  },
+  {
+    "Id": 20,
+    "Name": "Stone2",
+    "X": 1,
+    "Y": 3
+  },
+  {
+    "Id": 21,
+    "Name": "Stone3",
+    "X": 2,
+    "Y": 3
+  },
+  {
+    "Id": 22,
+    "Name": "TallGrass",
+    "X": 3,
+    "Y": 3
+  },
+  {
+    "Id": 23,
+    "Name": "TallGrass1",
+    "X": 4,
+    "Y": 3
+  },
+  {
+    "Id": 24,
+    "Name": "TallGrass2",
+    "X": 5,
+    "Y": 3
+  },
+  {
+    "Id": 25,
+    "Name": "TallGrass3",
+    "X": 0,
+    "Y": 4
+  },
+  {
+    "Id": 26,
+    "Name": "TallGrass4",
+    "X": 1,
+    "Y": 4
+  },
+  {
+    "Id": 27,
+    "Name": "TreeLeaf1",
+    "X": 2,
+    "Y": 4
+  },
+  {
+    "Id": 28,
+    "Name": "TreeTrunk1",
+    "X": 3,
+    "Y": 4
+  },
+  {
+    "Id": 29,
+    "Name": "Water1",
+    "X": 4,
+    "Y": 4
+  }
+]
