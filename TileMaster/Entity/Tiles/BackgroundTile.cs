@@ -1,6 +1,5 @@
 using System;
 using Microsoft.Xna.Framework;
-using System.Linq;
 
 namespace TileMaster.Entity.Tiles
 {
@@ -21,14 +20,9 @@ namespace TileMaster.Entity.Tiles
             // neighboringTiles = tileRef.neighboringTiles; // Might not need this for background
             Name = tileType.Name;
             TileId = tileType.TileId;
-
             // Texture Logic
-
             //random???
             Texture = tileType.Texture;
-
-
-
             TextureId = tileType.TextureId;
             TextureName = tileRef.TextureName;
             LocalId = tileRef.LocalId;

@@ -21,7 +21,7 @@ namespace TileMaster.UI
         PlayerInventoryWindow inventoryWindow;
         private CraftingWindow _craftingWindow;
         private ContainerInventoryWindow _containerInventoryWindow;
-        private Panel ItemInfoPanel;
+        private readonly Panel ItemInfoPanel;
         public Panel ActionBarPanel;
         public static CommonComponents CommonComponents = new CommonComponents();
         private int selectedIndex = 0;

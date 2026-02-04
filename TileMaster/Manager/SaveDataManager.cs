@@ -521,6 +521,7 @@ namespace TileMaster.Manager
                             Height = templateItem.Height,
                             ToolPower = templateItem.ToolPower,
                             IsTool = templateItem.IsTool,
+                            UIIcon = templateItem.UIIcon,
                         };
 
                         if (itemLightColor.HasValue) newItem.LightColor = itemLightColor;

@@ -516,14 +516,9 @@ namespace TileMaster.Map
         public void SetTile(Tile targetTile, int referenceTileId, string textureName = null, float rotation = 0f)
         {
             var referenceTile = Global.ReferenceTiles[referenceTileId];
-
-            //TODO apply random for alternative tiles
-            targetTile.Texture = referenceTile.Texture;
-
-
-
             targetTile.Name = ((TileType)referenceTileId).ToString();
-            targetTile.TextureName = targetTile.Texture?.Name ?? targetTile.TextureName;
+            targetTile.SourceRectangle = GetSourceRectangle(referenceTile.TextureName);
+            targetTile.TextureName = referenceTile.TextureName;
             targetTile.TileId = referenceTileId;
             targetTile.IsOccupied = referenceTile.IsOccupied;
             targetTile.IsSolid = referenceTile.IsSolid;
@@ -542,6 +537,16 @@ namespace TileMaster.Map
                 }
             }
             AddTileToModificationTracker(targetTile);
+        }
+
+        Rectangle GetSourceRectangle(string name)
+        {
+            var rectangleData = Global.AtlasMap[name];
+            if (rectangleData.HaveAlternativeData)
+            {
+                return rectangleData.AlternativeRectangles[new Random().Next(0, rectangleData.AlternativeRectangles.Count)];
+            }
+            return rectangleData.Rectangle;
         }
         /// <summary>
         /// Set a tile as air (empty)
@@ -563,18 +568,7 @@ namespace TileMaster.Map
             Chunks[targetTile.ChunkId].HasBeenModified = true;
             AddTileToModificationTracker(targetTile);
         }
-        public void SetTile(Tile targetTile, Texture2D texture = default, float rotation = 0f)
-        {
-            targetTile.Texture = texture;
-            targetTile.TextureName = targetTile.Texture?.Name ?? "None";
-            targetTile.Rotation = rotation;
-            var chunk = GetChunk(targetTile.ChunkId);
-            if (chunk != null)
-            {
-                chunk.NeedUpdate = true;
-                chunk.HasBeenModified = true;
-            }
-        }
+ 
         /// <summary>
         /// Sets a background tile at a given global ID
         /// </summary>

@@ -3,14 +3,12 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace TileMaster.Entity.Tiles
 {
     [Serializable]
     public abstract class Tile : BaseTile
     {
-
         public Texture2D Texture { get; set; }
         public Rectangle Rectangle { get; set; }
         public Item PlacedItem { get; set; }
@@ -21,6 +19,9 @@ namespace TileMaster.Entity.Tiles
         /// </summary>
         public Color? ColorFilter { get; set; } = null;
 
+        /// <summary>
+        /// Provides a case-insensitive mapping of color names to their corresponding <see cref="Color"/> values.
+        /// </summary>
         private static Dictionary<string, Color> _colorTable = new Dictionary<string, Color>(StringComparer.OrdinalIgnoreCase);
 
         public void Draw(SpriteBatch spriteBatch)
@@ -108,6 +109,7 @@ namespace TileMaster.Entity.Tiles
             }
             //temporary fix
             //add number to txturename that does not end with number
+            //TODO fix
             if (!char.IsDigit(TextureName[TextureName.Length - 1]))
             {
                 TextureName += "1";
