@@ -149,6 +149,7 @@ namespace TileMaster.Data
                         rectData.AlternativeRectangles.Add(new Rectangle(altTile.X * Global.TileSize, altTile.Y * Global.TileSize, Global.TileSize, Global.TileSize));
                     }
                 }
+                rectData.TextureId = tile.Id;
                 tileMap.Add(tile.Name,rectData);
             }
 

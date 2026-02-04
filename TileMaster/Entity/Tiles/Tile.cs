@@ -98,22 +98,8 @@ namespace TileMaster.Entity.Tiles
             var refTile = Global.ReferenceTiles[(int)TileId];
 
             if (IsSlope)
-            {
-                //if (refTile.Textures != null)
-                //{
-                //    var slopeTexture = refTile.Textures.FirstOrDefault(x => x != null && x.Name != null && x.Name.EndsWith("Slope"));
-                //    if (slopeTexture != null)
-                //    {
-                //        Texture = slopeTexture;
-                //        TextureName = slopeTexture.Name;
-                //        if (AtlasTexture != null && refTile.AtlasMap.TryGetValue(TextureName, out var rect))
-                //        {
-                //            SourceRectangle = rect;
-                //        }
-                //        return;
-                //    }
-                //}
-                SourceRectangle = Global.AtlasMap[TextureName].Rectangle;
+            {            
+                SourceRectangle = Global.AtlasMap.FirstOrDefault(x=>x.Value.TextureId==TextureId).Value.Rectangle;
                 return;
             }
             if (TextureName == "Air")

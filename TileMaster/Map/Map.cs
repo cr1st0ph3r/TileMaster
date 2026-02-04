@@ -469,20 +469,20 @@ namespace TileMaster.Map
                 targetTile.SlopeRotation = 0;
                 targetTile.Rotation = 0f;
                 
-                throw new NotImplementedException("Fix this");
-                //var SlopeTextureRectangle = referenceTile.AtlasMap.FirstOrDefault(x => x.Key.Contains("Slope"));
+                var SlopeTextureRectangle = Global.AtlasMap.FirstOrDefault(x => x.Key.StartsWith(targetTile.Name) && x.Key.EndsWith("Slope"));
 
-                //if (SlopeTextureRectangle.Key is not null)
-                //{
-                //    targetTile.SourceRectangle = SlopeTextureRectangle.Value;
-                //    targetTile.TextureName = SlopeTextureRectangle.Key;
-                //}
-                //else
-                //{
-                //    // If no slope texture found, don't convert to slope
-                //    targetTile.IsSlope = false;
-                //    return;
-                //}
+                if (SlopeTextureRectangle.Key is not null)
+                {
+                    targetTile.SourceRectangle = SlopeTextureRectangle.Value.Rectangle;
+                    targetTile.TextureName = SlopeTextureRectangle.Key;
+                    targetTile.TextureId = SlopeTextureRectangle.Value.TextureId;
+                }
+                else
+                {
+                    // If no slope texture found, don't convert to slope
+                    targetTile.IsSlope = false;
+                    return;
+                }
             }
             else
             {
@@ -558,6 +558,7 @@ namespace TileMaster.Map
             targetTile.Rotation = 0;
             targetTile.Hardness = referenceTile.Hardness;
             targetTile.MiningProgress = 0;
+            targetTile.IsSlope = false;
             Chunks[targetTile.ChunkId].NeedUpdate = true;
             Chunks[targetTile.ChunkId].HasBeenModified = true;
             AddTileToModificationTracker(targetTile);

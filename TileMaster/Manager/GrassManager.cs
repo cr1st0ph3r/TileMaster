@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using TileMaster.Entity.Enums;
 using TileMaster.Entity.Tiles;
 
@@ -234,14 +235,14 @@ namespace TileMaster.Manager
                 else
                 {
                     //tile might not have any contact with air
-                    //set back to dirt
-                    // Mapping the mask value to "TileX" naming convention                
+                    //set back to dirt              
                     var dirtDef = Global.ReferenceTiles[(int)TileType.Dirt];
                     destinationTile.SourceRectangle = Global.AtlasMap[dirtDef.TextureName].Rectangle;
                     destinationTile.TextureId = mask;
                     destinationTile.TileId = (int)TileType.Dirt;
                     destinationTile.TextureName = dirtDef.TextureName;
                     destinationTile.Rotation = 0;
+                    destinationTile.Name = dirtDef.Name;
                     return false;
                 }
             }
@@ -250,6 +251,7 @@ namespace TileMaster.Manager
                 (var textureName, var rotation) = getTextureNameForMask(mask);
                 var grassDef = Global.ReferenceTiles[(int)TileType.DirtWithGrass];
                 var grassTile = Global.AtlasMap[textureName];
+                destinationTile.Name = grassDef.Name;
                 destinationTile.SourceRectangle = grassTile.Rectangle;
                 destinationTile.TextureId = mask;
                 destinationTile.TileId = (int)TileType.DirtWithGrass;
@@ -257,9 +259,7 @@ namespace TileMaster.Manager
                 destinationTile.Rotation = Microsoft.Xna.Framework.MathHelper.ToRadians(rotation);
                 return true;
             }
-
-        }
-
+        } 
 
         /// <summary>
         /// Performs a check to see if the tile is already set to the correct grass texture and rotation
@@ -277,6 +277,7 @@ namespace TileMaster.Manager
             }
             return false;
         }
+     
         /// <summary>
         /// Retrieves the texture name and rotation angle associated with the specified grass mask value.
         /// </summary>
