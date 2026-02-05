@@ -1,4 +1,4 @@
-﻿namespace TileMaster.Data
+﻿namespace TileMaster.Model
 {
     public class TileMap
     {

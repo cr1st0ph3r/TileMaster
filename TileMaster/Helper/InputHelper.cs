@@ -71,9 +71,9 @@ namespace TileMaster.Helper
                 string direction = gx > player.GridX ? "right" : (gx < player.GridX ? "left" : "right");
                 var tile = map.GetTileByGlobalId(globalId);
 
-// if tile is missing, preserve previous behavior and allow falling
+                // if tile is missing, chunk is likely not loaded yet. return false to prevent falling into the void
                 if (tile == null)
-                    return true;
+                    return false;
 
                 if (!tile.IsOccupied)
                     continue;

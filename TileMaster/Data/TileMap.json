@@ -103,13 +103,15 @@
     "Id": 17,
     "Name": "Stalactite1",
     "X": 4,
-    "Y": 2
+    "Y": 2,
+    "Alt": [ 18 ]
   },
   {
     "Id": 18,
     "Name": "Stalactite2",
     "X": 5,
-    "Y": 2
+    "Y": 2,
+    "Alt": [ 17 ]
   },
   {
     "Id": 19,
@@ -179,6 +181,12 @@
     "Id": 29,
     "Name": "Water1",
     "X": 4,
+    "Y": 4
+  },
+  {
+    "Id": 30,
+    "Name": "Stalagmite1",
+    "X": 5,
     "Y": 4
   }
 ]

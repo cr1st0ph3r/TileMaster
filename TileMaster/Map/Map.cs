@@ -541,6 +541,11 @@ namespace TileMaster.Map
 
         Rectangle GetSourceRectangle(string name)
         {
+            //TODO fix this
+            if (!char.IsDigit(name[name.Length - 1]))
+            {
+                name += "1";
+            }
             var rectangleData = Global.AtlasMap[name];
             if (rectangleData.HaveAlternativeData)
             {

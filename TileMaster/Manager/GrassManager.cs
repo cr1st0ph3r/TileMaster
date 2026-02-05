@@ -161,7 +161,7 @@ namespace TileMaster.Manager
                 var tileBelow = map.GetTileAt(tile.X, tile.Y + 1);
                 if (tileBelow == null || tileBelow.TileId != (int)TileType.DirtWithGrass)
                 {
-                    map.SetTile(tile, (int)TileType.Air);
+                    map.SetTileAsAir(tile);
                     chunk.NeedUpdate = true;
                 }
             }

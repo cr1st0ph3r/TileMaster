@@ -833,7 +833,8 @@ namespace TileMaster
         public void GenericAction()
         {
             //map.GrowGrass(player.onChunk);
-            FeatureGenerator.GrowTree(map, player.OnChunk, player.OnBlock);
+            //FeatureGenerator.GrowTree(map, player.OnChunk, player.OnBlock);
+            map.SetTile(cursorOnChunk, mouseIsOverBlock, 9);
         }
         private void OnScrollWheelChanged(int delta)
         {
