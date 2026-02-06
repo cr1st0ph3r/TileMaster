@@ -11,6 +11,7 @@
         TreeLeaf = 6,
         TallGrass = 7,
         Water = 8,
-        Stalactite = 9
+        Stalactite = 9,
+        Stalagmite = 10
     }
 }

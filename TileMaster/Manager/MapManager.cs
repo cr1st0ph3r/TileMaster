@@ -276,6 +276,9 @@ namespace TileMaster.Manager
             MapDictionary = GenerateMapDictionary(initialArrayMap);
             ImageHelper.SaveMapDictionaryAsImage(MapDictionary, "GeneratedMap.png");
             BackgroundMapDictionary = GenerateMapDictionary(backgroundArrayMap);
+            
+            gameInstance._mainPanel.InitializeLoadProgress("Decorating map");
+            WorldDecorator.DecorateCaves(MapDictionary);
 
             gameInstance._mainPanel.InitializeLoadProgress("Generating chunks");
             ToChunks();
